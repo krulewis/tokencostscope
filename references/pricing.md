@@ -1,6 +1,6 @@
 # Claude API Pricing Reference
 
-last_updated: 2026-03-03
+last_updated: 2026-03-04
 staleness_warning_days: 90
 
 Prices are per 1,000,000 tokens (per-million). Verify at https://anthropic.com/pricing before relying on estimates.
@@ -14,16 +14,16 @@ Prices are per 1,000,000 tokens (per-million). Verify at https://anthropic.com/p
 - output:      $15.00
 
 ### claude-opus-4-6 (Architect, Staff Review, L-size Implementation)
-- input:       $15.00
-- cache_read:  $1.50
-- cache_write: $18.75
-- output:      $75.00
+- input:       $5.00
+- cache_read:  $0.50
+- cache_write: $6.25
+- output:      $25.00
 
 ### claude-haiku-4-5 (QA, mechanical tasks)
-- input:       $0.80
-- cache_read:  $0.08
-- cache_write: $1.00
-- output:      $4.00
+- input:       $1.00
+- cache_read:  $0.10
+- cache_write: $1.25
+- output:      $5.00
 
 ## Pipeline Step → Model Mapping
 
