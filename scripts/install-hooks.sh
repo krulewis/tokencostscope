@@ -46,10 +46,26 @@ fi
 ln -s "$SKILL_SOURCE" "$SKILL_DEST"
 echo "  Symlinked skill: $SKILL_DEST -> $SKILL_SOURCE"
 
-# 2. Ensure calibration directory exists
+# 2. Install slash commands
+COMMANDS_DIR="$CLAUDE_DIR/commands"
+mkdir -p "$COMMANDS_DIR"
+COMMANDS_SOURCE="$SKILL_SOURCE/commands"
+if [ -d "$COMMANDS_SOURCE" ]; then
+    for cmd in "$COMMANDS_SOURCE"/*.md; do
+        [ -f "$cmd" ] || continue
+        cmd_name="$(basename "$cmd")"
+        cmd_dest="$COMMANDS_DIR/$cmd_name"
+        if [ ! -e "$cmd_dest" ]; then
+            ln -s "$cmd" "$cmd_dest"
+            echo "  Symlinked command: $cmd_dest"
+        fi
+    done
+fi
+
+# 3. Ensure calibration directory exists
 mkdir -p "$SKILL_SOURCE/calibration"
 
-# 3. Merge hooks into project settings.json
+# 4. Merge hooks into project settings.json
 mkdir -p "$CLAUDE_DIR"
 
 if [ ! -f "$SETTINGS_FILE" ]; then
@@ -93,7 +109,7 @@ with open(settings_path, "w") as f:
 print(f"  Hooks merged into {settings_path}")
 PYEOF
 
-# 4. Make scripts executable
+# 5. Make scripts executable
 chmod +x "$LEARN_SCRIPT" "$TRACK_SCRIPT"
 
 echo ""

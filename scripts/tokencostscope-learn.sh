@@ -10,6 +10,13 @@
 
 set -euo pipefail
 
+VERSION="1.1.0"
+
+if [ "${1:-}" = "--version" ]; then
+    echo "tokencostscope $VERSION"
+    exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 CALIBRATION_DIR="$SKILL_DIR/calibration"

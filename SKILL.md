@@ -1,5 +1,6 @@
 ---
 name: tokencostscope
+version: 1.1.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -143,7 +144,7 @@ Write calibration/active-estimate.json:
 ## Output Template
 
 ```
-## costscope estimate
+## costscope estimate (v1.1.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)
