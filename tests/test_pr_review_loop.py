@@ -102,28 +102,37 @@ class TestBaseCycleCost:
 # ---------------------------------------------------------------------------
 
 class TestBandCycleCounts:
-    """Tests for band-specific N values."""
+    """Tests that band-specific cycle counts produce correct decay sums."""
+
+    C = 1.0214
 
     def test_default_review_cycles_2(self):
-        """Default review_cycles=2 → Opt=1, Exp=2, Pess=4."""
-        review_cycles = 2
-        assert 1 == 1  # Optimistic always 1
-        assert review_cycles == 2
-        assert review_cycles * 2 == 4
+        """review_cycles=2 → Opt(1)=$1.02, Exp(2)=$1.63, Pess(4)=$2.22."""
+        opt = decay_sum(self.C, 1)
+        exp = decay_sum(self.C, 2)
+        pes = decay_sum(self.C, 4)
+        assert abs(opt - 1.0214) < 0.001
+        assert abs(exp - 1.6342) < 0.001
+        assert abs(pes - 2.2226) < 0.001
+        assert opt < exp < pes
 
     def test_review_cycles_3(self):
-        """review_cycles=3 → Opt=1, Exp=3, Pess=6."""
-        review_cycles = 3
-        assert 1 == 1
-        assert review_cycles == 3
-        assert review_cycles * 2 == 6
+        """review_cycles=3 → Opt(1), Exp(3), Pess(6)."""
+        opt = decay_sum(self.C, 1)
+        exp = decay_sum(self.C, 3)
+        pes = decay_sum(self.C, 6)
+        assert abs(opt - 1.0214) < 0.001
+        assert opt < exp < pes
+        # 6 cycles should be close to but not exceed the series limit (C×2.5)
+        assert pes < self.C * 2.5
 
     def test_review_cycles_1(self):
-        """review_cycles=1 → Opt=1, Exp=1, Pess=2."""
-        review_cycles = 1
-        assert 1 == 1
-        assert review_cycles == 1
-        assert review_cycles * 2 == 2
+        """review_cycles=1 → Opt(1)=Exp(1), Pess(2)."""
+        opt = decay_sum(self.C, 1)
+        exp = decay_sum(self.C, 1)
+        pes = decay_sum(self.C, 2)
+        assert abs(opt - exp) < 0.0001  # Same cycle count
+        assert pes > exp
 
 
 # ---------------------------------------------------------------------------
@@ -131,33 +140,44 @@ class TestBandCycleCounts:
 # ---------------------------------------------------------------------------
 
 class TestReviewLoopWithCalibration:
-    """Tests for calibration applied to the review loop row (Finding #3)."""
+    """Tests for independent per-band calibration on the review loop row."""
 
     C = 1.0214  # From examples.md
 
     def test_calibration_factor_1(self):
         """No calibration (factor=1.0) — raw values unchanged."""
         factor = 1.0
-        raw_expected = decay_sum(self.C, 2)
-        calibrated_expected = raw_expected * factor
-        calibrated_optimistic = calibrated_expected * 0.6
-        calibrated_pessimistic = calibrated_expected * 3.0
+        raw_opt = decay_sum(self.C, 1)
+        raw_exp = decay_sum(self.C, 2)
+        raw_pes = decay_sum(self.C, 4)
 
-        assert abs(calibrated_expected - raw_expected) < 0.0001
-        assert abs(calibrated_optimistic - raw_expected * 0.6) < 0.0001
-        assert abs(calibrated_pessimistic - raw_expected * 3.0) < 0.0001
+        cal_opt = raw_opt * factor
+        cal_exp = raw_exp * factor
+        cal_pes = raw_pes * factor
+
+        assert abs(cal_opt - raw_opt) < 0.0001
+        assert abs(cal_exp - raw_exp) < 0.0001
+        assert abs(cal_pes - raw_pes) < 0.0001
 
     def test_calibration_factor_1_2(self):
-        """Calibration factor=1.2 scales all bands."""
+        """Calibration factor=1.2 scales each band independently."""
         factor = 1.2
-        raw_expected = decay_sum(self.C, 2)
-        calibrated_expected = raw_expected * factor
-        calibrated_optimistic = calibrated_expected * 0.6
-        calibrated_pessimistic = calibrated_expected * 3.0
+        raw_opt = decay_sum(self.C, 1)
+        raw_exp = decay_sum(self.C, 2)
+        raw_pes = decay_sum(self.C, 4)
 
-        assert abs(calibrated_expected - raw_expected * 1.2) < 0.0001
-        assert abs(calibrated_optimistic - calibrated_expected * 0.6) < 0.0001
-        assert abs(calibrated_pessimistic - calibrated_expected * 3.0) < 0.0001
+        cal_opt = raw_opt * factor
+        cal_exp = raw_exp * factor
+        cal_pes = raw_pes * factor
+
+        # Each band scaled independently — NOT re-anchored as ratios of Expected
+        assert abs(cal_opt - raw_opt * 1.2) < 0.0001
+        assert abs(cal_exp - raw_exp * 1.2) < 0.0001
+        assert abs(cal_pes - raw_pes * 1.2) < 0.0001
+
+        # Verify the ratios between bands are preserved (not 0.6x/3.0x)
+        assert abs(cal_opt / cal_exp - raw_opt / raw_exp) < 0.0001
+        assert abs(cal_pes / cal_exp - raw_pes / raw_exp) < 0.0001
 
 
 # ---------------------------------------------------------------------------
@@ -187,15 +207,19 @@ class TestWorkedExample:
         assert abs(result - expected) < 0.0001
 
     def test_calibrated_bands_factor_1(self):
-        """With factor=1.0, calibrated expected = raw expected."""
-        raw_exp = decay_sum(self.C, 2)
-        cal_exp = raw_exp * 1.0
-        cal_opt = cal_exp * 0.6
-        cal_pes = cal_exp * 3.0
+        """With factor=1.0, calibrated values equal raw decay values per band."""
+        factor = 1.0
+        raw_opt = decay_sum(self.C, 1)   # 1 cycle
+        raw_exp = decay_sum(self.C, 2)   # 2 cycles
+        raw_pes = decay_sum(self.C, 4)   # 4 cycles
 
-        assert abs(cal_opt - 0.9805) < 0.001
+        cal_opt = raw_opt * factor
+        cal_exp = raw_exp * factor
+        cal_pes = raw_pes * factor
+
+        assert abs(cal_opt - 1.0214) < 0.001
         assert abs(cal_exp - 1.6342) < 0.001
-        assert abs(cal_pes - 4.9027) < 0.001
+        assert abs(cal_pes - 2.2226) < 0.001
 
 
 # ---------------------------------------------------------------------------
@@ -259,17 +283,18 @@ class TestLearnScript:
             }
             jsonl_file.write_text(json.dumps(msg) + "\n")
 
-            # We can't easily run learn.sh with a fake HOME, but we can
-            # verify the Python parsing logic extracts review_cycles_estimated
+            # Verify the Python parsing logic extracts review_cycles_estimated
+            # Uses env var for path to avoid f-string injection
             parse_result = subprocess.run(
-                ["python3", "-c", f"""
-import json, shlex, os
-with open('{estimate_file}') as f:
+                ["python3", "-c", """
+import json, os
+with open(os.environ['EST_FILE']) as f:
     d = json.load(f)
 rc = d.get('review_cycles_estimated', 0)
-print(f'REVIEW_CYCLES={{rc}}')
+print(f'REVIEW_CYCLES={rc}')
 """],
-                capture_output=True, text=True
+                capture_output=True, text=True,
+                env={**os.environ, "EST_FILE": str(estimate_file)},
             )
             assert parse_result.returncode == 0
             assert "REVIEW_CYCLES=2" in parse_result.stdout
@@ -287,14 +312,15 @@ print(f'REVIEW_CYCLES={{rc}}')
             estimate_file.write_text(json.dumps(estimate))
 
             parse_result = subprocess.run(
-                ["python3", "-c", f"""
-import json
-with open('{estimate_file}') as f:
+                ["python3", "-c", """
+import json, os
+with open(os.environ['EST_FILE']) as f:
     d = json.load(f)
 rc = d.get('review_cycles_estimated', 0)
-print(f'REVIEW_CYCLES={{rc}}')
+print(f'REVIEW_CYCLES={rc}')
 """],
-                capture_output=True, text=True
+                capture_output=True, text=True,
+                env={**os.environ, "EST_FILE": str(estimate_file)},
             )
             assert parse_result.returncode == 0
             assert "REVIEW_CYCLES=0" in parse_result.stdout

@@ -318,16 +318,18 @@ review_loop_cost = $1.0214 × (1 − 0.6^4) / 0.4
 ```
 
 **Calibration (factor = 1.0, no prior data):**
+
+Unlike other steps, the PR Review Loop applies calibration independently to each band
+to preserve the decay model's per-band cycle counts:
 ```
+calibrated_optimistic  = $1.0214 × 1.0 = $1.0214
 calibrated_expected    = $1.6342 × 1.0 = $1.6342
-calibrated_optimistic  = $1.6342 × 0.6 = $0.9805
-calibrated_pessimistic = $1.6342 × 3.0 = $4.9027
+calibrated_pessimistic = $2.2226 × 1.0 = $2.2226
 ```
 
-Note: With factor=1.0 the calibrated values equal the re-anchored bands. The calibrated
-optimistic ($0.9805) and pessimistic ($4.9027) differ from the raw formula values
-($1.0214 and $2.2226) because calibration re-anchors all bands around the calibrated
-Expected center, not the raw per-band values.
+With factor=1.0, calibrated values equal the raw decay values.
+
+Note: Totals are computed from full-precision values, not displayed (rounded) values.
 
 ### Final Summary — M-size, 5 files, Medium complexity, N=2 review cycles
 
@@ -341,7 +343,7 @@ Expected center, not the raw per-band values.
 | Test Writing          | Sonnet      | $0.54      | $1.00    | $3.52       |
 | Implementation        | Sonnet      | $0.64      | $1.24    | $4.72       |
 | Playwright QA         | Haiku       | $0.04      | $0.07    | $0.28       |
-| PR Review Loop        | Opus+Sonnet | $0.98      | $1.63    | $4.90       |
-| **TOTAL**             |             | **$4.35**  | **$7.89**| **$27.54**  |
+| PR Review Loop        | Opus+Sonnet | $1.02      | $1.63    | $2.22       |
+| **TOTAL**             |             | **$4.39**  | **$7.89**| **$25.86**  |
 
 **Bands:** Optimistic (1 review cycle) · Expected (2 cycles) · Pessimistic (4 cycles)

@@ -141,11 +141,13 @@ When cycles=0, (1 − 0.6^0) = 0, so review_loop_cost = $0 naturally.
 
 **Apply calibration to the PR Review Loop row:**
 
-After computing the three band costs, apply calibration identically to Step 3e:
+Unlike other steps (which re-anchor Optimistic/Pessimistic as fixed ratios of calibrated
+Expected), the PR Review Loop applies the calibration factor independently to each band.
+This preserves the decay model's per-band cycle counts:
 ```
-calibrated_expected    = review_loop_expected × calibration_factor
-calibrated_optimistic  = calibrated_expected × 0.6
-calibrated_pessimistic = calibrated_expected × 3.0
+calibrated_optimistic  = review_loop_optimistic  × calibration_factor
+calibrated_expected    = review_loop_expected     × calibration_factor
+calibrated_pessimistic = review_loop_pessimistic  × calibration_factor
 ```
 If no calibration data (factor = 1.0), raw values are used unchanged.
 
