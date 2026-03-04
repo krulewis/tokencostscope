@@ -1,5 +1,8 @@
 # Worked Examples
 
+> **Note:** These examples use default pipeline step names for concreteness. The formulas
+> and arithmetic are pipeline-agnostic — substitute your own step names as needed.
+
 ## Example 1: M-size change, 5 files, Medium complexity
 
 **Inputs:** size=M, file_count=5, complexity=Medium (1.0x)
@@ -220,7 +223,7 @@ Pessimistic:
 
 ---
 
-### Step 8 — Playwright QA (Haiku)
+### Step 8 — QA (Haiku)
 
 Activities: 3 shell commands, 2 reads, 2 conv turns → K = 7
 
@@ -256,7 +259,7 @@ Pessimistic:
 | Engineer Final Plan   | Sonnet | $0.15      | $0.27    | $0.98       |
 | Test Writing          | Sonnet | $0.54      | $1.00    | $3.52       |
 | Implementation        | Sonnet | $0.64      | $1.24    | $4.72       |
-| Playwright QA         | Haiku  | $0.04      | $0.07    | $0.28       |
+| QA                    | Haiku  | $0.04      | $0.07    | $0.28       |
 | **TOTAL**             |        | **$3.37**  | **$6.26**| **$22.64**  |
 
 Pessimistic band includes rework loops, repeated reads, and debugging cycles.
@@ -342,7 +345,7 @@ Note: Totals are computed from full-precision values, not displayed (rounded) va
 | Engineer Final Plan   | Sonnet      | $0.15      | $0.27    | $0.98       |
 | Test Writing          | Sonnet      | $0.54      | $1.00    | $3.52       |
 | Implementation        | Sonnet      | $0.64      | $1.24    | $4.72       |
-| Playwright QA         | Haiku       | $0.04      | $0.07    | $0.28       |
+| QA                    | Haiku       | $0.04      | $0.07    | $0.28       |
 | PR Review Loop        | Opus+Sonnet | $1.02      | $1.63    | $2.22       |
 | **TOTAL**             |             | **$4.39**  | **$7.89**| **$24.87**  |
 

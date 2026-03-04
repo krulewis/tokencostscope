@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
