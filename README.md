@@ -11,7 +11,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 git clone https://github.com/krulewis/tokencostscope.git
 
 # Install into your project
-bash tokencostscope/scripts/install-hooks.sh /path/to/your-project
+bash tokencostscope/scripts/install-hooks.sh "/path/to/your-project"
 ```
 
 This does three things:
