@@ -1,0 +1,4 @@
+# Calibration data is per-user and should not be committed
+calibration/history.jsonl
+calibration/factors.json
+calibration/active-estimate.json
