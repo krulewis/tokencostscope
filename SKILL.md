@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.2.0
+version: 1.2.1
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -39,7 +39,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
 4. **Steps:** Which pipeline steps does the plan cover? Map to the default canonical names in heuristics.md.
 5. **Project type:** Infer from plan keywords → `greenfield` (new project/system), `refactor` (restructure/reorganize/simplify), `bug_fix` (fix/broken/regression), `migration` (migrate/upgrade/port), `docs` (documentation/readme). Default: `greenfield`.
 6. **Language:** Infer primary language from file extensions in the plan → `.py`→`python`, `.ts/.tsx`→`typescript`, `.js/.jsx`→`javascript`, `.go`→`go`, `.rs`→`rust`, `.rb`→`ruby`, `.java`→`java`, `.sh`→`shell`. If mixed, use the most frequent. Default: `unknown`.
-7. **Review cycles (N):** If the inferred steps include a review step (e.g., "Staff Review") AND at least one of a final-plan (e.g., "Engineer Final Plan"), implementation, or test-writing step, set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
+7. **Review cycles (N):** If the inferred steps include a review step (e.g., "Staff Review") AND at least one of a final-plan step (e.g., "Engineer Final Plan"), implementation step, or test-writing step, set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
 
 If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
 
@@ -192,7 +192,7 @@ Write calibration/active-estimate.json:
 ## Output Template
 
 ```
-## costscope estimate (v1.2.0)
+## costscope estimate (v1.2.1)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)
