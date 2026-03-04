@@ -58,7 +58,7 @@ Per-size-class factors computed independently. Each stratum (XS, S, M, L)
 that has 3+ samples gets its own factor. Strata below 3 samples fall back
 to the global factor.
 
-For strata with 10+ samples, switches from median to EWMA (alpha=0.15)
+For strata with 10+ samples, switches from trimmed mean to EWMA (alpha=0.15)
 for recency weighting:
 
 ```

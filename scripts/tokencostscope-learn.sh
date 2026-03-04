@@ -23,9 +23,9 @@ if [ ! -f "$ESTIMATE_FILE" ]; then
 fi
 
 # Read and parse the active estimate in a single Python call
-eval "$(python3 -c "
-import json, shlex
-with open('$ESTIMATE_FILE') as f:
+eval "$(EST_FILE="$ESTIMATE_FILE" python3 -c "
+import json, shlex, os
+with open(os.environ['EST_FILE']) as f:
     d = json.load(f)
 steps = d.get('steps', [])
 sig = '+'.join(sorted(s.lower().replace(' ', '_') for s in steps))
