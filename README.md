@@ -78,7 +78,7 @@ Use `review_cycles=N` to set the number of expected PR review cycles. Use `revie
 5. Applies complexity multiplier, context accumulation `(K+1)/2`, and cache rates
 6. Splits into Optimistic / Expected / Pessimistic bands
 7. If PR Review Loop is in scope, computes loop cost using geometric decay across N review cycles (Optimistic=1, Expected=N, Pessimistic=N×2)
-8. Applies calibration correction to the Expected band (including the PR Review Loop row)
+8. Applies calibration correction to Expected band (individual steps re-anchor; PR Review Loop scales each band independently)
 9. Records the estimate for later comparison with actuals
 
 ## Overrides

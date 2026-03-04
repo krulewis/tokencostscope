@@ -344,6 +344,6 @@ Note: Totals are computed from full-precision values, not displayed (rounded) va
 | Implementation        | Sonnet      | $0.64      | $1.24    | $4.72       |
 | Playwright QA         | Haiku       | $0.04      | $0.07    | $0.28       |
 | PR Review Loop        | Opus+Sonnet | $1.02      | $1.63    | $2.22       |
-| **TOTAL**             |             | **$4.39**  | **$7.89**| **$25.86**  |
+| **TOTAL**             |             | **$4.39**  | **$7.89**| **$24.87**  |
 
 **Bands:** Optimistic (1 review cycle) · Expected (2 cycles) · Pessimistic (4 cycles)

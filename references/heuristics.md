@@ -114,5 +114,6 @@ Where N = cycle count for the band being computed.
 
 When N=0, the formula naturally produces $0 (since 1−0.6^0 = 0). No special case is needed.
 
-The calibration factor (from factors.json) is applied to review_total the same way
-it is applied to all other step costs.
+The calibration factor (from factors.json) is applied independently to each band
+(Optimistic, Expected, Pessimistic), unlike other steps which re-anchor bands as
+fixed ratios of calibrated Expected. See SKILL.md Step 3.5 for details.
