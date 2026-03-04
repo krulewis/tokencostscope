@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/tokencostscope-logo.svg" alt="tokencostscope logo" width="150">
+</p>
+
 # tokencostscope
 
 A Claude Code skill that estimates Anthropic API cost for planned agent tasks, then **learns from actual usage** to improve estimates over time.
