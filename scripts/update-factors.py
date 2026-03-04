@@ -69,6 +69,9 @@ def update_factors(history_path: str, factors_path: str) -> None:
 
     total_records = len(all_records)
 
+    # Sort by timestamp for correct EWMA recency weighting
+    all_records.sort(key=lambda r: r.get("timestamp", ""))
+
     # Pass 2: Separate outliers
     clean_records: list[dict] = []
     outliers: list[dict] = []
@@ -101,12 +104,16 @@ def update_factors(history_path: str, factors_path: str) -> None:
 
     sample_count = len(all_ratios)
 
+    # Cap stored outliers to most recent 20 (count reflects all)
+    outlier_count = len(outliers)
+    stored_outliers = outliers[-20:]
+
     if sample_count < 3:
         factors: dict = {
             "sample_count": sample_count,
             "total_records": total_records,
-            "outlier_count": len(outliers),
-            "outliers": outliers,
+            "outlier_count": outlier_count,
+            "outliers": stored_outliers,
             "status": "collecting",
         }
         _write_atomic(factors_path, factors)
@@ -121,8 +128,8 @@ def update_factors(history_path: str, factors_path: str) -> None:
     factors = {
         "sample_count": sample_count,
         "total_records": total_records,
-        "outlier_count": len(outliers),
-        "outliers": outliers,
+        "outlier_count": outlier_count,
+        "outliers": stored_outliers,
         "status": "active",
         "global": round(global_factor, 4),
     }
