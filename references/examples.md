@@ -260,3 +260,88 @@ Pessimistic:
 | **TOTAL**             |        | **$3.37**  | **$6.26**| **$22.64**  |
 
 Pessimistic band includes rework loops, repeated reads, and debugging cycles.
+
+---
+
+## Example 2: M-size change with PR Review Loop, N=2 expected cycles
+
+This example extends Example 1 by adding a PR Review Loop step with N=2 expected review
+cycles. All prior step costs are unchanged. This example uses pre-calibration values
+(calibration factor = 1.0).
+
+**Inputs:** size=M, file_count=5, complexity=Medium (1.0x), review_cycles=2
+
+**Constituent steps for C (pre-calibration Expected costs from Example 1 Step 3d):**
+- Staff Review Expected: $0.7470
+- Engineer Final Plan Expected: $0.2744
+
+```
+C = staff_review_expected + engineer_final_plan_expected
+C = $0.7470 + $0.2744 = $1.0214
+```
+
+**Per-band cycle counts:**
+- Optimistic: 1 cycle (best case: first pass clears all issues)
+- Expected: N=2 cycles
+- Pessimistic: N×2 = 4 cycles
+
+**PR Review Loop cost formula:**
+```
+review_loop_cost(cycles) = C × (1 − 0.6^cycles) / 0.4
+```
+
+**Optimistic (1 cycle):**
+```
+review_loop_cost = $1.0214 × (1 − 0.6^1) / 0.4
+                 = $1.0214 × (1 − 0.6) / 0.4
+                 = $1.0214 × 0.4 / 0.4
+                 = $1.0214 × 1.0
+                 = $1.0214
+```
+
+**Expected (2 cycles):**
+```
+review_loop_cost = $1.0214 × (1 − 0.6^2) / 0.4
+                 = $1.0214 × (1 − 0.36) / 0.4
+                 = $1.0214 × 0.64 / 0.4
+                 = $1.0214 × 1.6
+                 = $1.6342
+```
+
+**Pessimistic (4 cycles):**
+```
+review_loop_cost = $1.0214 × (1 − 0.6^4) / 0.4
+                 = $1.0214 × (1 − 0.1296) / 0.4
+                 = $1.0214 × 0.8704 / 0.4
+                 = $1.0214 × 2.176
+                 = $2.2226
+```
+
+**Calibration (factor = 1.0, no prior data):**
+```
+calibrated_expected    = $1.6342 × 1.0 = $1.6342
+calibrated_optimistic  = $1.6342 × 0.6 = $0.9805
+calibrated_pessimistic = $1.6342 × 3.0 = $4.9027
+```
+
+Note: With factor=1.0 the calibrated values equal the re-anchored bands. The calibrated
+optimistic ($0.9805) and pessimistic ($4.9027) differ from the raw formula values
+($1.0214 and $2.2226) because calibration re-anchors all bands around the calibrated
+Expected center, not the raw per-band values.
+
+### Final Summary — M-size, 5 files, Medium complexity, N=2 review cycles
+
+| Step                  | Model       | Optimistic | Expected | Pessimistic |
+|-----------------------|-------------|------------|----------|-------------|
+| Research Agent        | Sonnet      | $0.60      | $1.17    | $4.47       |
+| Architect Agent       | Opus        | $0.67      | $1.18    | $3.97       |
+| Engineer Initial Plan | Sonnet      | $0.30      | $0.58    | $2.17       |
+| Staff Review          | Opus        | $0.42      | $0.75    | $2.53       |
+| Engineer Final Plan   | Sonnet      | $0.15      | $0.27    | $0.98       |
+| Test Writing          | Sonnet      | $0.54      | $1.00    | $3.52       |
+| Implementation        | Sonnet      | $0.64      | $1.24    | $4.72       |
+| Playwright QA         | Haiku       | $0.04      | $0.07    | $0.28       |
+| PR Review Loop        | Opus+Sonnet | $0.98      | $1.63    | $4.90       |
+| **TOTAL**             |             | **$4.35**  | **$7.89**| **$27.54**  |
+
+**Bands:** Optimistic (1 review cycle) · Expected (2 cycles) · Pessimistic (4 cycles)

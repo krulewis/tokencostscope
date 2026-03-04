@@ -63,7 +63,11 @@ You can also invoke explicitly with overrides:
 ```
 /tokencostscope size=L files=12 complexity=high
 /tokencostscope steps=implement,test,qa
+/tokencostscope review_cycles=3
+/tokencostscope review_cycles=0
 ```
+
+Use `review_cycles=N` to set the number of expected PR review cycles. Use `review_cycles=0` to suppress the PR Review Loop row.
 
 ## How It Works
 
@@ -73,8 +77,21 @@ You can also invoke explicitly with overrides:
 4. Computes per-step token estimates using activity decomposition
 5. Applies complexity multiplier, context accumulation `(K+1)/2`, and cache rates
 6. Splits into Optimistic / Expected / Pessimistic bands
-7. Applies calibration correction to the Expected band
-8. Records the estimate for later comparison with actuals
+7. If PR Review Loop is in scope, computes loop cost using geometric decay across N review cycles (Optimistic=1, Expected=N, Pessimistic=N×2)
+8. Applies calibration correction to the Expected band (including the PR Review Loop row)
+9. Records the estimate for later comparison with actuals
+
+## Overrides
+
+| Override | Effect |
+|----------|--------|
+| `size=M` | Set size class explicitly |
+| `files=5` | Set file count explicitly |
+| `complexity=high` | Set complexity explicitly |
+| `steps=implement,test,qa` | Estimate only those pipeline steps |
+| `project_type=migration` | Set project type explicitly |
+| `language=go` | Set primary language explicitly |
+| `review_cycles=3` | Set PR review cycle count (0 = disable) |
 
 ## Confidence Bands
 
