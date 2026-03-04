@@ -115,7 +115,7 @@ Sum step costs across all in-scope steps for each band. Render the output templa
 Before writing the estimate, compute the session's cost so far (baseline):
 ```
 Find the current session JSONL:
-  find ~/.claude/projects/ -name "*.jsonl" -type f | xargs ls -t | head -1
+  find ~/.claude/projects/ -name "*.jsonl" -type f -print0 | xargs -0 ls -t | head -1
 
 Run: python3 scripts/sum-session-tokens.py <session-jsonl> 0
 Use the returned total_session_cost as baseline_cost. If the command fails, use 0.
