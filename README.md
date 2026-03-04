@@ -26,7 +26,7 @@ Every Claude Code session in that project now has tokencostscope active.
 ## What Happens Automatically
 
 ### After a plan is created
-tokencostscope detects the plan in conversation context, infers size/files/complexity, and outputs a cost table:
+tokencostscope detects the plan in conversation context, infers size, files, complexity, project type, and language, then outputs a cost table:
 
 ```
 ## tokencostscope estimate
@@ -84,8 +84,9 @@ You can also invoke explicitly with overrides:
 
 Calibration is fully automatic:
 - **0-2 sessions:** No correction applied. "Collecting data" status.
-- **3-10 sessions:** Global correction factor via median of actual/expected ratios.
+- **3-10 sessions:** Global correction factor via trimmed mean of actual/expected ratios (trim_fraction=0.1).
 - **10+ sessions:** EWMA with recency weighting. Per-size-class factors activate when a class has 3+ samples.
+- **Outlier filtering:** Sessions with actual/expected ratio >3.0x or <0.2x are excluded from calibration and logged for inspection.
 
 Calibration data lives in `calibration/` (gitignored, local to each user).
 
@@ -104,6 +105,9 @@ SKILL.md                        — Skill definition (auto-trigger, algorithm)
 references/pricing.md           — Model prices, cache rates, step→model map
 references/heuristics.md        — Token budgets, pipeline decompositions, multipliers
 references/examples.md          — Worked examples with arithmetic
+references/calibration-algorithm.md — Detailed calibration algorithm reference
+commands/
+  tokencostscope-version.md     — /tokencostscope-version slash command
 scripts/
   install-hooks.sh              — One-time project setup
   disable.sh                    — Remove from project
@@ -116,6 +120,15 @@ calibration/                    — Per-user local data (gitignored)
   factors.json                  — Learned correction factors
   active-estimate.json          — Transient marker for current estimate
 ```
+
+## v1.1 Changes
+
+- **Trimmed mean** replaces median for faster convergence with small samples
+- **Outlier flagging** — extreme ratios (>3.0x or <0.2x) excluded from calibration, logged for inspection
+- **Richer data** — project type, language, pipeline signature, and step count captured per session
+- **Baseline subtraction** — tokens spent before the estimate are excluded from actuals
+- **Security hardening** — path injection fixes, consolidated parsing, safe handling of paths with spaces
+- **Version markers** — `version: 1.1.0` in SKILL.md, `--version` flag on learn script
 
 ## Limitations
 
