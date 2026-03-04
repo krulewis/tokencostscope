@@ -20,26 +20,43 @@
 
 ---
 
-## v1.1 — Accuracy & Calibration Refinement
+## v1.1 — Accuracy & Calibration Refinement (shipped 2026-03-03)
 
 **Goal:** Make estimates trustworthy enough that users (and later, automation) can act on them.
 
-- [ ] **PR review loop modeling** — add `review_cycles` parameter (default 2), track actual cycle counts, learn the multiplier per project
+- [x] **Richer input features** — project type tagging (greenfield, refactor, bug fix, migration, docs), language/framework tag, agent pipeline signature, repo size context
+- [x] **Trimmed mean for early calibration** — faster, more robust convergence with limited data
+- [x] **Outlier flagging** — exclude extreme actual/expected ratios from calibration, log a note
+
+---
+
+## v1.2 — PR Review Loop Modeling (shipped 2026-03-04)
+
+**Goal:** Model the iterative review-fix-re-review cycle that dominates cost in quality-gated workflows.
+
+- [x] **PR review loop modeling** — geometric-decay cost model for review-fix-re-review cycles
+- [x] **`review_cycles` override** — set expected cycle count (0 = disable)
+- [x] **Per-band calibration** — PR Review Loop applies calibration independently per band (not re-anchored)
+- [x] **Generalized pipeline terminology** — renamed project-specific step names, added "default pipeline" framing for broader adoption (v1.2.1)
+
+---
+
+## v1.3 — Accuracy & Calibration Refinement (continued)
+
+**Goal:** Continue improving estimate accuracy with finer-grained data and modeling.
+
 - [ ] **Per-step correction factors** — tag sessions with pipeline step name, learn per-step accuracy (Research overestimated? Staff Review underestimated?)
 - [ ] **File size awareness** — read actual file sizes from the plan's file list, adjust token budgets (small files < 50 lines get 3k, large files > 500 lines get 20k+)
 - [ ] **Parallel agent accounting** — when steps run as parallel subagents, model overlapping context differently than sequential
 - [ ] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads
-- [x] **Richer input features** — project type tagging (greenfield, refactor, bug fix, migration, docs), language/framework tag, agent pipeline signature, repo size context
-- [x] **Trimmed mean for early calibration** — faster, more robust convergence with limited data
 - [ ] **Decay on stale data** — down-weight sessions older than 30 days more aggressively
-- [x] **Outlier flagging** — exclude extreme actual/expected ratios from calibration, log a note
 - [ ] **Per-pipeline-signature calibration** — calibrate by agent sequence, not just size class
 
 ---
 
-## v1.2 — Observability & Mid-Session Awareness
+## v2.0 — Observability & Mid-Session Awareness
 
-**Goal:** See what's happening *during* a session, not just before and after. Prerequisite for mid-pipeline reallocation in v4.0.
+**Goal:** See what's happening *during* a session, not just before and after. Prerequisite for mid-pipeline reallocation in v5.0.
 
 - [ ] **Mid-session cost tracking** *(email #4)* — periodic check-ins that read partial JSONL mid-session and warn if tracking toward the pessimistic band
 - [ ] **Per-agent step actuals breakdown** *(email #5)* — capture actuals per agent step (not just session-level), enabling per-agent calibration and identifying the biggest cost drivers
@@ -51,7 +68,7 @@
 
 ---
 
-## v2.0 — Cross-Project Intelligence & Reporting
+## v3.0 — Cross-Project Intelligence & Reporting
 
 **Goal:** Learn across projects and surface trends. Provides the data density needed for model substitution recommendations.
 
@@ -65,12 +82,12 @@
 
 ---
 
-## v3.0 — Predictive & Budget Controls
+## v4.0 — Predictive & Budget Controls
 
 **Goal:** Move from descriptive to prescriptive. Budget gates and model substitution suggestions are the manual precursors to automated orchestration.
 
 - [ ] **Pre-flight budget gate** *(email #3)* — configurable cost ceiling that pauses and prompts before proceeding; useful for expensive Opus-heavy pipelines or unattended runs
-- [ ] **Model substitution suggestions** *(email #6)* — post-session: if a step ran well under its Opus budget, recommend Sonnet next time; flag Sonnet steps that hit limits as Opus candidates. *Human acceptance rates here train the v4.0 policy.*
+- [ ] **Model substitution suggestions** *(email #6)* — post-session: if a step ran well under its Opus budget, recommend Sonnet next time; flag Sonnet steps that hit limits as Opus candidates. *Human acceptance rates here train the v5.0 policy.*
 - [ ] **Task complexity auto-classification** — infer complexity from plan content rather than requiring explicit low/medium/high
 - [ ] **Anomaly detection** — flag sessions where actual/expected ratio is >3x or <0.2x as potential data quality issues (exclude from calibration)
 - [ ] **ML-based estimation** — train a lightweight model on accumulated history.jsonl data (features: file count, complexity, step count, codebase size → predicted cost)
@@ -78,11 +95,11 @@
 
 ---
 
-## v4.0 — Cost-Aware Agent Orchestration
+## v5.0 — Cost-Aware Agent Orchestration
 
 **Goal:** tokencostscope becomes an active participant in pipeline construction and execution. The difference between a fuel gauge and cruise control.
 
-**Prerequisites:** v1.2 (per-agent actuals, mid-session tracking), v3.0 (budget gates, model substitution suggestions with acceptance data).
+**Prerequisites:** v2.0 (per-agent actuals, mid-session tracking), v4.0 (budget gates, model substitution suggestions with acceptance data).
 
 ### Core capabilities
 
@@ -93,7 +110,7 @@
 
 ### Sequencing strategy
 
-1. Ship model substitution suggestions (v3.0) and observe which substitutions developers actually accept
+1. Ship model substitution suggestions (v4.0) and observe which substitutions developers actually accept
 2. Use acceptance patterns to train the automated substitution policy
 3. Start with budget-constrained planning (advisory mode — suggest changes, human approves)
 4. Graduate to automatic reallocation once advisory mode achieves >80% acceptance rate
