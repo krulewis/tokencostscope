@@ -29,10 +29,10 @@
 - [ ] **File size awareness** — read actual file sizes from the plan's file list, adjust token budgets (small files < 50 lines get 3k, large files > 500 lines get 20k+)
 - [ ] **Parallel agent accounting** — when steps run as parallel subagents, model overlapping context differently than sequential
 - [ ] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads
-- [ ] **Richer input features** — project type tagging (greenfield, refactor, bug fix, migration, docs), language/framework tag, agent pipeline signature, repo size context
-- [ ] **Trimmed mean for early calibration** — faster, more robust convergence with limited data
+- [x] **Richer input features** — project type tagging (greenfield, refactor, bug fix, migration, docs), language/framework tag, agent pipeline signature, repo size context
+- [x] **Trimmed mean for early calibration** — faster, more robust convergence with limited data
 - [ ] **Decay on stale data** — down-weight sessions older than 30 days more aggressively
-- [ ] **Outlier flagging** — exclude extreme actual/expected ratios from calibration, log a note
+- [x] **Outlier flagging** — exclude extreme actual/expected ratios from calibration, log a note
 - [ ] **Per-pipeline-signature calibration** — calibrate by agent sequence, not just size class
 
 ---
