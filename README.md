@@ -7,12 +7,14 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 ## Setup (one time per project)
 
 ```bash
-# Clone the repo
+# Clone the repo (anywhere — it doesn't need to live inside your project)
 git clone https://github.com/krulewis/tokencostscope.git
 
-# Install into your project
+# Install into your project (quote paths with spaces)
 bash tokencostscope/scripts/install-hooks.sh "/path/to/your-project"
 ```
+
+> **Paths with spaces:** Always wrap the project path in quotes. Without them the install script will fail on paths like `/Volumes/Macintosh HD2/...`.
 
 This does three things:
 1. Symlinks the skill into `<project>/.claude/skills/tokencostscope/`
