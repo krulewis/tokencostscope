@@ -17,6 +17,11 @@
 
 ## Pipeline Step Activity Counts
 
+The steps below represent a **default pipeline** — a reasonable baseline for multi-agent
+Claude Code workflows. Your workflow may use different step names or omit some steps entirely.
+Map your pipeline's steps to the closest matches; the token heuristics and formulas are
+pipeline-agnostic.
+
 N = file count from the implementation plan (e.g., 5 files → N=5).
 
 | Step                  | Model  | Activities                                              |
@@ -28,8 +33,8 @@ N = file count from the implementation plan (e.g., 5 files → N=5).
 | Engineer Final Plan   | Sonnet | 2 file reads, 1 planning step, 2 conv turns             |
 | Test Writing          | Sonnet | 3 file reads, N test writes, 3 conv turns               |
 | Implementation        | Sonnet*| N file reads, N file edits, 4 conv turns                |
-| Playwright QA         | Haiku  | 3 shell commands, 2 file reads, 2 conv turns            |
-| PR Review Loop        | Opus+Sonnet | 1 Staff Review + 1 Engineer Final Plan per cycle   |
+| QA                    | Haiku  | 3 shell commands, 2 file reads, 2 conv turns            |
+| PR Review Loop        | Opus+Sonnet | 1 Staff Review + 1 Engineer Final Plan per cycle (default constituents) |
 
 *Opus for L-size changes.
 
@@ -37,9 +42,9 @@ Note: Staff Review does NOT include separate file reads. The code review pass (8
 already accounts for reading the diff and relevant files.
 
 Note: PR Review Loop is a composite step. Each cycle contains one Staff Review (Opus) and one
-Engineer Final Plan (Sonnet). The constituent step costs are calculated individually using their
-respective activity rows above, then summed to produce the per-cycle cost. The label "Opus+Sonnet"
-in the Model column indicates this composite.
+Engineer Final Plan (Sonnet) as default constituents. The constituent step costs are calculated
+individually using their respective activity rows above, then summed to produce the per-cycle cost.
+The label "Opus+Sonnet" in the Model column indicates this composite.
 
 ## Complexity Multipliers
 

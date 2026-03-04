@@ -75,9 +75,9 @@ class TestDecayFormula:
 # ---------------------------------------------------------------------------
 
 class TestBaseCycleCost:
-    """Tests for C = staff_review_expected + engineer_final_plan_expected."""
+    """Tests for C = staff_review_expected + engineer_final_plan_expected (default constituents)."""
 
-    # Values from examples.md Step 4 (Staff Review) and Step 5 (Engineer Final Plan)
+    # Values from examples.md Step 4 (Staff Review) and Step 5 (Engineer Final Plan) — default constituents
     STAFF_REVIEW_EXPECTED = 0.7470
     ENGINEER_FINAL_PLAN_EXPECTED = 0.2744
 
@@ -140,7 +140,7 @@ class TestBandCycleCounts:
 # ---------------------------------------------------------------------------
 
 class TestReviewLoopWithCalibration:
-    """Tests for independent per-band calibration on the review loop row."""
+    """Tests for independent per-band calibration on the review loop row (default pipeline)."""
 
     C = 1.0214  # From examples.md
 

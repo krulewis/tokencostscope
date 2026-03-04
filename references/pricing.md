@@ -36,7 +36,7 @@ Prices are per 1,000,000 tokens (per-million). Verify at https://anthropic.com/p
 | Engineer Final Plan   | Sonnet  |
 | Test Writing          | Sonnet  |
 | Implementation        | Sonnet (Opus for L-size changes) |
-| Playwright QA         | Haiku   |
+| QA                    | Haiku   |
 
 ## Cache Hit Rate Assumptions by Band
 

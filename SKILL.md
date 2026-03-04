@@ -36,10 +36,10 @@ If invoked without explicit parameters, infer from the plan in conversation:
 1. **Size:** Count pipeline steps mentioned → XS (1-2 steps), S (2-3), M (5-8), L (8+)
 2. **Files:** Count file paths or "N files" mentions in the plan
 3. **Complexity:** low (bug fix, config, mechanical), medium (new feature, clear scope), high (new system, architectural)
-4. **Steps:** Which pipeline steps does the plan cover? Map to canonical names.
+4. **Steps:** Which pipeline steps does the plan cover? Map to the default canonical names in heuristics.md.
 5. **Project type:** Infer from plan keywords → `greenfield` (new project/system), `refactor` (restructure/reorganize/simplify), `bug_fix` (fix/broken/regression), `migration` (migrate/upgrade/port), `docs` (documentation/readme). Default: `greenfield`.
 6. **Language:** Infer primary language from file extensions in the plan → `.py`→`python`, `.ts/.tsx`→`typescript`, `.js/.jsx`→`javascript`, `.go`→`go`, `.rs`→`rust`, `.rb`→`ruby`, `.java`→`java`, `.sh`→`shell`. If mixed, use the most frequent. Default: `unknown`.
-7. **Review cycles (N):** If the inferred steps include "Staff Review" AND at least one of "Engineer Final Plan", "Implementation", or "Test Writing", set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
+7. **Review cycles (N):** If the inferred steps include "Staff Review" (or equivalent) AND at least one of "Engineer Final Plan", "Implementation", or "Test Writing", set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
 
 If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
 
@@ -109,7 +109,7 @@ calibrated_pessimistic = calibrated_expected × 3.0
 ```
 If no calibration data, use raw values (factor = 1.0).
 
-## Step 3.5 — PR Review Loop Row (post-step-loop computation)
+## Step 3.5 — PR Review Loop Row (post-step-loop computation, default constituents)
 
 This section runs AFTER all individual pipeline steps have completed their Steps 3a–3e
 calculations. It is not inline with the per-step loop. If N=0 (no PR Review Loop in scope),
@@ -230,7 +230,7 @@ line reverts to: `Optimistic (best case) · Expected (typical) · Pessimistic (w
 
 ## Limitations
 
-- Heuristics assume the global CLAUDE.md workflow. Non-standard workflows will differ.
+- Pipeline step names reflect a default workflow. Map your own steps to the closest defaults; the formulas are pipeline-agnostic.
 - Token counts assume typical 150-300 line source files.
 - Does not model parallel agent execution (treated as sequential).
 - Calibration requires 3+ completed sessions before corrections activate.
