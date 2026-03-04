@@ -151,6 +151,13 @@ calibration/                    — Per-user local data (gitignored)
 - **Security hardening** — path injection fixes, consolidated parsing, safe handling of paths with spaces
 - **Version markers** — `version: 1.1.0` in SKILL.md, `--version` flag on learn script
 
+## v1.2 Changes
+
+- **PR Review Loop modeling** — geometric-decay cost model for review-fix-re-review cycles
+- **New override** — `review_cycles=N` to set expected cycle count (0 = disable)
+- **Per-band calibration** — PR Review Loop applies calibration independently per band (not re-anchored)
+- **New schema fields** — `review_cycles_estimated` and `review_cycles_actual` in active-estimate.json
+
 ## Limitations
 
 - Heuristics assume typical 150-300 line source files
