@@ -229,7 +229,7 @@ class TestWorkedExample:
 class TestLearnScript:
     """Tests for tokencostscope-learn.sh changes."""
 
-    def test_version_is_1_2_0(self):
+    def test_version_is_1_2_1(self):
         """learn.sh --version should output 1.2.1 (Finding #10)."""
         result = subprocess.run(
             ["bash", str(LEARN_SH), "--version"],

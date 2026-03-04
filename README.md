@@ -160,7 +160,7 @@ calibration/                    — Per-user local data (gitignored)
 
 ## Limitations
 
-- Pipeline step names reflect a default workflow; map your own steps to the closest defaults (see `references/heuristics.md`)
+- Pipeline step names reflect a default workflow; map your own steps to the closest defaults; the formulas are pipeline-agnostic (see `references/heuristics.md`)
 - Heuristics assume typical 150-300 line source files
 - Does not model parallel agent execution
 - Calibration requires 3+ completed sessions before corrections activate
