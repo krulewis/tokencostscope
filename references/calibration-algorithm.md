@@ -106,12 +106,21 @@ the task's cost (tokens spent before the estimate are not the task's cost).
   "pipeline_signature": "architect_agent+engineer_agent+research_agent",
   "project_type": "refactor",
   "language": "python",
-  "step_count": 3
+  "step_count": 3,
+  "review_cycles_estimated": 2,
+  "review_cycles_actual": null
 }
 ```
 
 Fields `steps`, `pipeline_signature`, `project_type`, `language`, and `step_count`
 were added in v1.1. Older records without these fields are handled via `.get()` defaults.
+
+Fields `review_cycles_estimated` and `review_cycles_actual` were added in v1.2.
+- `review_cycles_estimated`: the N value used when computing the PR Review Loop cost at estimate
+  time. Value is 0 when no PR Review Loop step is in scope.
+- `review_cycles_actual`: always `null` in v1.2. Reserved for a future feature that will
+  count actual review iterations from session logs. Older records without this field are
+  treated as `null` via `.get()` defaults.
 
 ## Factors Format (factors.json)
 

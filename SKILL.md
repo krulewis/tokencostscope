@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.1.0
+version: 1.2.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -39,6 +39,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
 4. **Steps:** Which pipeline steps does the plan cover? Map to canonical names.
 5. **Project type:** Infer from plan keywords → `greenfield` (new project/system), `refactor` (restructure/reorganize/simplify), `bug_fix` (fix/broken/regression), `migration` (migrate/upgrade/port), `docs` (documentation/readme). Default: `greenfield`.
 6. **Language:** Infer primary language from file extensions in the plan → `.py`→`python`, `.ts/.tsx`→`typescript`, `.js/.jsx`→`javascript`, `.go`→`go`, `.rs`→`rust`, `.rb`→`ruby`, `.java`→`java`, `.sh`→`shell`. If mixed, use the most frequent. Default: `unknown`.
+7. **Review cycles (N):** If the inferred steps include "Staff Review" AND at least one of "Engineer Final Plan", "Implementation", or "Test Writing", set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
 
 If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
 
@@ -57,6 +58,7 @@ Read `last_updated` from pricing.md. If >90 days old, prepend warning to output.
 - Look up complexity multiplier from heuristics.md
 - Look up model for each pipeline step from pricing.md
 - If `steps=` override present, filter to only those steps
+- If `review_cycles=` override present, use that value as N. Otherwise use the inferred N from Step 0 item 7. If N=0, the PR Review Loop row is omitted entirely from output and `review_cycles_estimated=0` in active-estimate.json.
 
 ## Step 3 — Per-Step Calculation
 
@@ -107,6 +109,50 @@ calibrated_pessimistic = calibrated_expected × 3.0
 ```
 If no calibration data, use raw values (factor = 1.0).
 
+## Step 3.5 — PR Review Loop Row (post-step-loop computation)
+
+This section runs AFTER all individual pipeline steps have completed their Steps 3a–3e
+calculations. It is not inline with the per-step loop. If N=0 (no PR Review Loop in scope),
+skip this section entirely — the PR Review Loop row is omitted from output and contributes
+$0 to all band totals.
+
+**Constituent steps:** "Staff Review" and "Engineer Final Plan" — using the pre-calibration
+Expected band costs computed at the END of Step 3d (band_mult=1.0, cache_rate=0.50,
+complexity and context accumulation already applied). These are the raw step_cost values
+before Step 3e calibration is applied. If a constituent step is not in the current plan's
+scope, it contributes $0 to C.
+
+**Per-cycle cost (C):**
+```
+C = staff_review_expected + engineer_final_plan_expected
+```
+
+**Per-band review loop cost using geometric series:**
+```
+optimistic_cycles  = 1        (best case: first pass clears all issues)
+expected_cycles    = N        (from Step 2)
+pessimistic_cycles = N × 2   (double the Expected cycle count)
+
+review_loop_cost(cycles) = C × (1 − 0.6^cycles) / (1 − 0.6)
+                         = C × (1 − 0.6^cycles) / 0.4
+
+When cycles=0, (1 − 0.6^0) = 0, so review_loop_cost = $0 naturally.
+```
+
+**Apply calibration to the PR Review Loop row:**
+
+Unlike other steps (which re-anchor Optimistic/Pessimistic as fixed ratios of calibrated
+Expected), the PR Review Loop applies the calibration factor independently to each band.
+This preserves the decay model's per-band cycle counts:
+```
+calibrated_optimistic  = review_loop_optimistic  × calibration_factor
+calibrated_expected    = review_loop_expected     × calibration_factor
+calibrated_pessimistic = review_loop_pessimistic  × calibration_factor
+```
+If no calibration data (factor = 1.0), raw values are used unchanged.
+
+Add the calibrated review loop totals to the running band sums in Step 4.
+
 ## Step 4 — Sum, Format, and Record
 
 Sum step costs across all in-scope steps for each band. Render the output template.
@@ -137,14 +183,16 @@ Write calibration/active-estimate.json:
   "expected_cost": <expected total>,
   "optimistic_cost": <optimistic total>,
   "pessimistic_cost": <pessimistic total>,
-  "baseline_cost": <baseline_cost>
+  "baseline_cost": <baseline_cost>,
+  "review_cycles_estimated": <N from Step 2, or 0 if no PR Review Loop>,
+  "review_cycles_actual": null
 }
 ```
 
 ## Output Template
 
 ```
-## costscope estimate (v1.1.0)
+## costscope estimate (v1.2.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)
@@ -152,15 +200,21 @@ Write calibration/active-estimate.json:
 **Calibration:** {factor}x from {N} prior runs | or "no prior data — will learn after this session"
 {WARNING line if pricing stale}
 
-| Step                  | Model  | Optimistic | Expected | Pessimistic |
-|-----------------------|--------|------------|----------|-------------|
-| Research Agent        | Sonnet | $X.XX      | $X.XX    | $X.XX       |
-| ...                   | ...    | ...        | ...      | ...         |
-| **TOTAL**             |        | **$X.XX**  | **$X.XX**| **$X.XX**   |
+| Step                  | Model       | Optimistic | Expected | Pessimistic |
+|-----------------------|-------------|------------|----------|-------------|
+| Research Agent        | Sonnet      | $X.XX      | $X.XX    | $X.XX       |
+| ...                   | ...         | ...        | ...      | ...         |
+| PR Review Loop        | Opus+Sonnet | $X.XX      | $X.XX    | $X.XX       |
+| **TOTAL**             |             | **$X.XX**  | **$X.XX**| **$X.XX**   |
 
-**Bands:** Optimistic (best case) · Expected (typical) · Pessimistic (with rework)
+**Bands:** Optimistic (1 review cycle) · Expected (N cycles) · Pessimistic (N×2 cycles)
 **Tracking:** Estimate recorded. Actuals will be captured automatically at session end.
 ```
+
+The "Opus+Sonnet" value in the Model column is an accepted composite value indicating the
+row spans two models (Staff Review on Opus, Engineer Final Plan on Sonnet). The PR Review
+Loop row is omitted when review_cycles=0. When the PR Review Loop row is absent, the Bands
+line reverts to: `Optimistic (best case) · Expected (typical) · Pessimistic (with rework)`
 
 ## Overrides (manual invocation only)
 
@@ -172,6 +226,7 @@ Write calibration/active-estimate.json:
 | `steps=implement,test,qa` | Estimate only those pipeline steps |
 | `project_type=migration` | Set project type explicitly |
 | `language=go` | Set primary language explicitly |
+| `review_cycles=3` | Override the number of PR review cycles (N). Use 0 to suppress the PR Review Loop row. |
 
 ## Limitations
 

@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -47,6 +47,7 @@ fields = {
     'PROJECT_TYPE': d.get('project_type', 'unknown'),
     'LANGUAGE': d.get('language', 'unknown'),
     'STEP_COUNT': d.get('step_count', 0),
+    'REVIEW_CYCLES': d.get('review_cycles_estimated', 0),
 }
 for k, v in fields.items():
     print(f'{k}={shlex.quote(str(v))}')
@@ -96,6 +97,7 @@ if python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.001 else 1)" "$A
       EC_ENV="$EXPECTED_COST" AC_ENV="$ACTUAL_COST" TC_ENV="$TURN_COUNT" \
       ST_ENV="$STEPS_JSON" PIP_ENV="$PIPELINE_SIGNATURE" \
       PT_ENV="$PROJECT_TYPE" LG_ENV="$LANGUAGE" SC_ENV="$STEP_COUNT" \
+      RC_ENV="$REVIEW_CYCLES" \
       python3 -c "
 import json, os
 actual = float(os.environ['AC_ENV'])
@@ -114,6 +116,8 @@ print(json.dumps({
     'project_type': os.environ['PT_ENV'],
     'language': os.environ['LG_ENV'],
     'step_count': int(os.environ['SC_ENV']),
+    'review_cycles_estimated': int(os.environ['RC_ENV']),
+    'review_cycles_actual': None,
 }))
 ")
 
