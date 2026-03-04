@@ -36,6 +36,8 @@ If invoked without explicit parameters, infer from the plan in conversation:
 2. **Files:** Count file paths or "N files" mentions in the plan
 3. **Complexity:** low (bug fix, config, mechanical), medium (new feature, clear scope), high (new system, architectural)
 4. **Steps:** Which pipeline steps does the plan cover? Map to canonical names.
+5. **Project type:** Infer from plan keywords → `greenfield` (new project/system), `refactor` (restructure/reorganize/simplify), `bug_fix` (fix/broken/regression), `migration` (migrate/upgrade/port), `docs` (documentation/readme). Default: `greenfield`.
+6. **Language:** Infer primary language from file extensions in the plan → `.py`→`python`, `.ts/.tsx`→`typescript`, `.js/.jsx`→`javascript`, `.go`→`go`, `.rs`→`rust`, `.rb`→`ruby`, `.java`→`java`, `.sh`→`shell`. If mixed, use the most frequent. Default: `unknown`.
 
 If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
 
@@ -108,6 +110,17 @@ If no calibration data, use raw values (factor = 1.0).
 
 Sum step costs across all in-scope steps for each band. Render the output template.
 
+### Compute baseline_cost
+
+Before writing the estimate, compute the session's cost so far (baseline):
+```
+Find the current session JSONL:
+  find ~/.claude/projects/ -name "*.jsonl" -type f | xargs ls -t | head -1
+
+Run: python3 scripts/sum-session-tokens.py <session-jsonl> 0
+Use the returned total_session_cost as baseline_cost. If the command fails, use 0.
+```
+
 Then write the estimate marker for the learning system:
 ```
 Write calibration/active-estimate.json:
@@ -117,9 +130,13 @@ Write calibration/active-estimate.json:
   "files": <N>,
   "complexity": "<complexity>",
   "steps": ["<step names>"],
+  "step_count": <number of steps>,
+  "project_type": "<project_type>",
+  "language": "<language>",
   "expected_cost": <expected total>,
   "optimistic_cost": <optimistic total>,
-  "pessimistic_cost": <pessimistic total>
+  "pessimistic_cost": <pessimistic total>,
+  "baseline_cost": <baseline_cost>
 }
 ```
 
@@ -128,8 +145,8 @@ Write calibration/active-estimate.json:
 ```
 ## costscope estimate
 
-**Change:** size={size}, files={N}, complexity={complexity}
-**Steps:** {all | list of included steps}
+**Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
+**Steps:** {all | list of included steps} ({step_count} steps)
 **Pricing:** last updated {last_updated}
 **Calibration:** {factor}x from {N} prior runs | or "no prior data — will learn after this session"
 {WARNING line if pricing stale}
@@ -152,6 +169,8 @@ Write calibration/active-estimate.json:
 | `files=5` | Set file count explicitly |
 | `complexity=high` | Set complexity explicitly |
 | `steps=implement,test,qa` | Estimate only those pipeline steps |
+| `project_type=migration` | Set project type explicitly |
+| `language=go` | Set primary language explicitly |
 
 ## Limitations
 

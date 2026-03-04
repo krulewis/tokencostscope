@@ -3,11 +3,13 @@
 
 Usage: python3 update-factors.py <history_jsonl_path> <factors_json_path>
 
-Reads paired records from history.jsonl, computes median(actual/expected)
-as the calibration factor per size class, and writes factors.json.
+Reads paired records from history.jsonl, filters outliers, computes
+trimmed_mean(actual/expected) as the calibration factor per size class,
+and writes factors.json.
 
-Uses simple median for first 10 samples, then EWMA for recency weighting.
+Uses trimmed mean for first 10 samples, then EWMA for recency weighting.
 Minimum 3 samples before a factor activates for any stratum.
+Records with ratio >3.0 or <0.2 are flagged as outliers and excluded.
 """
 
 import json
@@ -15,7 +17,9 @@ import sys
 import tempfile
 import os
 from pathlib import Path
-from statistics import median
+
+OUTLIER_HIGH = 3.0
+OUTLIER_LOW = 0.2
 
 
 def compute_ewma(values: list[float], alpha: float = 0.15) -> float:
@@ -28,14 +32,23 @@ def compute_ewma(values: list[float], alpha: float = 0.15) -> float:
     return result
 
 
-def update_factors(history_path: str, factors_path: str) -> None:
-    ratios_by_size: dict[str, list[float]] = {}
-    all_ratios: list[float] = []
-    sample_count = 0
+def trimmed_mean(values: list[float], trim_fraction: float = 0.1) -> float:
+    """Mean after trimming extreme values. For N<10, k=0 (plain mean)."""
+    if not values:
+        return 1.0
+    n = len(values)
+    k = int(n * trim_fraction)
+    sorted_vals = sorted(values)
+    trimmed = sorted_vals[k : n - k] if k > 0 else sorted_vals
+    return sum(trimmed) / len(trimmed)
 
+
+def update_factors(history_path: str, factors_path: str) -> None:
     if not Path(history_path).exists():
         return
 
+    # Pass 1: Collect all valid records
+    all_records: list[dict] = []
     with open(history_path) as f:
         for line in f:
             line = line.strip()
@@ -51,26 +64,65 @@ def update_factors(history_path: str, factors_path: str) -> None:
             if expected <= 0 or actual <= 0:
                 continue
 
-            ratio = actual / expected
-            size = record.get("size", "M")
-            ratios_by_size.setdefault(size, []).append(ratio)
-            all_ratios.append(ratio)
-            sample_count += 1
+            record["_ratio"] = actual / expected
+            all_records.append(record)
+
+    total_records = len(all_records)
+
+    # Pass 2: Separate outliers
+    clean_records: list[dict] = []
+    outliers: list[dict] = []
+    for record in all_records:
+        ratio = record["_ratio"]
+        if ratio > OUTLIER_HIGH or ratio < OUTLIER_LOW:
+            outliers.append({
+                "timestamp": record.get("timestamp", ""),
+                "size": record.get("size", ""),
+                "ratio": round(ratio, 4),
+                "expected_cost": record.get("expected_cost", 0),
+                "actual_cost": record.get("actual_cost", 0),
+            })
+            print(
+                f"Outlier excluded: ratio={ratio:.4f} size={record.get('size', '?')} "
+                f"ts={record.get('timestamp', '?')}",
+                file=sys.stderr,
+            )
+        else:
+            clean_records.append(record)
+
+    # Pass 3: Build ratio lists from clean records
+    ratios_by_size: dict[str, list[float]] = {}
+    all_ratios: list[float] = []
+    for record in clean_records:
+        ratio = record["_ratio"]
+        size = record.get("size", "M")
+        ratios_by_size.setdefault(size, []).append(ratio)
+        all_ratios.append(ratio)
+
+    sample_count = len(all_ratios)
 
     if sample_count < 3:
-        # Not enough data — write empty factors
-        factors = {"sample_count": sample_count, "status": "collecting"}
+        factors: dict = {
+            "sample_count": sample_count,
+            "total_records": total_records,
+            "outlier_count": len(outliers),
+            "outliers": outliers,
+            "status": "collecting",
+        }
         _write_atomic(factors_path, factors)
         return
 
     # Compute global factor
     if sample_count <= 10:
-        global_factor = median(all_ratios)
+        global_factor = trimmed_mean(all_ratios)
     else:
         global_factor = compute_ewma(all_ratios)
 
-    factors: dict = {
+    factors = {
         "sample_count": sample_count,
+        "total_records": total_records,
+        "outlier_count": len(outliers),
+        "outliers": outliers,
         "status": "active",
         "global": round(global_factor, 4),
     }
@@ -79,7 +131,7 @@ def update_factors(history_path: str, factors_path: str) -> None:
     for size, ratios in ratios_by_size.items():
         if len(ratios) >= 3:
             if len(ratios) <= 10:
-                factor = median(ratios)
+                factor = trimmed_mean(ratios)
             else:
                 factor = compute_ewma(ratios)
             factors[size] = round(factor, 4)

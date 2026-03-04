@@ -30,6 +30,17 @@ FILES=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.load(sys.stdi
 COMPLEXITY=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('complexity', 'medium'))")
 BASELINE_COST=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('baseline_cost', 0))")
 
+# Extract new v1.1 fields
+STEPS_JSON=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('steps', [])))")
+PIPELINE_SIGNATURE=$(echo "$ESTIMATE" | python3 -c "
+import sys, json
+steps = json.load(sys.stdin).get('steps', [])
+print('+'.join(sorted(s.lower().replace(' ', '_') for s in steps)))
+")
+PROJECT_TYPE=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('project_type', 'unknown'))")
+LANGUAGE=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('language', 'unknown'))")
+STEP_COUNT=$(echo "$ESTIMATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('step_count', 0))")
+
 # Find the most recent session JSONL
 # Search all project directories under ~/.claude/projects/
 LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" 2>/dev/null | \
@@ -63,8 +74,10 @@ if python3 -c "exit(0 if float('$ACTUAL_COST') > 0.001 else 1)" 2>/dev/null; the
 
     # Create history record
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    RECORD=$(python3 -c "
-import json
+    RECORD=$(STEPS_ENV="$STEPS_JSON" PIPE_ENV="$PIPELINE_SIGNATURE" \
+      PT_ENV="$PROJECT_TYPE" LANG_ENV="$LANGUAGE" SC_ENV="$STEP_COUNT" \
+      python3 -c "
+import json, os
 print(json.dumps({
     'timestamp': '$TIMESTAMP',
     'size': '$SIZE',
@@ -74,6 +87,11 @@ print(json.dumps({
     'actual_cost': float('$ACTUAL_COST'),
     'ratio': float('$RATIO'),
     'turn_count': int('$TURN_COUNT'),
+    'steps': json.loads(os.environ['STEPS_ENV']),
+    'pipeline_signature': os.environ['PIPE_ENV'],
+    'project_type': os.environ['PT_ENV'],
+    'language': os.environ['LANG_ENV'],
+    'step_count': int(os.environ['SC_ENV']),
 }))
 ")
 
