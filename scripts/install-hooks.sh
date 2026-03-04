@@ -75,14 +75,14 @@ hooks = settings.setdefault("hooks", {})
 
 # Add Stop hook for auto-learning
 stop_hooks = hooks.setdefault("Stop", [])
-learn_entry = {"hooks": [{"type": "command", "command": learn_script}]}
+learn_entry = {"hooks": [{"type": "command", "command": f"bash '{learn_script}'"}]}
 # Check if already installed
 if not any(learn_script in json.dumps(h) for h in stop_hooks):
     stop_hooks.append(learn_entry)
 
 # Add PostToolUse hook for plan detection
 post_hooks = hooks.setdefault("PostToolUse", [])
-track_entry = {"matcher": "Agent", "hooks": [{"type": "command", "command": track_script}]}
+track_entry = {"matcher": "Agent", "hooks": [{"type": "command", "command": f"bash '{track_script}'"}]}
 if not any(track_script in json.dumps(h) for h in post_hooks):
     post_hooks.append(track_entry)
 
