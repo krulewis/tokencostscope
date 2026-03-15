@@ -55,17 +55,20 @@ steps mentioned together in a parallel context.
 
 **Grouping boundary rule:** Only step names joined by comma, `+`, or `"and"` immediately preceding
 (or immediately following for "parallel:" prefix syntax) the parallel keyword are included in the
-group. Steps in prior or subsequent sentences are not included.
+group. The following act as group boundaries and exclude steps appearing before them: sentence
+breaks (`.`, `\n`), and sequencing words (`"then"`, `"first"`, `"after"`, `"before"`, `"next"`).
 
 Example: `"Research Agent runs first, then PM Agent and Implementation in parallel with Test Writing"`
-→ Group: PM Agent, Implementation, Test Writing (not Research Agent, which precedes the comma boundary).
+→ Group: PM Agent, Implementation, Test Writing (Research Agent excluded — it precedes the
+sequencing boundary `"then"`).
 
 **Matching:** Step names are matched against the canonical step list in `heuristics.md` using
 case-insensitive substring matching (e.g., `"research"` matches `"Research Agent"`). If a token
-matches multiple canonical names (e.g., `"engineer"` could match both `"Engineer Initial Plan"`
-and `"Engineer Final Plan"`), it is treated as unresolved. Only canonical steps (those with an
-activity row in the Pipeline Step Activity Counts table) are eligible for matching. Unrecognized
-or ambiguous names are noted in the transparency output.
+matches multiple canonical names (e.g., `"engineer"` matches both `"Engineer Initial Plan"` and
+`"Engineer Final Plan"`), it is ambiguous and treated as sequential with a distinct transparency
+note: `"Ambiguous: 'engineer' matches multiple steps — treated as sequential"`. Only canonical
+steps (those with an activity row in the Pipeline Step Activity Counts table) are eligible for
+matching. Unrecognized names are noted as: `"Unresolved: 'Researcher' — treated as sequential"`.
 
 **Grouping rules:**
 - Steps co-detected as parallel form a named group (Group 1, Group 2, …)
@@ -193,7 +196,7 @@ This is forward-looking data collection; no calibration logic changes are requir
 
 | File | Change |
 |------|--------|
-| `SKILL.md` | Bump version to 1.3.0 in frontmatter and output template header. Step 0: add parallel group detection (step 8). Step 3c (modified): apply `parallel_input_discount`. Step 3d (modified): apply `parallel_cache_rate_reduction` with floor. Step 3.5: clarify C uses un-discounted step costs. Step 4: render bracketed group rows + transparency note. Limitations: remove sequential-only bullet (delete outright — the model now handles parallel; any remaining approximation limitations are noted inline in the spec sections above). |
+| `SKILL.md` | Bump version to 1.3.0 in frontmatter and output template header. Step 0: add parallel group detection (step 8). Step 3c (modified): apply `parallel_input_discount`. Step 3d (modified): apply `parallel_cache_rate_reduction` with floor. Step 3.5: clarify C uses un-discounted step costs. Step 4: render bracketed group rows + transparency note; group header rows are display-only and do not appear in `active-estimate.json` `steps` array or increment `step_count`. Limitations: replace sequential-only bullet with "Parallel agent modeling uses fixed discount factors; actual cache and context behavior varies by agent topology." |
 | `references/heuristics.md` | Add "Parallel Agent Accounting" section with two new parameters. |
 | `scripts/tokencostscope-learn.sh` | Bump VERSION to 1.3.0. Propagate `parallel_groups` and `parallel_steps_detected` from `active-estimate.json` into `history.jsonl`. |
 | `calibration/active-estimate.json` | Schema extended (written by SKILL.md; no code file changes needed). |
