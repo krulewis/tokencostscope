@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.2.1
+version: 1.3.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -214,14 +214,16 @@ Write calibration/active-estimate.json:
   "pessimistic_cost": <pessimistic total>,
   "baseline_cost": <baseline_cost>,
   "review_cycles_estimated": <N from Step 2, or 0 if no PR Review Loop>,
-  "review_cycles_actual": null
+  "review_cycles_actual": null,
+  "parallel_groups": [["<step name>", ...], ...],
+  "parallel_steps_detected": <count of steps in any parallel group>
 }
 ```
 
 ## Output Template
 
 ```
-## costscope estimate (v1.2.1)
+## costscope estimate (v1.3.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)
@@ -231,11 +233,14 @@ Write calibration/active-estimate.json:
 
 | Step                  | Model       | Optimistic | Expected | Pessimistic |
 |-----------------------|-------------|------------|----------|-------------|
-| Research Agent        | Sonnet      | $X.XX      | $X.XX    | $X.XX       |
-| ...                   | ...         | ...        | ...      | ...         |
+| ┌ Parallel Group 1 ∥  |             |            |          |             |
+| │ Research Agent      | Sonnet      | $X.XX      | $X.XX    | $X.XX       |
+| └ ...                 | ...         | ...        | ...      | ...         |
+| [sequential steps]    | ...         | ...        | ...      | ...         |
 | PR Review Loop        | Opus+Sonnet | $X.XX      | $X.XX    | $X.XX       |
 | **TOTAL**             |             | **$X.XX**  | **$X.XX**| **$X.XX**   |
 
+**Parallel groups (when detected):** Group 1 (step names...) — modeled with 0.75× input accumulation, −0.15 cache rate
 **Bands:** Optimistic (1 review cycle) · Expected (N cycles) · Pessimistic (N×2 cycles)
 **Tracking:** Estimate recorded. Actuals will be captured automatically at session end.
 ```
@@ -261,6 +266,6 @@ line reverts to: `Optimistic (best case) · Expected (typical) · Pessimistic (w
 
 - Pipeline step names reflect a default workflow. Map your own steps to the closest defaults; the formulas are pipeline-agnostic.
 - Token counts assume typical 150-300 line source files.
-- Does not model parallel agent execution (treated as sequential).
+- Parallel agent modeling uses fixed discount factors; actual cache and context behavior varies by agent topology.
 - Calibration requires 3+ completed sessions before corrections activate.
 - Pricing data may be stale; check `last_updated` in references/pricing.md.
