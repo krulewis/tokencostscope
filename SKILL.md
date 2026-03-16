@@ -245,6 +245,8 @@ Write calibration/active-estimate.json:
 **Tracking:** Estimate recorded. Actuals will be captured automatically at session end.
 ```
 
+**Box-drawing rules for parallel groups:** First step in group uses `┌`, intermediate steps use `│`, last step uses `└`. For a 2-step group, the first uses `┌` and the second uses `└` (no `│` rows).
+
 The "Opus+Sonnet" value in the Model column is an accepted composite value indicating the
 row spans two models (Staff Review on Opus, Engineer Final Plan on Sonnet). The PR Review
 Loop row is omitted when review_cycles=0. When the PR Review Loop row is absent, the Bands

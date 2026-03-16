@@ -102,7 +102,7 @@ if python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.001 else 1)" "$A
       PSD_ENV="$PARALLEL_STEPS_DETECTED" EST_FILE="$ESTIMATE_FILE" \
       python3 -c "
 import json, os
-_est = json.load(open(os.environ.get('EST_FILE', '/dev/null'))) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
+_est = json.load(open(os.environ['EST_FILE'])) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
 parallel_groups = _est.get('parallel_groups', [])
 actual = float(os.environ['AC_ENV'])
 expected = max(float(os.environ['EC_ENV']), 0.001)

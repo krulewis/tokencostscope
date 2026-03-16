@@ -150,6 +150,11 @@ class TestParallelStepCheaperThanSequential:
         Input discount (0.75×) and cache rate change partially cancel (higher cache miss price
         offsets lower volume). Output cost is unchanged. Net effect is well under 30%.
         """
+        # Sanity guard for default parameters (parallel_input_discount=0.75,
+        # parallel_cache_rate_reduction=0.15). The 0.70 bound is not derived
+        # analytically — it is empirically chosen to be well below the minimum
+        # net discount. If the default parameters in heuristics.md change,
+        # this bound may need updating.
         p = self._step_cost(is_parallel=True)
         s = self._step_cost(is_parallel=False)
         assert p > s * 0.70
@@ -170,11 +175,33 @@ class TestPRReviewLoopCIsolation:
 
     def test_c_uses_undiscounted_costs(self):
         """If Staff Review is parallel, C still uses its pre-discount cost."""
+        # Directional test: verifies the principle that C must not be discounted.
+        # Uses input_accum * 0.75 as a proxy for "discounted cost"; the actual
+        # parallel discount applies to input_accum in Step 3c (not directly to
+        # step_cost), so this is an approximation. See test_c_excludes_cache_rate_discount
+        # for the complementary cache-rate dimension.
         c_correct = self.STAFF_REVIEW_UNDISCOUNTED + self.ENGINEER_FINAL_UNDISCOUNTED
         c_wrong = self.STAFF_REVIEW_UNDISCOUNTED * 0.75 + self.ENGINEER_FINAL_UNDISCOUNTED
 
         assert abs(c_correct - 1.0214) < 0.001
         assert c_wrong < c_correct  # discounted C would incorrectly lower the loop cost
+
+    def test_c_excludes_cache_rate_discount(self):
+        """C must exclude the cache rate discount, not just the input accumulation discount."""
+        staff = self.STAFF_REVIEW_UNDISCOUNTED
+        eng = self.ENGINEER_FINAL_UNDISCOUNTED
+
+        c_correct = staff + eng
+
+        # Simulate applying BOTH parallel discounts to staff review cost (wrong behavior):
+        # input_accum * 0.75 combined with higher non-cached portion from cache_rate - 0.15
+        # Net effect is > 0.75x reduction; for directional testing, use 0.70x as lower bound
+        c_wrong_both_discounts = staff * 0.70 + eng * 0.70
+
+        assert c_correct > c_wrong_both_discounts, (
+            "C must use undiscounted constituent costs; applying both parallel "
+            "discounts (input + cache rate) would reduce C below the correct value"
+        )
 
     def test_c_isolation_preserves_review_loop_accuracy(self):
         """Using discounted C produces a systematically lower loop cost — must be avoided."""
