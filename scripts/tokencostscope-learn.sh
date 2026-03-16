@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.2.1"
+VERSION="1.3.0"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -48,6 +48,7 @@ fields = {
     'LANGUAGE': d.get('language', 'unknown'),
     'STEP_COUNT': d.get('step_count', 0),
     'REVIEW_CYCLES': d.get('review_cycles_estimated', 0),
+    'PARALLEL_STEPS_DETECTED': d.get('parallel_steps_detected', 0),
 }
 for k, v in fields.items():
     print(f'{k}={shlex.quote(str(v))}')
@@ -98,8 +99,11 @@ if python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.001 else 1)" "$A
       ST_ENV="$STEPS_JSON" PIP_ENV="$PIPELINE_SIGNATURE" \
       PT_ENV="$PROJECT_TYPE" LG_ENV="$LANGUAGE" SC_ENV="$STEP_COUNT" \
       RC_ENV="$REVIEW_CYCLES" \
+      PSD_ENV="$PARALLEL_STEPS_DETECTED" EST_FILE="$ESTIMATE_FILE" \
       python3 -c "
 import json, os
+_est = json.load(open(os.environ.get('EST_FILE', '/dev/null'))) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
+parallel_groups = _est.get('parallel_groups', [])
 actual = float(os.environ['AC_ENV'])
 expected = max(float(os.environ['EC_ENV']), 0.001)
 print(json.dumps({
@@ -118,6 +122,8 @@ print(json.dumps({
     'step_count': int(os.environ['SC_ENV']),
     'review_cycles_estimated': int(os.environ['RC_ENV']),
     'review_cycles_actual': None,
+    'parallel_groups': parallel_groups,
+    'parallel_steps_detected': int(os.environ['PSD_ENV']),
 }))
 ")
 
