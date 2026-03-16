@@ -41,6 +41,26 @@ If invoked without explicit parameters, infer from the plan in conversation:
 6. **Language:** Infer primary language from file extensions in the plan → `.py`→`python`, `.ts/.tsx`→`typescript`, `.js/.jsx`→`javascript`, `.go`→`go`, `.rs`→`rust`, `.rb`→`ruby`, `.java`→`java`, `.sh`→`shell`. If mixed, use the most frequent. Default: `unknown`.
 7. **Review cycles (N):** If the inferred steps include a review step (e.g., "Staff Review") AND at least one of a final-plan step (e.g., "Engineer Final Plan"), implementation step, or test-writing step, set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
 
+8. **Parallel groups:** Scan the plan text for parallel execution indicators (case-insensitive):
+   - Keywords: `"in parallel"`, `"simultaneously"`, `"concurrently"`, `"∥"`, `"parallel:"`,
+     `"[parallel]"`, `"(parallel)"`
+   - For each keyword match, identify step names in the same grouping window: step names joined
+     by comma, `+`, or `"and"` immediately preceding (or following, for `"parallel:"` prefix
+     syntax) the keyword.
+   - **Boundaries:** Sentence breaks (`.`, `\n`) and sequencing words (`"then"`, `"first"`,
+     `"after"`, `"before"`, `"next"`) are hard boundaries — step names on the far side are
+     not included in the group.
+   - **Matching:** Case-insensitive substring match against canonical step names in heuristics.md.
+     If a token matches multiple canonical names (e.g., `"engineer"` → both `"Engineer Initial
+     Plan"` and `"Engineer Final Plan"`), treat it as ambiguous and note in transparency output:
+     `"Ambiguous: 'engineer' matches multiple steps — falls back to sequential modeling"`.
+     Unrecognized tokens: `"Unresolved: 'Researcher' — falls back to sequential modeling"`.
+   - **Conflict:** A step belongs to at most one group — first occurrence wins.
+   - **Minimum size:** Groups with fewer than 2 resolved steps are discarded.
+   - Output: `parallel_groups` (list of groups, each a list of canonical step names) and
+     `parallel_set` (flat set of all parallel step names for O(1) lookup in Steps 3c/3d).
+   - If no parallel language is detected, `parallel_groups = []` and `parallel_set = {}`.
+
 If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
 
 ## Step 1 — Load References and Calibration
