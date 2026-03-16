@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.2.1
+version: 1.3.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -40,6 +40,26 @@ If invoked without explicit parameters, infer from the plan in conversation:
 5. **Project type:** Infer from plan keywords → `greenfield` (new project/system), `refactor` (restructure/reorganize/simplify), `bug_fix` (fix/broken/regression), `migration` (migrate/upgrade/port), `docs` (documentation/readme). Default: `greenfield`.
 6. **Language:** Infer primary language from file extensions in the plan → `.py`→`python`, `.ts/.tsx`→`typescript`, `.js/.jsx`→`javascript`, `.go`→`go`, `.rs`→`rust`, `.rb`→`ruby`, `.java`→`java`, `.sh`→`shell`. If mixed, use the most frequent. Default: `unknown`.
 7. **Review cycles (N):** If the inferred steps include a review step (e.g., "Staff Review") AND at least one of a final-plan step (e.g., "Engineer Final Plan"), implementation step, or test-writing step, set `review_cycles = review_cycles_default` from heuristics.md (default 2). If the plan explicitly mentions a cycle count (e.g., "2 review cycles"), use that. If none of the required constituent steps are present, set N=0. N=0 naturally produces $0 via the decay formula (1−0.6^0=0); no special-case handling is needed.
+
+8. **Parallel groups:** Scan the plan text for parallel execution indicators (case-insensitive):
+   - Keywords: `"in parallel"`, `"simultaneously"`, `"concurrently"`, `"∥"`, `"parallel:"`,
+     `"[parallel]"`, `"(parallel)"`
+   - For each keyword match, identify step names in the same grouping window: step names joined
+     by comma, `+`, or `"and"` immediately preceding (or following, for `"parallel:"` prefix
+     syntax) the keyword.
+   - **Boundaries:** Sentence breaks (`.`, `\n`) and sequencing words (`"then"`, `"first"`,
+     `"after"`, `"before"`, `"next"`) are hard boundaries — step names on the far side are
+     not included in the group.
+   - **Matching:** Case-insensitive substring match against canonical step names in heuristics.md.
+     If a token matches multiple canonical names (e.g., `"engineer"` → both `"Engineer Initial
+     Plan"` and `"Engineer Final Plan"`), treat it as ambiguous and note in transparency output:
+     `"Ambiguous: 'engineer' matches multiple steps — falls back to sequential modeling"`.
+     Unrecognized tokens: `"Unresolved: 'Linter' — falls back to sequential modeling"`.
+   - **Conflict:** A step belongs to at most one group — first occurrence wins.
+   - **Minimum size:** Groups with fewer than 2 resolved steps are discarded.
+   - Output: `parallel_groups` (list of groups, each a list of canonical step names) and
+     `parallel_set` (flat set of all parallel step names for O(1) lookup in Steps 3c/3d).
+   - If no parallel language is detected, `parallel_groups = []` and `parallel_set = {}`.
 
 If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
 
@@ -82,15 +102,23 @@ output_complex = output_base × complexity_multiplier
 ```
 K           = total activity count in this step
 input_accum = input_complex × (K + 1) / 2
+
+If this step is in parallel_set:
+    input_accum = input_accum × parallel_input_discount
+                  [parallel_input_discount from heuristics.md, default 0.75]
 ```
 
 **3d. Compute cost for each band (Optimistic / Expected / Pessimistic)**
 ```
 cache_rate ← from pricing.md for this band
+If this step is in parallel_set:
+    cache_rate = max(cache_rate − parallel_cache_rate_reduction, parallel_cache_rate_floor)
+                 [parallel_cache_rate_reduction = 0.15, parallel_cache_rate_floor = 0.05,
+                  both from heuristics.md]
 band_mult  ← from heuristics.md for this band
 price_in   ← model input price per million
 price_cr   ← model cache_read price per million
-price_cw   ← model cache_write price per million
+price_cw   ← model cache_write price per million  # resolved but not yet used; see Roadmap v1.3 remaining
 price_out  ← model output price per million
 
 input_cost  = (input_accum × (1 - cache_rate) × price_in
@@ -116,11 +144,12 @@ calculations. It is not inline with the per-step loop. If N=0 (no PR Review Loop
 skip this section entirely — the PR Review Loop row is omitted from output and contributes
 $0 to all band totals.
 
-**Constituent steps:** "Staff Review" and "Engineer Final Plan" — using the pre-calibration
-Expected band costs computed at the END of Step 3d (band_mult=1.0, cache_rate=0.50,
-complexity and context accumulation already applied). These are the raw step_cost values
-before Step 3e calibration is applied. If a constituent step is not in the current plan's
-scope, it contributes $0 to C.
+**Constituent steps:** "Staff Review" and "Engineer Final Plan" — using the pre-calibration,
+**un-discounted** Expected band costs: `step_cost` values before Step 3e calibration AND
+before any parallel discount from Steps 3c/3d. The PR Review Loop cycles are sequential by
+nature; C must not inherit the parallel discount even if constituent steps were modeled as
+parallel in the main pipeline. Cache each step's pre-discount cost during the per-step loop
+for use here. If a constituent step is not in scope, it contributes $0 to C.
 
 **Per-cycle cost (C):**
 ```
@@ -185,14 +214,16 @@ Write calibration/active-estimate.json:
   "pessimistic_cost": <pessimistic total>,
   "baseline_cost": <baseline_cost>,
   "review_cycles_estimated": <N from Step 2, or 0 if no PR Review Loop>,
-  "review_cycles_actual": null
+  "review_cycles_actual": null,
+  "parallel_groups": [["<step name>", ...], ...],
+  "parallel_steps_detected": <count of steps in any parallel group>
 }
 ```
 
 ## Output Template
 
 ```
-## costscope estimate (v1.2.1)
+## costscope estimate (v1.3.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)
@@ -202,14 +233,19 @@ Write calibration/active-estimate.json:
 
 | Step                  | Model       | Optimistic | Expected | Pessimistic |
 |-----------------------|-------------|------------|----------|-------------|
-| Research Agent        | Sonnet      | $X.XX      | $X.XX    | $X.XX       |
-| ...                   | ...         | ...        | ...      | ...         |
+| ┌ Parallel Group 1 ∥  |             |            |          |             |
+| │ Research Agent      | Sonnet      | $X.XX      | $X.XX    | $X.XX       |
+| └ ...                 | ...         | ...        | ...      | ...         |
+| [sequential steps]    | ...         | ...        | ...      | ...         |
 | PR Review Loop        | Opus+Sonnet | $X.XX      | $X.XX    | $X.XX       |
 | **TOTAL**             |             | **$X.XX**  | **$X.XX**| **$X.XX**   |
 
+**Parallel groups (when detected):** Group 1 (step names...) — modeled with 0.75× input accumulation, −0.15 cache rate
 **Bands:** Optimistic (1 review cycle) · Expected (N cycles) · Pessimistic (N×2 cycles)
 **Tracking:** Estimate recorded. Actuals will be captured automatically at session end.
 ```
+
+**Box-drawing rules for parallel groups:** First step in group uses `┌`, intermediate steps use `│`, last step uses `└`. For a 2-step group, the first uses `┌` and the second uses `└` (no `│` rows).
 
 The "Opus+Sonnet" value in the Model column is an accepted composite value indicating the
 row spans two models (Staff Review on Opus, Engineer Final Plan on Sonnet). The PR Review
@@ -232,6 +268,6 @@ line reverts to: `Optimistic (best case) · Expected (typical) · Pessimistic (w
 
 - Pipeline step names reflect a default workflow. Map your own steps to the closest defaults; the formulas are pipeline-agnostic.
 - Token counts assume typical 150-300 line source files.
-- Does not model parallel agent execution (treated as sequential).
+- Parallel agent modeling uses fixed discount factors; actual cache and context behavior varies by agent topology.
 - Calibration requires 3+ completed sessions before corrections activate.
 - Pricing data may be stale; check `last_updated` in references/pricing.md.

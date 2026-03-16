@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.2.1"
+VERSION="1.3.0"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -20,8 +20,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 CALIBRATION_DIR="$SKILL_DIR/calibration"
-ESTIMATE_FILE="$CALIBRATION_DIR/active-estimate.json"
-HISTORY_FILE="$CALIBRATION_DIR/history.jsonl"
+ESTIMATE_FILE="${TOKENCOSTSCOPE_ESTIMATE_FILE:-$CALIBRATION_DIR/active-estimate.json}"
+HISTORY_FILE="${TOKENCOSTSCOPE_HISTORY_FILE:-$CALIBRATION_DIR/history.jsonl}"
 FACTORS_FILE="$CALIBRATION_DIR/factors.json"
 
 # Exit early if no active estimate was recorded this session
@@ -48,6 +48,7 @@ fields = {
     'LANGUAGE': d.get('language', 'unknown'),
     'STEP_COUNT': d.get('step_count', 0),
     'REVIEW_CYCLES': d.get('review_cycles_estimated', 0),
+    'PARALLEL_STEPS_DETECTED': d.get('parallel_steps_detected', 0),
 }
 for k, v in fields.items():
     print(f'{k}={shlex.quote(str(v))}')
@@ -57,14 +58,19 @@ for k, v in fields.items():
 }
 
 # Find the most recent session JSONL
-# Search all project directories under ~/.claude/projects/
-LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
-    xargs -0 ls -t 2>/dev/null | head -1)
-
-if [ -z "$LATEST_JSONL" ]; then
-    # Fallback: find the most recently modified JSONL anywhere
-    LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -print0 2>/dev/null | \
+# If a path is provided as $1, use it directly (allows integration tests to inject a mock session)
+if [ -n "${1:-}" ] && [ -f "$1" ]; then
+    LATEST_JSONL="$1"
+else
+    # Search all project directories under ~/.claude/projects/
+    LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
         xargs -0 ls -t 2>/dev/null | head -1)
+
+    if [ -z "$LATEST_JSONL" ]; then
+        # Fallback: find the most recently modified JSONL anywhere
+        LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -print0 2>/dev/null | \
+            xargs -0 ls -t 2>/dev/null | head -1)
+    fi
 fi
 
 if [ -z "$LATEST_JSONL" ] || [ ! -f "$LATEST_JSONL" ]; then
@@ -98,8 +104,11 @@ if python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.001 else 1)" "$A
       ST_ENV="$STEPS_JSON" PIP_ENV="$PIPELINE_SIGNATURE" \
       PT_ENV="$PROJECT_TYPE" LG_ENV="$LANGUAGE" SC_ENV="$STEP_COUNT" \
       RC_ENV="$REVIEW_CYCLES" \
+      PSD_ENV="$PARALLEL_STEPS_DETECTED" EST_FILE="$ESTIMATE_FILE" \
       python3 -c "
 import json, os
+_est = json.load(open(os.environ['EST_FILE'])) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
+parallel_groups = _est.get('parallel_groups', [])
 actual = float(os.environ['AC_ENV'])
 expected = max(float(os.environ['EC_ENV']), 0.001)
 print(json.dumps({
@@ -118,6 +127,8 @@ print(json.dumps({
     'step_count': int(os.environ['SC_ENV']),
     'review_cycles_estimated': int(os.environ['RC_ENV']),
     'review_cycles_actual': None,
+    'parallel_groups': parallel_groups,
+    'parallel_steps_detected': int(os.environ['PSD_ENV']),
 }))
 ")
 

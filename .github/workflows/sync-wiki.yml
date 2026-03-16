@@ -1,0 +1,48 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/wiki/**"
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Push docs/wiki to GitHub Wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          # Clone the wiki repo (separate git repo at <repo>.wiki.git)
+          git clone \
+            "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.wiki.git" \
+            wiki-repo
+
+          # Sync docs/wiki/ → wiki repo root (delete pages removed from docs/wiki/)
+          rsync -av --delete --exclude='.git' docs/wiki/ wiki-repo/
+
+          cd wiki-repo
+
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No wiki changes to sync."
+          else
+            git commit -m "Sync wiki from docs/wiki @ ${COMMIT_SHA}"
+            git push
+            echo "Wiki synced successfully."
+          fi
