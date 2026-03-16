@@ -39,7 +39,7 @@ With overrides:
 
 ## Parallel Agent Accounting
 
-Parallel steps are detected automatically from plan text. No override needed in most cases.
+Parallel steps are detected automatically from plan text. No manual override is available — detection is fully automatic.
 
 **Detected patterns (case-insensitive):**
 - `"in parallel"`, `"simultaneously"`, `"concurrently"`

@@ -54,7 +54,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
      If a token matches multiple canonical names (e.g., `"engineer"` → both `"Engineer Initial
      Plan"` and `"Engineer Final Plan"`), treat it as ambiguous and note in transparency output:
      `"Ambiguous: 'engineer' matches multiple steps — falls back to sequential modeling"`.
-     Unrecognized tokens: `"Unresolved: 'Researcher' — falls back to sequential modeling"`.
+     Unrecognized tokens: `"Unresolved: 'Linter' — falls back to sequential modeling"`.
    - **Conflict:** A step belongs to at most one group — first occurrence wins.
    - **Minimum size:** Groups with fewer than 2 resolved steps are discarded.
    - Output: `parallel_groups` (list of groups, each a list of canonical step names) and
