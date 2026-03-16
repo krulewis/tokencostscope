@@ -102,11 +102,19 @@ output_complex = output_base × complexity_multiplier
 ```
 K           = total activity count in this step
 input_accum = input_complex × (K + 1) / 2
+
+If this step is in parallel_set:
+    input_accum = input_accum × parallel_input_discount
+                  [parallel_input_discount from heuristics.md, default 0.75]
 ```
 
 **3d. Compute cost for each band (Optimistic / Expected / Pessimistic)**
 ```
 cache_rate ← from pricing.md for this band
+If this step is in parallel_set:
+    cache_rate = max(cache_rate − parallel_cache_rate_reduction, parallel_cache_rate_floor)
+                 [parallel_cache_rate_reduction = 0.15, parallel_cache_rate_floor = 0.05,
+                  both from heuristics.md]
 band_mult  ← from heuristics.md for this band
 price_in   ← model input price per million
 price_cr   ← model cache_read price per million
@@ -136,11 +144,12 @@ calculations. It is not inline with the per-step loop. If N=0 (no PR Review Loop
 skip this section entirely — the PR Review Loop row is omitted from output and contributes
 $0 to all band totals.
 
-**Constituent steps:** "Staff Review" and "Engineer Final Plan" — using the pre-calibration
-Expected band costs computed at the END of Step 3d (band_mult=1.0, cache_rate=0.50,
-complexity and context accumulation already applied). These are the raw step_cost values
-before Step 3e calibration is applied. If a constituent step is not in the current plan's
-scope, it contributes $0 to C.
+**Constituent steps:** "Staff Review" and "Engineer Final Plan" — using the pre-calibration,
+**un-discounted** Expected band costs: `step_cost` values before Step 3e calibration AND
+before any parallel discount from Steps 3c/3d. The PR Review Loop cycles are sequential by
+nature; C must not inherit the parallel discount even if constituent steps were modeled as
+parallel in the main pipeline. Cache each step's pre-discount cost during the per-step loop
+for use here. If a constituent step is not in scope, it contributes $0 to C.
 
 **Per-cycle cost (C):**
 ```
