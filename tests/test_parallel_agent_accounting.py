@@ -5,6 +5,8 @@ forwarding, and document content verification. All document/learn.sh tests
 must fail before implementation; arithmetic tests pass immediately (they test
 inline helper formulas, not file content).
 """
+# Runner: pytest (required). Non-TestCase classes are pytest-style and will be
+# silently skipped by `python -m unittest`. Use: /usr/bin/python3 -m pytest tests/
 
 import json
 import os
@@ -304,6 +306,38 @@ class TestDocumentContent:
     def test_skill_md_active_estimate_schema_has_parallel_steps_detected(self):
         assert "parallel_steps_detected" in SKILL_MD.read_text()
 
+    def test_skill_md_has_parallel_keyword_in_parallel(self):
+        content = SKILL_MD.read_text()
+        assert '"in parallel"' in content, 'SKILL.md must list "in parallel" as a detection keyword'
+
+    def test_skill_md_has_parallel_keyword_concurrently(self):
+        content = SKILL_MD.read_text()
+        assert '"concurrently"' in content, 'SKILL.md must list "concurrently" as a detection keyword'
+
+    def test_skill_md_has_boundary_word_rule(self):
+        content = SKILL_MD.read_text()
+        assert "Boundaries" in content or "boundaries" in content, (
+            "SKILL.md must document boundary word rules for parallel group detection"
+        )
+
+    def test_skill_md_has_first_occurrence_wins_rule(self):
+        content = SKILL_MD.read_text()
+        assert "first occurrence" in content.lower() or "first-occurrence" in content.lower(), (
+            "SKILL.md must document first-occurrence-wins conflict rule"
+        )
+
+    def test_skill_md_has_minimum_group_size_rule(self):
+        content = SKILL_MD.read_text()
+        assert "fewer than 2" in content or "minimum" in content.lower(), (
+            "SKILL.md must document minimum group size (>=2 steps)"
+        )
+
+    def test_skill_md_has_ambiguity_handling(self):
+        content = SKILL_MD.read_text()
+        assert "Ambiguous" in content or "ambiguous" in content, (
+            "SKILL.md must document ambiguous token handling"
+        )
+
 
 # ---------------------------------------------------------------------------
 # learn.sh: version and field forwarding
@@ -425,7 +459,7 @@ class TestLearnShellIntegration(unittest.TestCase):
             "expected_cost": 0.05,
             "optimistic_cost": 0.03,
             "pessimistic_cost": 0.15,
-            "baseline_cost": 0.01,
+            "baseline_cost": 0.0,
             "review_cycles_estimated": 0,
             "review_cycles_actual": None,
             "parallel_groups": parallel_groups or [],
@@ -436,16 +470,22 @@ class TestLearnShellIntegration(unittest.TestCase):
         return str(path)
 
     def _write_mock_session_jsonl(self, tmp_dir):
-        """Write a minimal session JSONL (single usage entry)."""
+        """Write a minimal session JSONL (single usage entry).
+
+        Must include "model" inside "message" — sum-session-tokens.py skips
+        entries where model is absent or "<synthetic>", which would leave
+        actual_cost=0 and prevent learn.sh from writing a history record.
+        """
         entry = {
             "type": "assistant",
             "message": {
+                "model": "claude-sonnet-4-6",
                 "usage": {
                     "input_tokens": 1000,
                     "output_tokens": 200,
                     "cache_read_input_tokens": 500,
                     "cache_creation_input_tokens": 100,
-                }
+                },
             },
             "costUSD": 0.012,
         }

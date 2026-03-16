@@ -118,7 +118,7 @@ If this step is in parallel_set:
 band_mult  ← from heuristics.md for this band
 price_in   ← model input price per million
 price_cr   ← model cache_read price per million
-price_cw   ← model cache_write price per million
+price_cw   ← model cache_write price per million  # resolved but not yet used; see Roadmap v1.3 remaining
 price_out  ← model output price per million
 
 input_cost  = (input_accum × (1 - cache_rate) × price_in
