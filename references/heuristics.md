@@ -122,3 +122,19 @@ When N=0, the formula naturally produces $0 (since 1−0.6^0 = 0). No special ca
 The calibration factor (from factors.json) is applied independently to each band
 (Optimistic, Expected, Pessimistic), unlike other steps which re-anchor bands as
 fixed ratios of calibrated Expected. See SKILL.md Step 3.5 for details.
+
+## Parallel Agent Accounting
+
+When pipeline steps run as parallel subagents, two adjustments apply to reduce their estimated
+cost: (1) they start fresh without inheriting accumulated context from prior steps, and (2) they
+cannot reuse cache warmed by preceding sequential steps.
+
+| Parameter                       | Value | Notes                                               |
+|---------------------------------|-------|-----------------------------------------------------|
+| parallel_input_discount         | 0.75  | Multiplier on input_accum for parallel steps        |
+| parallel_cache_rate_reduction   | 0.15  | Subtracted from each band's cache hit rate          |
+| parallel_cache_rate_floor       | 0.05  | Minimum effective cache hit rate after reduction    |
+
+These values are heuristic estimates and will be refined via calibration as parallel-tagged
+sessions accumulate in history.jsonl. Groups with fewer than 2 resolved steps are discarded
+(a single-step "parallel group" is semantically meaningless and is treated as sequential).
