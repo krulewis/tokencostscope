@@ -212,7 +212,7 @@ Models are defined in each agent's frontmatter — not chosen at dispatch time. 
    iv. Dispatch to **new** `staff-reviewer` agent (fresh context) → repeat from (i)
    v. **Exit:** Staff Engineer states "no remaining comments"
    vi. **Loop guard:** same comment on two consecutive passes → stop and flag to user
-10. **Cost Analysis** — run `/tokencostscope` actual-vs-estimate comparison. Report the delta and update calibration data for future estimates.
+10. **Cost Analysis** — run `/tokencostscope` actual-vs-estimate comparison. Before invoking, read `calibration/last-estimate.md` and `calibration/active-estimate.json` if they exist to recover the prior estimate (survives session compaction). Report the delta and update calibration data for future estimates.
 11. **Merge** — merge automatically after the PR review loop is clean (no user confirmation needed).
 
 ### Checklists (post visibly in responses)

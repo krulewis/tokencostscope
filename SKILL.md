@@ -188,6 +188,15 @@ Sum step costs across all in-scope steps for each band. Render the output templa
 
 ### Compute baseline_cost
 
+If this invocation is for **post-implementation cost analysis** (pipeline step 10), first check
+for a prior estimate:
+```
+Read calibration/last-estimate.md if it exists → prior expected_cost for delta comparison.
+Read calibration/active-estimate.json if it exists → structured prior estimate data.
+Report the delta: actual_cost − baseline_cost vs prior expected_cost.
+```
+If neither file exists, note that the prior estimate is unavailable and proceed.
+
 Before writing the estimate, compute the session's cost so far (baseline):
 ```
 Find the current session JSONL:
@@ -219,6 +228,28 @@ Write calibration/active-estimate.json:
   "parallel_steps_detected": <count of steps in any parallel group>
 }
 ```
+
+Then write a human-readable summary for compaction survival:
+```
+Write calibration/last-estimate.md:
+# Last tokencostscope Estimate
+
+**Feature:** {infer from plan context — e.g., "v1.3.0 parallel agent accounting"}
+**Recorded:** {ISO 8601 timestamp}
+**Size:** {size} | **Files:** {N} | **Complexity:** {complexity}
+**Type:** {project_type} | **Language:** {language}
+**Steps:** {step names, comma-separated}
+
+| Band       | Cost    |
+|------------|---------|
+| Optimistic | ${optimistic_cost} |
+| Expected   | ${expected_cost}   |
+| Pessimistic| ${pessimistic_cost}|
+
+Review cycles estimated: {review_cycles_estimated}
+Parallel steps detected: {parallel_steps_detected}
+```
+This file is the compaction-safe reference for pipeline step 10 cost analysis.
 
 ## Output Template
 
