@@ -21,7 +21,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 After a plan is created, tokencostscope automatically outputs a cost table:
 
 ```
-## costscope estimate (v1.3.0)
+## costscope estimate (v1.3.1)
 
 Change: size=M, files=5, complexity=medium, type=greenfield, lang=python
 Steps: all (8 steps)

@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.3.0
+version: 1.3.1
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -118,11 +118,14 @@ If this step is in parallel_set:
 band_mult  ← from heuristics.md for this band
 price_in   ← model input price per million
 price_cr   ← model cache_read price per million
-price_cw   ← model cache_write price per million  # resolved but not yet used; see Roadmap v1.3 remaining
+price_cw   ← model cache_write price per million
 price_out  ← model output price per million
 
+cache_write_fraction = 1 / K
+
 input_cost  = (input_accum × (1 - cache_rate) × price_in
-            +  input_accum × cache_rate × price_cr) / 1,000,000
+            +  input_accum × cache_rate × cache_write_fraction × price_cw
+            +  input_accum × cache_rate × (1 - cache_write_fraction) × price_cr) / 1,000,000
 output_cost = output_complex × price_out / 1,000,000
 step_cost   = (input_cost + output_cost) × band_mult
 ```
@@ -197,6 +200,8 @@ Report the delta: actual_cost − baseline_cost vs prior expected_cost.
 ```
 If neither file exists, note that the prior estimate is unavailable and proceed.
 
+**Step 10 invocations stop here.** Do NOT write a new `active-estimate.json` or `last-estimate.md` for post-implementation analysis — there is no new forward estimate to record, and overwriting with null values would corrupt the learning pipeline. Skip the rest of Step 4.
+
 Before writing the estimate, compute the session's cost so far (baseline):
 ```
 Find the current session JSONL:
@@ -254,7 +259,7 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
 ## Output Template
 
 ```
-## costscope estimate (v1.3.0)
+## costscope estimate (v1.3.1)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)

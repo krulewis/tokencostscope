@@ -3,6 +3,10 @@
 > **Note:** These examples use default pipeline step names for concreteness. The formulas
 > and arithmetic are pipeline-agnostic — substitute your own step names as needed.
 
+> **Formula note (v1.3.1):** The formula template below has been updated to the three-term
+> cache cost formula. The per-step worked calculations further down use the pre-v1.3.1
+> two-term formula and will be recomputed in a follow-up update.
+
 ## Example 1: M-size change, 5 files, Medium complexity
 
 **Inputs:** size=M, file_count=5, complexity=Medium (1.0x)
@@ -27,10 +31,27 @@ step_input_accum    = step_input_complex × (K + 1) / 2
 For each band:
   cache_rate  ∈ {optimistic: 0.60, expected: 0.50, pessimistic: 0.30}
   band_mult   ∈ {optimistic: 0.60, expected: 1.00, pessimistic: 3.00}
+  cache_write_fraction = 1 / K
   input_cost  = (step_input_accum × (1 - cache_rate) × price_input
-              +  step_input_accum × cache_rate × price_cache_read) / 1,000,000
+              +  step_input_accum × cache_rate × cache_write_fraction × price_cache_write
+              +  step_input_accum × cache_rate × (1 - cache_write_fraction) × price_cache_read) / 1,000,000
   output_cost = step_output_complex × price_output / 1,000,000
   step_cost   = (input_cost + output_cost) × band_mult
+```
+
+#### Formula example — Research Agent (Sonnet, K=14)
+
+```
+cache_write_fraction = 1 / 14 ≈ 0.0714
+
+Expected band (cache_rate=0.50, input_accum=600,000):
+  uncached     = 600,000 × 0.50 × 3.00           = 900,000
+  cache_write  = 600,000 × 0.50 × (1/14) × 3.75  ≈  80,357
+  cache_read   = 600,000 × 0.50 × (13/14) × 0.30 ≈  83,571
+  input_cost   = (900,000 + 80,357 + 83,571) / 1,000,000 ≈ $1.0639
+
+  Compare two-term formula: (900,000 + 90,000) / 1,000,000 = $0.9900
+  Delta: +$0.0739 (+7.5%) — cache_write tokens priced at $3.75 instead of $0.30
 ```
 
 ---

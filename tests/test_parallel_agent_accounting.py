@@ -1,4 +1,4 @@
-"""Tests for parallel agent accounting (v1.3.0).
+"""Tests for parallel agent accounting (v1.3.1).
 
 Tests the two discount factors, PR Review Loop C isolation, learn.sh field
 forwarding, and document content verification. All document/learn.sh tests
@@ -261,10 +261,10 @@ class TestDocumentContent:
         assert "parallel_cache_rate_reduction" in HEURISTICS_MD.read_text()
 
     def test_skill_md_version_1_3_0(self):
-        assert "version: 1.3.0" in SKILL_MD.read_text()
+        assert "version: 1.3.1" in SKILL_MD.read_text()
 
     def test_skill_md_output_template_v1_3_0(self):
-        assert "v1.3.0" in SKILL_MD.read_text()
+        assert "v1.3.1" in SKILL_MD.read_text()
 
     def test_skill_md_step0_has_parallel_groups_output(self):
         """Step 0 must produce parallel_groups — check for the specific output variable name."""
@@ -352,7 +352,7 @@ class TestLearnScript:
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "1.3.0" in result.stdout
+        assert "1.3.1" in result.stdout
 
     def test_forwards_parallel_steps_detected(self):
         """learn.sh must extract parallel_steps_detected from active-estimate.json."""
