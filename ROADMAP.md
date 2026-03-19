@@ -48,7 +48,7 @@
 - [ ] **Per-step correction factors** — tag sessions with pipeline step name, learn per-step accuracy (Research overestimated? Staff Review underestimated?)
 - [ ] **File size awareness** — read actual file sizes from the plan's file list, adjust token budgets (small files < 50 lines get 3k, large files > 500 lines get 20k+)
 - [ ] **Parallel agent accounting** — when steps run as parallel subagents, model overlapping context differently than sequential
-- [ ] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads
+- [x] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads
 - [ ] **Decay on stale data** — down-weight sessions older than 30 days more aggressively
 - [ ] **Per-pipeline-signature calibration** — calibrate by agent sequence, not just size class
 
@@ -136,4 +136,4 @@
 
 ---
 
-*Last updated: 2026-03-04*
+*Last updated: 2026-03-18*

@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.3.0"
+VERSION="1.3.1"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -37,18 +37,18 @@ with open(os.environ['EST_FILE']) as f:
 steps = d.get('steps', [])
 sig = '+'.join(sorted(s.lower().replace(' ', '_') for s in steps))
 fields = {
-    'EXPECTED_COST': d.get('expected_cost', 0),
-    'SIZE': d.get('size', 'M'),
-    'FILES': d.get('files', 0),
-    'COMPLEXITY': d.get('complexity', 'medium'),
-    'BASELINE_COST': d.get('baseline_cost', 0),
+    'EXPECTED_COST': d.get('expected_cost') or 0,
+    'SIZE': d.get('size') or 'M',
+    'FILES': d.get('files') or 0,
+    'COMPLEXITY': d.get('complexity') or 'medium',
+    'BASELINE_COST': d.get('baseline_cost') or 0,
     'STEPS_JSON': json.dumps(steps),
     'PIPELINE_SIGNATURE': sig,
-    'PROJECT_TYPE': d.get('project_type', 'unknown'),
-    'LANGUAGE': d.get('language', 'unknown'),
-    'STEP_COUNT': d.get('step_count', 0),
-    'REVIEW_CYCLES': d.get('review_cycles_estimated', 0),
-    'PARALLEL_STEPS_DETECTED': d.get('parallel_steps_detected', 0),
+    'PROJECT_TYPE': d.get('project_type') or 'unknown',
+    'LANGUAGE': d.get('language') or 'unknown',
+    'STEP_COUNT': d.get('step_count') or 0,
+    'REVIEW_CYCLES': d.get('review_cycles_estimated') or 0,
+    'PARALLEL_STEPS_DETECTED': d.get('parallel_steps_detected') or 0,
 }
 for k, v in fields.items():
     print(f'{k}={shlex.quote(str(v))}')

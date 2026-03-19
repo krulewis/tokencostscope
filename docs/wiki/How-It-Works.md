@@ -70,11 +70,20 @@ cache_rate ← from pricing.md (Optimistic: 60%, Expected: 50%, Pessimistic: 30%
 
 For parallel steps: cache_rate = max(cache_rate − 0.15, 0.05)
 
+K              = total activity count from Step 3c
+cache_write_fraction = 1 / K
+
 input_cost  = (input_accum × (1 − cache_rate) × price_in
-            +  input_accum × cache_rate × price_cr) / 1,000,000
+            +  input_accum × cache_rate × cache_write_fraction × price_cw
+            +  input_accum × cache_rate × (1 − cache_write_fraction) × price_cr) / 1,000,000
 output_cost = output_complex × price_out / 1,000,000
 step_cost   = (input_cost + output_cost) × band_multiplier
 ```
+
+The cache cost splits across three terms:
+- **Uncached input** at full input price (`price_in`)
+- **Cached write** (first turn) at cache write price (`price_cw` — 12.5x read cost)
+- **Cached read** (subsequent turns) at cache read price (`price_cr`)
 
 Band multipliers: Optimistic=0.6×, Expected=1.0×, Pessimistic=3.0×
 
