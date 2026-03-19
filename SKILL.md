@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.3.1
+version: 1.4.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -132,13 +132,36 @@ step_cost   = (input_cost + output_cost) × band_mult
 
 **3e. Apply calibration factor (Expected band only)**
 
-If `calibration/factors.json` exists and has a factor for this size class:
+Read `step_factors` from `calibration/factors.json` if it exists (default: {}).
+Read size-class and global factors as before.
+
+For each step, determine the factor and its source using this precedence chain:
+  1. Per-step: if `step_factors[step_name]` exists and `status == "active"` → use
+     `step_factors[step_name].factor`, source = "S"
+  2. Size-class: if `factors[size]` exists and size_n >= 3 → use `factors[size]`,
+     source = "Z"
+  3. Global: if `factors["global"]` exists and `status == "active"` → use
+     `factors["global"]`, source = "G"
+  4. No calibration: factor = 1.0, source = "--"
+
+Step factor precedence rules — edge cases:
+- If a step has both a per-step factor (active) and a size-class factor, the per-step
+  factor wins. Cal column shows "S:x.xx".
+- If a step's per-step factor has status "collecting" (n < per_step_min_samples=3),
+  it is NOT applied; fall through to size-class or global. Cal shows "Z:x.xx",
+  "G:x.xx", or "--" per the remaining chain.
+- The PR Review Loop row uses the PR Review Loop's own calibration path (Step 3.5).
+  Its Cal column always shows "--"; it is not subject to per-step factor lookup.
+
+Apply calibration:
 ```
-calibrated_expected = expected_cost × calibration_factor
-calibrated_optimistic = calibrated_expected × 0.6
+calibrated_expected    = expected_cost × factor
+calibrated_optimistic  = calibrated_expected × 0.6
 calibrated_pessimistic = calibrated_expected × 3.0
 ```
-If no calibration data, use raw values (factor = 1.0).
+Record the factor source per step for use in the output Cal column.
+
+Note: Per-step factors REPLACE (do not stack with) size-class and global factors.
 
 ## Step 3.5 — PR Review Loop Row (post-step-loop computation, default constituents)
 
@@ -230,7 +253,12 @@ Write calibration/active-estimate.json:
   "review_cycles_estimated": <N from Step 2, or 0 if no PR Review Loop>,
   "review_cycles_actual": null,
   "parallel_groups": [["<step name>", ...], ...],
-  "parallel_steps_detected": <count of steps in any parallel group>
+  "parallel_steps_detected": <count of steps in any parallel group>,
+  "step_costs": {
+    "<step name>": <calibrated Expected band cost for that step, float>,
+    ...
+    "PR Review Loop": <calibrated review loop expected cost, float>  // if in scope
+  }
 }
 ```
 
@@ -259,23 +287,39 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
 ## Output Template
 
 ```
-## costscope estimate (v1.3.1)
+## costscope estimate (v1.4.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Steps:** {all | list of included steps} ({step_count} steps)
 **Pricing:** last updated {last_updated}
-**Calibration:** {factor}x from {N} prior runs | or "no prior data — will learn after this session"
+**Calibration:** {Join active segments with " | ". Show only segments where data exists:
+  - Per-step: "{K} steps with per-step factors" (K = count of steps with status="active" in step_factors)
+  - Size-class: "size-class {size}={factor}x ({n} runs)"
+  - Global: "global {factor}x ({n} runs)"
+  Examples: (a) "3 steps with per-step factors | size-class M=1.18x (7 runs) | global 1.12x (10 runs)"
+            (b) "size-class M=1.18x (7 runs)"  (c) "global 1.12x (10 runs)"
+            (d) "3 steps with per-step factors"  (e) "no prior data — will learn after this session"
+            (f) "2 steps with per-step factors | global 1.12x (10 runs)"
+            (g) "2 steps with per-step factors | size-class M=1.18x (7 runs)"
+            (h) "size-class M=1.18x (7 runs) | global 1.12x (10 runs)"}
 {WARNING line if pricing stale}
 
-| Step                  | Model       | Optimistic | Expected | Pessimistic |
-|-----------------------|-------------|------------|----------|-------------|
-| ┌ Parallel Group 1 ∥  |             |            |          |             |
-| │ Research Agent      | Sonnet      | $X.XX      | $X.XX    | $X.XX       |
-| └ ...                 | ...         | ...        | ...      | ...         |
-| [sequential steps]    | ...         | ...        | ...      | ...         |
-| PR Review Loop        | Opus+Sonnet | $X.XX      | $X.XX    | $X.XX       |
-| **TOTAL**             |             | **$X.XX**  | **$X.XX**| **$X.XX**   |
+| Step                  | Model       | Cal    | Optimistic | Expected | Pessimistic |
+|-----------------------|-------------|--------|------------|----------|-------------|
+| ┌ Parallel Group 1 ∥  |             |        |            |          |             |
+| │ Research Agent      | Sonnet      | S:0.82 | $X.XX      | $X.XX    | $X.XX       |
+| └ Architect Agent     | Opus        | G:1.12 | $X.XX      | $X.XX    | $X.XX       |
+| [sequential steps]    | ...         | --     | ...        | ...      | ...         |
+| PR Review Loop        | Opus+Sonnet | --     | $X.XX      | $X.XX    | $X.XX       |
+| **TOTAL**             |             |        | **$X.XX**  | **$X.XX**| **$X.XX**   |
+Cal: S=per-step  Z=size-class  G=global  --=uncalibrated
 
+**Cal column values:** S:x.xx = per-step factor applied · Z:x.xx = size-class factor · G:x.xx = global factor · -- = no calibration active (factor=1.0) or PR Review Loop row
+**Cal column edge cases:**
+- Step has active per-step AND size-class factor → per-step wins, show "S:x.xx"
+- Step has active per-step AND global factor → per-step wins, show "S:x.xx"
+- Step's per-step factor has status "collecting" (n < 3) → not applied; fall through to size-class → show "Z:x.xx" if active, else "G:x.xx" if active, else "--"
+- PR Review Loop row → always "--" regardless of any factors in factors.json
 **Parallel groups (when detected):** Group 1 (step names...) — modeled with 0.75× input accumulation, −0.15 cache rate
 **Bands:** Optimistic (1 review cycle) · Expected (N cycles) · Pessimistic (N×2 cycles)
 **Tracking:** Estimate recorded. Actuals will be captured automatically at session end.

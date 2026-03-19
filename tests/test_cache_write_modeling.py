@@ -1,4 +1,4 @@
-"""Tests for cache write modeling (v1.3.1).
+"""Tests for cache write modeling (v1.4.0).
 
 Tests the three-term input cost formula that splits cached tokens into a
 write portion (priced at price_cw, fraction=1/K) and a read portion
@@ -429,7 +429,7 @@ class TestPRReviewLoopImpact:
 # ---------------------------------------------------------------------------
 
 class TestDocumentContent:
-    """Verifies SKILL.md contains the updated three-term formula and v1.3.1 version strings.
+    """Verifies SKILL.md contains the updated three-term formula and v1.4.0 version strings.
 
     All tests in this class MUST FAIL before implementation (SKILL.md still has the
     old two-term formula and v1.3.0 version strings). This is the TDD gate.
@@ -450,20 +450,20 @@ class TestDocumentContent:
         content = SKILL_MD.read_text()
         assert "not yet used" not in content
 
-    def test_skill_md_version_131_frontmatter(self):
-        """SKILL.md frontmatter must contain 'version: 1.3.1'."""
+    def test_skill_md_version_140_frontmatter(self):
+        """SKILL.md frontmatter must contain 'version: 1.4.0'."""
         content = SKILL_MD.read_text()
-        assert "version: 1.3.1" in content
+        assert "version: 1.4.0" in content
 
-    def test_skill_md_version_131_output_header(self):
-        """SKILL.md must contain '## costscope estimate (v1.3.1)' in the output template."""
+    def test_skill_md_version_140_output_header(self):
+        """SKILL.md must contain '## costscope estimate (v1.4.0)' in the output template."""
         content = SKILL_MD.read_text()
-        assert "## costscope estimate (v1.3.1)" in content
+        assert "## costscope estimate (v1.4.0)" in content
 
-    def test_learn_sh_version_131(self):
-        """scripts/tokencostscope-learn.sh must contain 'VERSION=\"1.3.1\"'."""
+    def test_learn_sh_version_140(self):
+        """scripts/tokencostscope-learn.sh must contain 'VERSION=\"1.4.0\"'."""
         content = LEARN_SH.read_text()
-        assert 'VERSION="1.3.1"' in content
+        assert 'VERSION="1.4.0"' in content
 
 
 if __name__ == "__main__":

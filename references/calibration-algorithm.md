@@ -67,6 +67,40 @@ ewma[i] = 0.15 × ratios[i] + 0.85 × ewma[i-1]
 factor  = ewma[last]
 ```
 
+### Phase 4: Per-Step Factors (3+ samples for a given step)
+Per-step factors accumulate independently for each canonical pipeline step name.
+A step contributes one sample per history record that contains a non-empty
+step_ratios entry for that step name.
+
+Minimum samples before activation: 3 (per_step_min_samples in heuristics.md).
+Same trimmed_mean / EWMA algorithm as size-class factors.
+
+**Proportional attribution:** Because session JSONL does not tag turns with pipeline
+step names, per-step actual cost cannot be measured directly. Instead, each step in
+a session receives the session-level ratio (actual/expected). This means all steps
+in the same session share the same ratio value. Differentiated per-step signal
+emerges over time: steps that appear predominantly in over-estimated sessions
+accumulate lower factors, and vice versa.
+
+This cross-contamination is a known limitation. Per-step factors will not converge
+to truly isolated per-step accuracy until step-level JSONL tagging is available.
+
+**Factor precedence (Step 3e):**
+  1. Per-step factor (status "active") — most specific; overrides size-class and global
+  2. Size-class factor (3+ samples in size stratum)
+  3. Global factor (status "active")
+  4. No calibration — factor = 1.0
+
+**PR Review Loop exclusion:** The PR Review Loop is a composite row with its own
+calibration path (per-band independent factors in Step 3.5). It is stored in
+step_costs for output completeness but excluded from per-step factor computation.
+Exclusion is by exact string match on the key "PR Review Loop" (case-sensitive).
+
+**Step name stability:** Step names in step_factors are matched by exact string equality.
+Renaming a step in heuristics.md resets its calibration history — the old step name's
+accumulated data becomes orphaned (still present in history records but no longer
+matched). Consider this cost before renaming any canonical pipeline step name.
+
 ## Actual Cost Computation
 
 Actual cost is computed from session JSONL logs. Each assistant message
@@ -122,6 +156,16 @@ Fields `review_cycles_estimated` and `review_cycles_actual` were added in v1.2.
   count actual review iterations from session logs. Older records without this field are
   treated as `null` via `.get()` defaults.
 
+Fields added in v1.4.0:
+- `step_costs_estimated`: dict of {step_name: calibrated_expected_cost} from the
+  estimate, excluding the PR Review Loop. This field is diagnostic only — stored
+  for inspection and debugging. It is NOT used by update-factors.py for factor
+  computation. Factor computation uses `step_ratios` exclusively. Absent in records
+  from v1.3.x and earlier; handled via .get() defaults.
+- `step_ratios`: dict of {step_name: ratio} where ratio = actual_cost / expected_cost
+  at the session level (same value for all steps in proportional attribution). Absent
+  in older records; handled via .get() defaults.
+
 ## Factors Format (factors.json)
 
 ```json
@@ -146,6 +190,17 @@ Fields `review_cycles_estimated` and `review_cycles_actual` were added in v1.2.
 - `total_records`: all valid records in history (before outlier filtering)
 - `outlier_count`: number of records excluded as outliers
 - `outliers`: array of excluded records with metadata for inspection
+- `step_factors`: per-step correction factors. Each entry has factor (float), n (sample
+  count), and status ("collecting" if n < 3, "active" if n >= 3). Absent when no
+  step_ratios data has been recorded.
+
+Example `step_factors` entry in factors.json:
+```json
+"step_factors": {
+  "Research Agent": {"factor": 0.82, "n": 5, "status": "active"},
+  "Implementation": {"factor": 1.0, "n": 2, "status": "collecting"}
+}
+```
 
 ## Outlier Handling
 

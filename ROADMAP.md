@@ -45,7 +45,7 @@
 
 **Goal:** Continue improving estimate accuracy with finer-grained data and modeling.
 
-- [ ] **Per-step correction factors** — tag sessions with pipeline step name, learn per-step accuracy (Research overestimated? Staff Review underestimated?)
+- [x] **Per-step correction factors** — tag sessions with pipeline step name, learn per-step accuracy (Research overestimated? Staff Review underestimated?) (shipped as v1.4.0)
 - [ ] **File size awareness** — read actual file sizes from the plan's file list, adjust token budgets (small files < 50 lines get 3k, large files > 500 lines get 20k+)
 - [ ] **Parallel agent accounting** — when steps run as parallel subagents, model overlapping context differently than sequential
 - [x] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads
@@ -136,4 +136,4 @@
 
 ---
 
-*Last updated: 2026-03-18*
+*Last updated: 2026-03-19*

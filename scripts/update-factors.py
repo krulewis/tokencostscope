@@ -144,6 +144,43 @@ def update_factors(history_path: str, factors_path: str) -> None:
             factors[size] = round(factor, 4)
             factors[f"{size}_n"] = len(ratios)
 
+    # Pass 4: Per-step factors
+    # Collect step ratios from clean records. Each clean record contributes its
+    # session-level ratio to every step listed in step_ratios.
+    # PR Review Loop is excluded (it has its own calibration path — per-band
+    # independent factors in Step 3.5). Exclusion uses exact string matching
+    # (case-sensitive) to match the key written by SKILL.md.
+    PR_REVIEW_LOOP_KEY = 'PR Review Loop'
+    ratios_by_step: dict[str, list[float]] = {}
+    for record in clean_records:
+        step_ratios = record.get('step_ratios', {})
+        for step_name, ratio in step_ratios.items():
+            if step_name == PR_REVIEW_LOOP_KEY:
+                continue
+            ratios_by_step.setdefault(step_name, []).append(ratio)
+
+    # Compute per-step factors using same trimmed_mean / EWMA thresholds as size-class.
+    # per_step_min_samples = 3 is hardcoded to match the existing size-class threshold
+    # in Pass 3 (line ~139: if len(ratios) >= 3). Both thresholds should be updated
+    # together if changed. The value is also documented in references/heuristics.md.
+    per_step_min_samples = 3
+    step_factors: dict[str, dict] = {}
+    for step_name, ratios in ratios_by_step.items():
+        n = len(ratios)
+        if n <= 10:
+            factor = trimmed_mean(ratios)
+        else:
+            factor = compute_ewma(ratios)
+        status = 'active' if n >= per_step_min_samples else 'collecting'
+        step_factors[step_name] = {
+            'factor': round(factor, 4),
+            'n': n,
+            'status': status,
+        }
+
+    if step_factors:
+        factors['step_factors'] = step_factors
+
     _write_atomic(factors_path, factors)
 
 

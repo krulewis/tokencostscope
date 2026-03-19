@@ -88,11 +88,29 @@ The cache cost splits across three terms:
 Band multipliers: Optimistic=0.6×, Expected=1.0×, Pessimistic=3.0×
 
 **3e. Calibration (Expected band only)**
+
+Applies a 4-level precedence chain to select the calibration factor:
+
 ```
-calibrated_expected    = expected_cost × calibration_factor
+if step_name in factors.step_factors:
+  factor = factors.step_factors[step_name].factor       (Cal: S:x)
+elif size_class in factors.size_class_factors:
+  factor = factors.size_class_factors[size_class].factor (Cal: Z:x)
+elif factors.global_factor exists:
+  factor = factors.global_factor                          (Cal: G:x)
+else:
+  factor = 1.0                                            (Cal: --)
+
+calibrated_expected    = expected_cost × factor
 calibrated_optimistic  = calibrated_expected × 0.6
 calibrated_pessimistic = calibrated_expected × 3.0
 ```
+
+**Calibration source (Cal column in output table):**
+- `S:0.82` — per-step factor applied (3+ sessions recorded for this specific step)
+- `Z:0.88` — size-class factor applied (10+ sessions in this size class)
+- `G:0.95` — global factor applied (3+ sessions total, but step not yet calibrated)
+- `--` — uncalibrated (no factors available; factor = 1.0)
 
 ### Step 3.5 — PR Review Loop
 
