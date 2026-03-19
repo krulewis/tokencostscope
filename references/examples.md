@@ -6,6 +6,7 @@
 > **Formula note (v1.3.1):** The formula template below has been updated to the three-term
 > cache cost formula. The per-step worked calculations further down use the pre-v1.3.1
 > two-term formula and will be recomputed in a follow-up update.
+> The pricing header below may also reflect outdated values; see `references/pricing.md` for authoritative prices.
 
 ## Example 1: M-size change, 5 files, Medium complexity
 
