@@ -138,8 +138,8 @@ Read size-class and global factors as before.
 For each step, determine the factor and its source using this precedence chain:
   1. Per-step: if `step_factors[step_name]` exists and `status == "active"` → use
      `step_factors[step_name].factor`, source = "S"
-  2. Size-class: if `factors[size]` exists and size_n >= 3 → use `factors[size]`,
-     source = "Z"
+  2. Size-class: if `factors[size]` exists and `factors["{size}_n"]` (e.g.,
+     `factors["M_n"]`) >= 3 → use `factors[size]`, source = "Z"
   3. Global: if `factors["global"]` exists and `status == "active"` → use
      `factors["global"]`, source = "G"
   4. No calibration: factor = 1.0, source = "--"

@@ -157,6 +157,8 @@ def update_factors(history_path: str, factors_path: str) -> None:
         for step_name, ratio in step_ratios.items():
             if step_name == PR_REVIEW_LOOP_KEY:
                 continue
+            if not isinstance(ratio, (int, float)):
+                continue
             ratios_by_step.setdefault(step_name, []).append(ratio)
 
     # Compute per-step factors using same trimmed_mean / EWMA thresholds as size-class.

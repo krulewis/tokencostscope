@@ -455,25 +455,28 @@ class TestLearnShStepCosts:
             with open(est_path, "w") as f:
                 json.dump(estimate, f)
 
+            script = (
+                "import json, os\n"
+                "_est = json.load(open(os.environ['EST_FILE']))\n"
+                "step_costs_raw = _est.get('step_costs', {})\n"
+                "PR_REVIEW_LOOP_KEY = 'PR Review Loop'\n"
+                "step_costs_estimated = {k: v for k, v in step_costs_raw.items()\n"
+                "                        if k != PR_REVIEW_LOOP_KEY}\n"
+                f"actual = {actual}\n"
+                f"expected = max({expected}, 0.001)\n"
+                "session_ratio = round(actual / expected, 4)\n"
+                "step_ratios = {step: session_ratio for step in step_costs_estimated}\n"
+                "print(json.dumps({\n"
+                "    'step_costs_estimated': step_costs_estimated,\n"
+                "    'step_ratios': step_ratios,\n"
+                "    'session_ratio': session_ratio,\n"
+                "}))\n"
+            )
             result = subprocess.run(
-                ["/usr/bin/python3", "-c", f"""
-import json, os
-_est = json.load(open('{est_path}'))
-step_costs_raw = _est.get('step_costs', {{}})
-PR_REVIEW_LOOP_KEY = 'PR Review Loop'
-step_costs_estimated = {{k: v for k, v in step_costs_raw.items()
-                        if k != PR_REVIEW_LOOP_KEY}}
-actual = {actual}
-expected = max({expected}, 0.001)
-session_ratio = round(actual / expected, 4)
-step_ratios = {{step: session_ratio for step in step_costs_estimated}}
-print(json.dumps({{
-    'step_costs_estimated': step_costs_estimated,
-    'step_ratios': step_ratios,
-    'session_ratio': session_ratio,
-}}))
-"""],
-                capture_output=True, text=True,
+                ["/usr/bin/python3", "-c", script],
+                capture_output=True,
+                text=True,
+                env={**os.environ, "EST_FILE": est_path},
             )
             assert result.returncode == 0, f"Python block failed: {result.stderr}"
             return json.loads(result.stdout.strip())
@@ -761,7 +764,6 @@ class TestLearnShIntegrationStepCosts(unittest.TestCase):
 
     def _run_learn_sh(
         self,
-        tmp_dir: str,
         estimate_file: str,
         session_file: str,
         history_file: str,
@@ -787,7 +789,7 @@ class TestLearnShIntegrationStepCosts(unittest.TestCase):
             session_file = self._write_mock_session_jsonl(tmp)
             history_file = str(Path(tmp) / "history.jsonl")
 
-            self._run_learn_sh(tmp, estimate_file, session_file, history_file)
+            self._run_learn_sh(estimate_file, session_file, history_file)
 
             if not Path(history_file).exists():
                 self.skipTest("learn.sh did not write history record")
@@ -814,7 +816,7 @@ class TestLearnShIntegrationStepCosts(unittest.TestCase):
             session_file = self._write_mock_session_jsonl(tmp)
             history_file = str(Path(tmp) / "history.jsonl")
 
-            self._run_learn_sh(tmp, estimate_file, session_file, history_file)
+            self._run_learn_sh(estimate_file, session_file, history_file)
 
             if not Path(history_file).exists():
                 self.skipTest("learn.sh did not write history record")
@@ -896,7 +898,7 @@ class TestLearnShIntegrationStepCosts(unittest.TestCase):
             session_file = self._write_mock_session_jsonl(tmp)
             history_file = str(Path(tmp) / "history.jsonl")
 
-            self._run_learn_sh(tmp, estimate_file, session_file, history_file)
+            self._run_learn_sh(estimate_file, session_file, history_file)
 
             if not Path(history_file).exists():
                 self.skipTest("learn.sh did not write history record")

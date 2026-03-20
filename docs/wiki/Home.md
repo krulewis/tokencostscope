@@ -25,17 +25,17 @@ After a plan is created, tokencostscope automatically outputs a cost table:
 
 Change: size=M, files=5, complexity=medium, type=greenfield, lang=python
 Steps: all (8 steps)
-Calibration: 1.12x from 8 prior runs
+Calibration: size-class M=1.12x (8 runs) | global 1.12x (8 runs)
 
-| Step                  | Model       | Optimistic | Expected | Pessimistic | Cal  |
-|-----------------------|-------------|------------|----------|-------------|------|
-| ┌ Parallel Group 1 ∥  |             |            |          |             |      |
-| │ Research Agent      | Sonnet      | $0.38      | $0.71    | $2.13       | S:0.82 |
-| └ PM Agent            | Opus        | $0.41      | $0.72    | $2.17       | Z:0.88 |
-| Architect Agent       | Opus        | $0.67      | $1.18    | $3.97       | G:0.95 |
-| ...                   | ...         | ...        | ...      | ...         | ... |
-| PR Review Loop        | Opus+Sonnet | $1.02      | $1.63    | $2.22       | --  |
-| **TOTAL**             |             | **$3.37**  | **$6.26**| **$22.64**  |     |
+| Step                  | Model       | Cal    | Optimistic | Expected | Pessimistic |
+|-----------------------|-------------|--------|------------|----------|-------------|
+| ┌ Parallel Group 1 ∥  |             |        |            |          |             |
+| │ Research Agent      | Sonnet      | S:0.82 | $0.38      | $0.71    | $2.13       |
+| └ PM Agent            | Opus        | Z:0.88 | $0.41      | $0.72    | $2.17       |
+| Architect Agent       | Opus        | G:0.95 | $0.67      | $1.18    | $3.97       |
+| ...                   | ...         | ...    | ...        | ...      | ...         |
+| PR Review Loop        | Opus+Sonnet | --     | $1.02      | $1.63    | $2.22       |
+| **TOTAL**             |             |        | **$3.37**  | **$6.26**| **$22.64**  |
 ```
 
 Parallel steps detected in the plan are grouped and discounted automatically — parallel agents start fresh (no inherited context) and miss the warmed cache.
