@@ -230,13 +230,13 @@ class TestLearnScript:
     """Tests for tokencostscope-learn.sh changes."""
 
     def test_version_is_1_4_0(self):
-        """learn.sh --version should output 1.4.0 (Finding #10)."""
+        """learn.sh --version should output 1.5.0 (Finding #10)."""
         result = subprocess.run(
             ["bash", str(LEARN_SH), "--version"],
             capture_output=True, text=True
         )
         assert result.returncode == 0
-        assert "1.4.0" in result.stdout
+        assert "1.5.0" in result.stdout
 
     def test_forwards_review_cycles_estimated(self):
         """learn.sh should forward review_cycles_estimated to history record."""
@@ -347,9 +347,9 @@ class TestDocumentContent:
         assert "N=1" in content or "1 review cycle" in content
 
     def test_skill_md_version_1_4(self):
-        """SKILL.md frontmatter version must be 1.4.0."""
+        """SKILL.md frontmatter version must be 1.5.0."""
         content = SKILL_MD.read_text()
-        assert "version: 1.4.0" in content
+        assert "version: 1.5.0" in content
 
     def test_skill_md_has_step_3_5(self):
         """SKILL.md must have Step 3.5 section."""
@@ -362,9 +362,9 @@ class TestDocumentContent:
         assert "review_cycles" in content
 
     def test_skill_md_output_template_v1_4(self):
-        """Output template must show v1.4.0."""
+        """Output template must show v1.5.0."""
         content = SKILL_MD.read_text()
-        assert "v1.4.0" in content
+        assert "v1.5.0" in content
 
     def test_skill_md_has_review_loop_in_template(self):
         """Output template must include PR Review Loop row."""

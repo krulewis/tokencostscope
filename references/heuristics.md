@@ -4,9 +4,9 @@
 
 | Activity            | Input Tokens | Output Tokens | Notes                                      |
 |---------------------|--------------|---------------|--------------------------------------------|
-| File read           | 10,000       | 200           | Typical 150-300 line source file           |
+| File read           | 10,000 (medium default — see File Size Brackets below) | 200 | Default for medium bracket (50–500 lines); see File Size Brackets |
 | File write (new)    | 1,500        | 4,000         | Planning context + generated code          |
-| File edit           | 2,500        | 1,500         | Existing context + diff output             |
+| File edit           | 2,500 (medium default — see File Size Brackets below) | 1,500 | Input scales with bracket; output unchanged |
 | Test write          | 2,000        | 5,000         | Test files are verbose                     |
 | Code review pass    | 8,000        | 3,000         | Includes reading the diff/files            |
 | Research/exploration| 5,000        | 2,000         | Search results + synthesis                 |
@@ -151,3 +151,59 @@ before falling back to the size-class or global factor.
 Matches the existing size-class activation threshold (3 records).
 Both thresholds should be updated together if changed. The value is also hardcoded in
 update-factors.py Pass 4, consistent with the existing size-class threshold in Pass 3.
+
+## File Size Brackets
+
+When file paths are extractable from the plan and files exist on disk, tokencostscope
+measures each file's line count and assigns one of three size brackets. The bracket
+determines the input token budget for file read and file edit activities.
+
+| Bracket | Line Count | File Read Input | File Edit Input | Notes                                |
+|---------|-----------|-----------------|-----------------|--------------------------------------|
+| Small   | ≤ 49      | 3,000           | 1,000           | Config files, type stubs, small scripts |
+| Medium  | 50–500    | 10,000          | 2,500           | Typical source file (default)        |
+| Large   | ≥ 501     | 20,000          | 5,000           | Large modules, generated files       |
+
+File read output tokens (200) and file edit output tokens (1,500) are unchanged across all brackets.
+
+**Boundary values (tunable):**
+- `file_size_small_max = 49`   (lines ≤ 49 → small; lines ≥ 50 → medium)
+- `file_size_large_min = 501`  (lines ≤ 500 → medium; lines ≥ 501 → large)
+
+**Measurement cap:** `file_measurement_cap = 30` — maximum files measured per estimate via
+`wc -l`. Files beyond the cap use the `avg_file_lines=` override bracket or medium default.
+
+**Binary extensions excluded from measurement (fall back to medium):**
+`.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.ico`, `.svg`, `.wasm`, `.pyc`, `.pyo`,
+`.so`, `.dll`, `.dylib`, `.exe`, `.bin`, `.o`, `.a`, `.class`
+
+**Resolution order (per file):**
+1. Measured on disk via `wc -l` → bracket from line count
+2. `avg_file_lines=N` override → bracket from N (applies to new/unmeasured files)
+3. Default → medium (10,000 input tokens/read, 2,500 input tokens/edit)
+
+**New-file classification:** A file is "new" only if (a) the surrounding sentence/bullet
+contains "create", "new file", or "write", AND (b) the file does not exist on disk (wc -l
+returns an error). Files that exist on disk are always "existing" regardless of plan language.
+
+**Step classification by file-read scaling:**
+- N-scaling steps (file counts scale with N): Implementation (N reads + N edits), Test Writing (N test writes)
+- Fixed-count steps (use weighted average): Research Agent (6 reads), Engineer Initial Plan (4 reads), Engineer Final Plan (2 reads), QA (2 reads)
+- No file reads: Architect Agent, Staff Review
+
+**Weighted average for fixed-count file reads:**
+```
+avg_file_read_tokens = (small_count × 3,000 + medium_count × 10,000 + large_count × 20,000)
+                       / total_measured
+avg_file_edit_tokens = (small_count × 1,000 + medium_count × 2,500 + large_count × 5,000)
+                       / total_measured
+```
+Where `total_measured = file_brackets["small"] + file_brackets["medium"] + file_brackets["large"]`.
+
+If `total_measured = 0` (no files measured): `avg_file_read_tokens = 10,000` and
+`avg_file_edit_tokens = 2,500` (medium defaults — preserves v1.4.0 behavior).
+
+**Cap overflow behavior:** When more than 30 paths are extracted, measure the first 30 (by
+plan order). Files beyond the cap receive the weighted-average bracket of the first 30
+measured files. If no files are successfully measured, overflow files receive the override
+bracket or medium default.

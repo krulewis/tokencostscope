@@ -34,6 +34,7 @@ With overrides:
 | `project_type=greenfield\|refactor\|bug_fix\|migration\|docs` | Set project type |
 | `language=python\|typescript\|go\|...` | Set primary language |
 | `review_cycles=N` | Override PR review cycle count. Use `0` to suppress the PR Review Loop row entirely. |
+| `avg_file_lines=N` | Map N to size bracket: ≤49 → small (3k tokens/read), 50–500 → medium (10k), ≥501 → large (20k). Applies to files not measured on disk. |
 
 ---
 
@@ -62,6 +63,38 @@ Research Agent and PM Agent run in parallel, then Architect Agent sequentially.
 | `parallel_input_discount` | 0.75 | Input accumulation multiplier for parallel steps |
 | `parallel_cache_rate_reduction` | 0.15 | Cache rate reduction for parallel steps |
 | `parallel_cache_rate_floor` | 0.05 | Minimum effective cache hit rate |
+
+---
+
+## File Size Awareness
+
+tokencostscope auto-measures file sizes when paths are present in the plan:
+
+1. **Auto-stat (Layer 1):** Runs `wc -l` on extractable file paths. Files existing on disk
+   are assigned a size bracket based on line count. Cap: 30 files per estimate.
+2. **Override (Layer 2):** `avg_file_lines=N` sets the bracket for all unmeasured files
+   (new files, missing files, unextracted paths). Use for greenfield projects.
+3. **Default (Layer 3):** Medium bracket (10,000 tokens/read) — identical to v1.4.0 behavior.
+
+**Bracket definitions:**
+
+| Bracket | Line Count | File Read Input | File Edit Input |
+|---------|-----------|-----------------|-----------------|
+| Small   | ≤ 49      | 3,000           | 1,000           |
+| Medium  | 50–500    | 10,000          | 2,500           |
+| Large   | ≥ 501     | 20,000          | 5,000           |
+
+**Example:** A plan with 5 files (3 existing, 2 new) with `avg_file_lines=600`:
+- Existing files: measured on disk → assigned brackets from line counts
+- New files: `avg_file_lines=600` → large bracket (20,000 tokens/read)
+
+**Tunable parameters** (in `references/heuristics.md`):
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `file_size_small_max` | 49 | Lines ≤ this value → small bracket |
+| `file_size_large_min` | 501 | Lines ≥ this value → large bracket |
+| `file_measurement_cap` | 30 | Max files measured per estimate |
 
 ---
 

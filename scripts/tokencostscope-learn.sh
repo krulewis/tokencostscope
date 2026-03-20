@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.4.0"
+VERSION="1.5.0"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -152,6 +152,8 @@ print(json.dumps({
     'review_cycles_actual': None,
     'parallel_groups': parallel_groups,
     'parallel_steps_detected': int(os.environ['PSD_ENV']),
+    'file_brackets': _est.get('file_brackets'),
+    'files_measured': _est.get('files_measured', 0),
     'step_costs_estimated': step_costs_estimated,
     'step_ratios': step_ratios,
 }))

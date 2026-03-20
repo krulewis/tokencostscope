@@ -3,10 +3,15 @@
 > **Note:** These examples use default pipeline step names for concreteness. The formulas
 > and arithmetic are pipeline-agnostic — substitute your own step names as needed.
 
-> **Formula note (v1.3.1):** The formula template below has been updated to the three-term
+> **Formula note (v1.3.1+):** The formula template below has been updated to the three-term
 > cache cost formula. The per-step worked calculations further down use the pre-v1.3.1
 > two-term formula and will be recomputed in a follow-up update.
 > The pricing header below may also reflect outdated values; see `references/pricing.md` for authoritative prices.
+>
+> **v1.5.0 addition:** Example 3 demonstrates file size bracket computation. When file paths
+> are extractable from the plan and exist on disk, `wc -l` is used to assign each file to a
+> bracket (small/medium/large), replacing the flat 10,000 token/read default with
+> per-bracket token counts.
 
 ## Example 1: M-size change, 5 files, Medium complexity
 
@@ -372,3 +377,54 @@ Note: Totals are computed from full-precision values, not displayed (rounded) va
 | **TOTAL**             |             | **$4.39**  | **$7.89**| **$24.87**  |
 
 **Bands:** Optimistic (1 review cycle) · Expected (2 cycles) · Pessimistic (4 cycles)
+
+---
+
+## Example 3: M-size change, mixed file sizes (v1.5.0)
+
+**Inputs:** size=M, files=5 (2 small + 2 medium + 1 large), complexity=Medium (1.0×),
+Implementation step only.
+
+**File bracket assignment:**
+- `config/settings.py` — 35 lines → small (3,000 read / 1,000 edit)
+- `tests/conftest.py` — 42 lines → small (3,000 read / 1,000 edit)
+- `src/auth.py` — 180 lines → medium (10,000 read / 2,500 edit)
+- `src/router.py` — 220 lines → medium (10,000 read / 2,500 edit)
+- `src/service.py` — 750 lines → large (20,000 read / 5,000 edit)
+
+**Step 3a — Implementation (Sonnet): N reads + N edits + 4 conv turns**
+
+```
+file_read_contribution  = 2 × 3,000 + 2 × 10,000 + 1 × 20,000 = 46,000
+file_edit_contribution  = 2 × 1,000 + 2 × 2,500  + 1 × 5,000  = 12,000
+conv_turns_contribution = 4 × 5,000                             = 20,000
+input_base              = 46,000 + 12,000 + 20,000              = 78,000
+
+Compare flat 10k (v1.4.0):
+  reads = 5 × 10,000 = 50,000
+  edits = 5 × 2,500  = 12,500
+  conv  = 4 × 5,000  = 20,000
+  total = 82,500 → delta: −5.5% (mixed bracket slightly below flat average)
+```
+
+**K = 5 (reads) + 5 (edits) + 4 (conv turns) = 14**
+
+**Step 3c — Context accumulation (Expected band, sequential):**
+```
+input_complex = 78,000 × 1.0 = 78,000
+input_accum   = 78,000 × (14+1)/2 = 78,000 × 7.5 = 585,000
+```
+
+**Step 3d — Cost (Expected band: cache_rate=0.50, band_mult=1.0, Sonnet pricing):**
+```
+cache_write_fraction = 1/14 ≈ 0.0714
+uncached_cost    = 585,000 × 0.50 × 3.00 / 1,000,000           = $0.8775
+cache_write_cost = 585,000 × 0.50 × (1/14) × 3.75 / 1,000,000 ≈ $0.0783
+cache_read_cost  = 585,000 × 0.50 × (13/14) × 0.30 / 1,000,000 ≈ $0.0814
+output_base      = (5 × 200 + 5 × 1,500 + 4 × 1,500) = 14,500  (unchanged)
+output_cost      = 14,500 × 15.00 / 1,000,000 = $0.2175
+step_cost        = ($0.8775 + $0.0783 + $0.0814 + $0.2175) × 1.0 = $1.2547
+
+Compare flat 10k Expected: ~$1.3147
+Delta: −$0.0600 (−4.6%) — 2 small files pull total below flat average
+```
