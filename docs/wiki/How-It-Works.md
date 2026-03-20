@@ -20,6 +20,7 @@ Reads the plan in conversation context and infers:
 | **Language** | File extensions: .py, .ts, .go, .rs, etc. |
 | **Review cycles** | Inferred from presence of Staff Review + implementation steps (default: 2) |
 | **Parallel groups** | Scans for keywords: "in parallel", "simultaneously", "concurrently", "∥" |
+| **File sizes** | Auto-measured via `wc -l` when paths are extractable from the plan; `avg_file_lines=` override for new/missing files |
 
 ### Step 1 — Load References
 
@@ -41,6 +42,26 @@ For each pipeline step:
 input_base  = Σ (activity_input_tokens × activity_count)
 output_base = Σ (activity_output_tokens × activity_count)
 ```
+
+**File size bracket adjustment (when file paths are in the plan):**
+
+For file read and file edit activities, `activity_input_tokens` is bracket-dependent:
+
+| Bracket | Line Count | File Read Input | File Edit Input |
+|---------|-----------|-----------------|-----------------|
+| Small   | ≤ 49      | 3,000           | 1,000           |
+| Medium  | 50–500    | 10,000          | 2,500           |
+| Large   | ≥ 501     | 20,000          | 5,000           |
+
+Steps where file reads scale with N (Implementation, Test Writing N-writes):
+```
+file_read_contribution = small_count × 3,000 + medium_count × 10,000 + large_count × 20,000
+```
+Steps with fixed read counts (Research Agent: 6, Engineer Initial Plan: 4, Engineer Final Plan: 2, QA: 2):
+use `avg_file_read_tokens × fixed_count` where `avg_file_read_tokens` is the weighted average
+of measured file brackets. If no files measured: `avg_file_read_tokens = 10,000` (identical to prior behavior).
+
+When no file paths are extractable, all files use medium (10,000 tokens) — identical to v1.4.0.
 
 **3b. Complexity**
 ```
