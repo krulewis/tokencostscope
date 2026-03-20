@@ -313,27 +313,15 @@ class TestEdgeCases:
         assert len(measured_paths) == 30
         assert len(defaulted_paths) == 5
 
-    def test_binary_extension_list(self):
-        """Known binary extensions must be excluded from measurement."""
-        binary_extensions = {
-            ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg",
-            ".wasm", ".pyc", ".pyo", ".so", ".dll", ".dylib",
-            ".exe", ".bin", ".o", ".a", ".class",
-        }
-        # Spot-check a subset of known binaries
-        assert ".png" in binary_extensions
-        assert ".jpg" in binary_extensions
-        assert ".pyc" in binary_extensions
-        assert ".so" in binary_extensions
-        # Python source is NOT binary
-        assert ".py" not in binary_extensions
+    def test_binary_extensions_documented_in_heuristics(self):
+        """heuristics.md must document binary extension exclusions."""
+        content = HEURISTICS_MD.read_text()
+        assert ".png" in content
+        assert ".pyc" in content
 
-    def test_duplicate_paths_counted_once(self):
-        """Duplicate paths in the extracted list are deduplicated before measurement."""
-        raw_paths = ["src/foo.py", "src/bar.py", "src/foo.py", "src/baz.py"]
-        unique_paths = list(dict.fromkeys(raw_paths))  # preserve order, deduplicate
-        assert len(unique_paths) == 3
-        assert unique_paths.count("src/foo.py") == 1
+    def test_deduplication_documented_in_skill(self):
+        """SKILL.md must document that duplicate paths are deduplicated."""
+        assert "Deduplicate" in SKILL_MD.read_text()
 
 
 # ---------------------------------------------------------------------------
@@ -471,15 +459,13 @@ class TestIntegrationArithmetic:
     def test_wc_l_failure_falls_back_to_default(self):
         """A path that doesn't exist on disk is unmeasurable; bracket falls back to medium (or override)."""
         nonexistent_path = "/tmp/this_file_does_not_exist_tokencostscope_test_xyz.py"
-        # Simulate: wc -l fails → line_count is None → fallback
-        result = subprocess.run(
+        # Simulate: wc -l fails or file is missing → line_count is None → fallback
+        subprocess.run(
             ["wc", "-l", nonexistent_path],
             capture_output=True,
             text=True,
         )
-        wc_failed = result.returncode != 0
-        # Whether wc fails or returns 0 for a missing file, we test the resolve_bracket fallback
-        line_count = None if wc_failed else None  # either way, treat as unmeasurable
+        line_count = None  # missing file → unmeasurable
         bracket = resolve_bracket(line_count=line_count, avg_file_lines=None)
         assert bracket == "medium"
 

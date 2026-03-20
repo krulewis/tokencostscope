@@ -42,7 +42,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
       `.toml`, `.cfg`, `.ini`, `.sql`, `.html`, `.css`, `.scss`),
       (ii) do NOT contain `://` and do not start with `http` or `https` (exclude URLs),
       (iii) do NOT match `v\d+\.\d+` (exclude version strings like `v1.5.0`),
-      (iv) do NOT contain no `/` or `\` path separator and no file extension (exclude bare module names).
+      (iv) contain at least one `/` or `\` path separator or a file extension (exclude bare module names that have neither).
       Deduplicate paths. Exclude known binary extensions from measurement (see heuristics.md File Size Brackets).
    b. **Classify new vs. existing:** A file is "new" ONLY if (a) the surrounding sentence/bullet
       contains "create", "new file", or "write", AND (b) the file does not exist on disk
@@ -156,16 +156,16 @@ file_edit_contribution  = file_brackets["small"] × 1,000
 **Fixed-count steps** (Research Agent: 6 reads, Engineer Initial Plan: 4, Engineer Final Plan: 2, QA: 2):
 ```
 file_read_contribution = avg_file_read_tokens × fixed_count
-file_edit_contribution = avg_file_edit_tokens × fixed_count
 ```
-Where `avg_file_read_tokens` and `avg_file_edit_tokens` are the weighted averages from Step 0 item 2e.
+Where `avg_file_read_tokens` is the weighted average from Step 0 item 2e.
+(Fixed-count steps perform reads only — no file edits — so `file_edit_contribution` does not apply.)
 
 **When `file_brackets` is NOT available** (no paths extracted, no override):
 All files use medium bracket defaults: `file_read_input_tokens = 10,000`,
 `file_edit_input_tokens = 2,500`. Computation is identical to v1.4.0.
 
 Output tokens for file reads (200) and file edits (1,500) are unchanged across all brackets.
-Where activity_count for test writes = N (the `files` parameter).
+Activity count for test writes = N (the `files` parameter).
 All other activities (file write new, code review pass, etc.) use unchanged fixed budgets.
 
 **3b. Apply complexity**
@@ -330,7 +330,7 @@ Write calibration/active-estimate.json:
   "review_cycles_actual": null,
   "parallel_groups": [["<step name>", ...], ...],
   "parallel_steps_detected": <count of steps in any parallel group>,
-  "file_brackets": {"small": 0, "medium": N, "large": 0},
+  "file_brackets": {"small": 0, "medium": N, "large": 0},  // null when no paths were extracted
   "files_measured": 0,
   "step_costs": {
     "<step name>": <calibrated Expected band cost for that step, float>,
@@ -350,7 +350,7 @@ Write calibration/last-estimate.md:
 **Size:** {size} | **Files:** {N} | **Complexity:** {complexity}
 **Type:** {project_type} | **Language:** {language}
 **Steps:** {step names, comma-separated}
-**Files:** {files_measured} measured ({file_brackets["small"]} small, {file_brackets["medium"]} medium, {file_brackets["large"]} large); {files_defaulted} defaulted
+**File Brackets:** {files_measured} measured ({file_brackets["small"]} small, {file_brackets["medium"]} medium, {file_brackets["large"]} large); {files_defaulted} defaulted
 
 | Band       | Cost    |
 |------------|---------|

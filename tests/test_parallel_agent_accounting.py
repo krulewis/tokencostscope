@@ -263,7 +263,7 @@ class TestDocumentContent:
     def test_skill_md_version_1_4_0(self):
         assert "version: 1.5.0" in SKILL_MD.read_text()
 
-    def test_skill_md_output_template_v1_4_0(self):
+    def test_skill_md_output_template_v1_5_0(self):
         assert "v1.5.0" in SKILL_MD.read_text()
 
     def test_skill_md_step0_has_parallel_groups_output(self):
