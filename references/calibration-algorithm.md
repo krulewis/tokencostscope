@@ -159,7 +159,7 @@ Fields `review_cycles_estimated` and `review_cycles_actual` were added in v1.2.
 Fields added in v1.4.0:
 - `step_costs_estimated`: dict of {step_name: calibrated_expected_cost} from the
   estimate, excluding the PR Review Loop (derived from the `step_costs` field in
-  `active-estimate.json` — renamed during the learn.sh RECORD block to distinguish
+  `active-estimate.json` — derived (with PR Review Loop excluded) during the learn.sh RECORD block to distinguish
   the estimate-time snapshot from any future actual-cost-per-step field). This field
   is diagnostic only — stored for inspection and debugging. It is NOT used by
   update-factors.py for factor computation. Factor computation uses `step_ratios`

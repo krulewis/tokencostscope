@@ -92,16 +92,18 @@ Band multipliers: Optimistic=0.6×, Expected=1.0×, Pessimistic=3.0×
 Applies a 4-level precedence chain to select the calibration factor:
 
 ```
-# Pseudocode — simplified property names.
-# Actual factors.json keys: "step_factors", "size_class_factors", "global_factor"
-if step_name in factors.step_factors:
-  factor = factors.step_factors[step_name].factor       (Cal: S:x)
-elif size_class in factors.size_class_factors:
-  factor = factors.size_class_factors[size_class].factor (Cal: Z:x)
-elif factors.global_factor exists:
-  factor = factors.global_factor                          (Cal: G:x)
+# Pseudocode using actual factors.json keys.
+# Per-step: factors["step_factors"][step_name]["status"] == "active" and n >= 3
+# Size-class: factors[size] exists and factors["{size}_n"] >= 3 (e.g. factors["M_n"])
+# Global: factors["global"] exists and factors["status"] == "active"
+if step_name in factors["step_factors"] and factors["step_factors"][step_name]["status"] == "active":
+  factor = factors["step_factors"][step_name]["factor"]   (Cal: S:x)
+elif factors[size] exists and factors["{size}_n"] >= 3:
+  factor = factors[size]                                   (Cal: Z:x)
+elif factors["global"] exists and factors["status"] == "active":
+  factor = factors["global"]                               (Cal: G:x)
 else:
-  factor = 1.0                                            (Cal: --)
+  factor = 1.0                                             (Cal: --)
 
 calibrated_expected    = expected_cost × factor
 calibrated_optimistic  = calibrated_expected × 0.6
@@ -110,7 +112,7 @@ calibrated_pessimistic = calibrated_expected × 3.0
 
 **Calibration source (Cal column in output table):**
 - `S:0.82` — per-step factor applied (3+ sessions recorded for this specific step)
-- `Z:0.88` — size-class factor applied (10+ sessions in this size class)
+- `Z:0.88` — size-class factor applied (3+ sessions in this size class)
 - `G:0.95` — global factor applied (3+ sessions total, but step not yet calibrated)
 - `--` — uncalibrated (no factors available; factor = 1.0)
 
