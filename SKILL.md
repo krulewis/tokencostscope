@@ -137,7 +137,7 @@ Read size-class and global factors as before.
 
 For each step, determine the factor and its source using this precedence chain:
   1. Per-step: if `step_factors[step_name]` exists and `step_factors[step_name]["status"] == "active"` → use
-     `step_factors[step_name].factor`, source = "S"
+     `step_factors[step_name]["factor"]`, source = "S"
   2. Size-class: if `factors[size]` exists and `factors["{size}_n"]` (e.g.,
      `factors["M_n"]`) >= 3 → use `factors[size]`, source = "Z"
   3. Global: if `factors["global"]` exists and `factors["status"] == "active"` → use
