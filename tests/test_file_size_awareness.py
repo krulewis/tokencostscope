@@ -62,11 +62,14 @@ def compute_file_read_contribution(file_brackets, N: int = 5) -> int:
     )
 
 
-def compute_file_edit_contribution(file_brackets: dict) -> int:
+def compute_file_edit_contribution(file_brackets, N: int = 5) -> int:
     """Compute total edit input tokens for a step.
 
     contribution = brackets["small"] * 1000 + brackets["medium"] * 2500 + brackets["large"] * 5000
+    When file_brackets is None, falls back to N * 2500 (medium default).
     """
+    if file_brackets is None:
+        return N * 2_500
     return (
         file_brackets.get("small", 0) * 1_000
         + file_brackets.get("medium", 0) * 2_500
@@ -374,20 +377,20 @@ class TestActiveEstimateSchema:
         assert files_measured == 8
 
     def test_file_brackets_type_contract(self):
-        """null means no paths extracted; empty dict {} is semantically different
-        (paths were extracted but 0 files were measured — e.g., all binary)."""
-        null_brackets = None      # no paths extracted from plan
-        empty_brackets = {}       # paths extracted, all filtered/binary
+        """null means no paths extracted; zero-count dict is semantically different
+        (paths were extracted but 0 files were measurable — e.g., all binary or missing)."""
+        null_brackets = None                                      # no paths extracted from plan
+        zero_brackets = {"small": 0, "medium": 0, "large": 0}  # paths extracted, none measured
 
         # null → no paths extracted
         assert null_brackets is None
 
-        # empty dict → paths were attempted, none measured
-        total_measured_from_empty = sum(empty_brackets.get(k, 0) for k in ("small", "medium", "large"))
-        assert total_measured_from_empty == 0
+        # zero-count dict → paths were attempted, none measurable
+        total_measured = sum(zero_brackets.get(k, 0) for k in ("small", "medium", "large"))
+        assert total_measured == 0
 
         # The two cases are distinct
-        assert null_brackets != empty_brackets
+        assert null_brackets != zero_brackets
 
 
 # ---------------------------------------------------------------------------

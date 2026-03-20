@@ -581,7 +581,7 @@ class TestLearnShStepCosts:
 class TestDocumentContent:
     """Verify required content in documentation files. Fails before implementation."""
 
-    def test_skill_md_version_1_4_0(self):
+    def test_skill_md_version_v1_5_0(self):
         """SKILL.md frontmatter contains 'version: 1.5.0'."""
         assert "version: 1.5.0" in SKILL_MD.read_text()
 
@@ -703,7 +703,7 @@ class TestDocumentContent:
         content = LEARN_SH.read_text()
         assert "PR Review Loop" in content
 
-    def test_claude_md_version_1_4_0(self):
+    def test_claude_md_version_v1_5_0(self):
         """CLAUDE.md contains 'Current version: 1.5.0'."""
         assert "Current version: 1.5.0" in CLAUDE_MD.read_text()
 

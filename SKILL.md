@@ -41,7 +41,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
       `.js`, `.jsx`, `.go`, `.rs`, `.rb`, `.java`, `.sh`, `.md`, `.json`, `.yaml`, `.yml`,
       `.toml`, `.cfg`, `.ini`, `.sql`, `.html`, `.css`, `.scss`),
       (ii) do NOT contain `://` and do not start with `http` or `https` (exclude URLs),
-      (iii) do NOT match `v\d+\.\d+` (exclude version strings like `v1.5.0`),
+      (iii) are not standalone version strings (token entirely matches `v\d+\.\d+(\.\d+)*` with no path separator) (exclude bare tokens like `v1.5.0`, but keep `vendor/v2.0/config.yaml` since it has a path separator),
       (iv) contain at least one `/` or `\` path separator or a file extension (exclude bare module names that have neither).
       Deduplicate paths. Exclude known binary extensions from measurement (see heuristics.md File Size Brackets).
    b. **Classify new vs. existing:** A file is "new" ONLY if (a) the surrounding sentence/bullet
@@ -55,7 +55,8 @@ If invoked without explicit parameters, infer from the plan in conversation:
       ```
       wc -l -- "path1" "path2" ... 2>/dev/null || true
       ```
-      (Quoting is critical for macOS paths with spaces, e.g., `/Volumes/Macintosh HD2/...`.)
+      (Quoting is critical for macOS paths with spaces, e.g., `/Volumes/Macintosh HD2/...`.
+      Files that cannot be read due to permissions are also treated as unmeasurable.)
       Parse output line counts. Files not found produce no output → treated as unmeasurable.
       Files 31+ (beyond the cap) receive the weighted-average bracket of the first 30 measured
       files. If no files are successfully measured, overflow and cap-exceeded files use the
@@ -76,6 +77,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
       - `files_defaulted` — count using override or default bracket
       - `file_brackets` — dict: `{"small": N, "medium": N, "large": N}` (counts per bracket)
         When no paths are extracted: `file_brackets = null` (not `{}`)
+        When paths were extracted but none measurable (all binary/missing): `{"small": 0, "medium": 0, "large": 0}`
       - `avg_file_read_tokens` — weighted average read token budget (or 10,000 if no measurement)
       - `avg_file_edit_tokens` — weighted average edit token budget (or 2,500 if no measurement)
 3. **Complexity:** low (bug fix, config, mechanical), medium (new feature, clear scope), high (new system, architectural)
