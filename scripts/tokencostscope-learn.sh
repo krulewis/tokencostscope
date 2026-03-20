@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="1.3.1"
+VERSION="1.4.0"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -109,8 +109,31 @@ if python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.001 else 1)" "$A
 import json, os
 _est = json.load(open(os.environ['EST_FILE'])) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
 parallel_groups = _est.get('parallel_groups', [])
+# Read step_costs from estimate; exclude PR Review Loop from per-step attribution.
+# 'PR Review Loop' is matched by exact string (case-sensitive) — must match the
+# exact key written by SKILL.md. Do not use prefix matching or case-folding.
+step_costs_raw = _est.get('step_costs', {})
+PR_REVIEW_LOOP_KEY = 'PR Review Loop'
+step_costs_estimated = {k: v for k, v in step_costs_raw.items()
+                        if k != PR_REVIEW_LOOP_KEY}
+
 actual = float(os.environ['AC_ENV'])
 expected = max(float(os.environ['EC_ENV']), 0.001)
+
+# Compute per-step ratios via proportional attribution.
+# session_ratio uses the session-level actual/expected ratio — the SAME value
+# is applied to ALL steps. This is intentional: we cannot measure per-step
+# actual costs from session JSONL (no step-level tagging). The session-level
+# ratio is the best available proxy. Do NOT divide by per-step expected costs
+# here — that would defeat the proportional attribution design.
+# 'expected' here is the session-level total expected cost (same variable
+# used for the global factor computation above), not a per-step value.
+session_ratio = round(actual / expected, 4)
+step_ratios = {step: session_ratio for step in step_costs_estimated}
+
+# step_costs_estimated is diagnostic only — stored in history for inspection
+# and debugging. It is NOT used by update-factors.py for factor computation.
+# Factor computation uses step_ratios exclusively.
 print(json.dumps({
     'timestamp': os.environ['TS_ENV'],
     'size': os.environ['SZ_ENV'],
@@ -129,6 +152,8 @@ print(json.dumps({
     'review_cycles_actual': None,
     'parallel_groups': parallel_groups,
     'parallel_steps_detected': int(os.environ['PSD_ENV']),
+    'step_costs_estimated': step_costs_estimated,
+    'step_ratios': step_ratios,
 }))
 ")
 

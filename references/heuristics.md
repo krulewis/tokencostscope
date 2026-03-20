@@ -138,3 +138,16 @@ cannot reuse cache warmed by preceding sequential steps.
 These values are heuristic estimates and will be refined via calibration as parallel-tagged
 sessions accumulate in history.jsonl. Groups with fewer than 2 resolved steps are discarded
 (a single-step "parallel group" is semantically meaningless and is treated as sequential).
+
+## Per-Step Calibration
+
+When per-step correction factors are active, SKILL.md Step 3e applies a step-level factor
+before falling back to the size-class or global factor.
+
+| Parameter               | Value | Notes                                                  |
+|-------------------------|-------|--------------------------------------------------------|
+| per_step_min_samples    | 3     | Minimum history entries before a per-step factor activates |
+
+Matches the existing size-class activation threshold (3 records).
+Both thresholds should be updated together if changed. The value is also hardcoded in
+update-factors.py Pass 4, consistent with the existing size-class threshold in Pass 3.

@@ -260,11 +260,11 @@ class TestDocumentContent:
     def test_heuristics_has_parallel_cache_rate_reduction(self):
         assert "parallel_cache_rate_reduction" in HEURISTICS_MD.read_text()
 
-    def test_skill_md_version_1_3_1(self):
-        assert "version: 1.3.1" in SKILL_MD.read_text()
+    def test_skill_md_version_1_4_0(self):
+        assert "version: 1.4.0" in SKILL_MD.read_text()
 
-    def test_skill_md_output_template_v1_3_1(self):
-        assert "v1.3.1" in SKILL_MD.read_text()
+    def test_skill_md_output_template_v1_4_0(self):
+        assert "v1.4.0" in SKILL_MD.read_text()
 
     def test_skill_md_step0_has_parallel_groups_output(self):
         """Step 0 must produce parallel_groups — check for the specific output variable name."""
@@ -346,13 +346,13 @@ class TestDocumentContent:
 class TestLearnScript:
     """Tests for tokencostscope-learn.sh changes."""
 
-    def test_version_is_1_3_1(self):
+    def test_version_is_1_4_0(self):
         result = subprocess.run(
             ["bash", str(LEARN_SH), "--version"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "1.3.1" in result.stdout
+        assert "1.4.0" in result.stdout
 
     def test_forwards_parallel_steps_detected(self):
         """learn.sh must extract parallel_steps_detected from active-estimate.json."""
