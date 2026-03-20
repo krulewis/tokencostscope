@@ -421,10 +421,10 @@ cache_write_fraction = 1/14 ≈ 0.0714
 uncached_cost    = 585,000 × 0.50 × 3.00 / 1,000,000           = $0.8775
 cache_write_cost = 585,000 × 0.50 × (1/14) × 3.75 / 1,000,000 ≈ $0.0783
 cache_read_cost  = 585,000 × 0.50 × (13/14) × 0.30 / 1,000,000 ≈ $0.0814
-output_base      = (5 × 200 + 5 × 1,500 + 4 × 1,500) = 15,000  (unchanged)
-output_cost      = 15,000 × 15.00 / 1,000,000 = $0.2250
-step_cost        = ($0.8775 + $0.0783 + $0.0814 + $0.2250) × 1.0 = $1.2622
+output_base      = (5 × 200 + 5 × 1,500 + 4 × 1,500) = 14,500  (unchanged)
+output_cost      = 14,500 × 15.00 / 1,000,000 = $0.2175
+step_cost        = ($0.8775 + $0.0783 + $0.0814 + $0.2175) × 1.0 = $1.2547
 
 Compare flat 10k Expected: ~$1.3147
-Delta: −$0.0525 (−4.0%) — 2 small files pull total below flat average
+Delta: −$0.0600 (−4.6%) — 2 small files pull total below flat average
 ```

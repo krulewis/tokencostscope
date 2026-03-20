@@ -352,7 +352,8 @@ Write calibration/last-estimate.md:
 **Size:** {size} | **Files:** {N} | **Complexity:** {complexity}
 **Type:** {project_type} | **Language:** {language}
 **Steps:** {step names, comma-separated}
-**File Brackets:** {files_measured} measured ({file_brackets["small"]} small, {file_brackets["medium"]} medium, {file_brackets["large"]} large); {files_defaulted} defaulted
+**File Brackets:** (if file_brackets is not null: "{files_measured} measured ({file_brackets["small"]} small, {file_brackets["medium"]} medium, {file_brackets["large"]} large); {files_defaulted} defaulted")
+               (if file_brackets is null: "none (no paths extracted)")
 
 | Band       | Cost    |
 |------------|---------|
