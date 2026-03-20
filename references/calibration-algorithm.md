@@ -87,7 +87,7 @@ to truly isolated per-step accuracy until step-level JSONL tagging is available.
 
 **Factor precedence (Step 3e):**
   1. Per-step factor (status "active") — most specific; overrides size-class and global
-  2. Size-class factor (3+ samples in size stratum)
+  2. Size-class factor (`factors["{size}_n"] >= 3` samples in size stratum)
   3. Global factor (status "active")
   4. No calibration — factor = 1.0
 
@@ -158,10 +158,12 @@ Fields `review_cycles_estimated` and `review_cycles_actual` were added in v1.2.
 
 Fields added in v1.4.0:
 - `step_costs_estimated`: dict of {step_name: calibrated_expected_cost} from the
-  estimate, excluding the PR Review Loop. This field is diagnostic only — stored
-  for inspection and debugging. It is NOT used by update-factors.py for factor
-  computation. Factor computation uses `step_ratios` exclusively. Absent in records
-  from v1.3.x and earlier; handled via .get() defaults.
+  estimate, excluding the PR Review Loop (derived from the `step_costs` field in
+  `active-estimate.json` — renamed during the learn.sh RECORD block to distinguish
+  the estimate-time snapshot from any future actual-cost-per-step field). This field
+  is diagnostic only — stored for inspection and debugging. It is NOT used by
+  update-factors.py for factor computation. Factor computation uses `step_ratios`
+  exclusively. Absent in records from v1.3.x and earlier; handled via .get() defaults.
 - `step_ratios`: dict of {step_name: ratio} where ratio = actual_cost / expected_cost
   at the session level (same value for all steps in proportional attribution). Absent
   in older records; handled via .get() defaults.

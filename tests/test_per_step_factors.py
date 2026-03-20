@@ -336,6 +336,12 @@ class TestPerStepFactorComputation:
 
     def test_outlier_record_excluded_from_step_factors(self):
         """Records flagged as outliers (ratio > 3.0 or < 0.2) do not contribute."""
+        # NOTE: Pass 4 does NOT perform outlier filtering itself — that is Pass 2's
+        # responsibility (upstream in update-factors.py). This test verifies Pass 4's
+        # record-counting behaviour when given a pre-filtered input list; it does NOT
+        # test the filtering logic itself.  The full end-to-end pipeline (Pass 2 → Pass 4)
+        # is covered by test_end_to_end_outlier_excluded_from_step_factors.
+        #
         # Simulate what update-factors.py does: outliers are excluded before Pass 4
         # By excluding records with ratio > 3.0 from clean_records
         outlier_record = {

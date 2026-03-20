@@ -92,6 +92,8 @@ Band multipliers: Optimistic=0.6×, Expected=1.0×, Pessimistic=3.0×
 Applies a 4-level precedence chain to select the calibration factor:
 
 ```
+# Pseudocode — simplified property names.
+# Actual factors.json keys: "step_factors", "size_class_factors", "global_factor"
 if step_name in factors.step_factors:
   factor = factors.step_factors[step_name].factor       (Cal: S:x)
 elif size_class in factors.size_class_factors:

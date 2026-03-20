@@ -136,11 +136,11 @@ Read `step_factors` from `calibration/factors.json` if it exists (default: {}).
 Read size-class and global factors as before.
 
 For each step, determine the factor and its source using this precedence chain:
-  1. Per-step: if `step_factors[step_name]` exists and `status == "active"` → use
+  1. Per-step: if `step_factors[step_name]` exists and `step_factors[step_name]["status"] == "active"` → use
      `step_factors[step_name].factor`, source = "S"
   2. Size-class: if `factors[size]` exists and `factors["{size}_n"]` (e.g.,
      `factors["M_n"]`) >= 3 → use `factors[size]`, source = "Z"
-  3. Global: if `factors["global"]` exists and `status == "active"` → use
+  3. Global: if `factors["global"]` exists and `factors["status"] == "active"` → use
      `factors["global"]`, source = "G"
   4. No calibration: factor = 1.0, source = "--"
 
@@ -234,7 +234,7 @@ Run: python3 scripts/sum-session-tokens.py <session-jsonl> 0
 Use the returned total_session_cost as baseline_cost. If the command fails, use 0.
 ```
 
-Then write the estimate marker for the learning system. Record each step's calibrated Expected band cost in `step_costs`, keyed by the canonical step name (e.g., `"Research Agent"`, `"Implement"`). If the PR Review Loop is in scope (N > 0), also record its calibrated expected cost under the key `"PR Review Loop"`. This field is required — the learning pipeline reads it at session end to compute per-step calibration ratios.
+Then write the estimate marker for the learning system. Record each step's calibrated Expected band cost in `step_costs`, keyed by the canonical step name (e.g., `"Research Agent"`, `"Implement"`). If the PR Review Loop is in scope (N > 0), also record its calibrated expected cost under the key `"PR Review Loop"`. This field should always be present in v1.4.0+ estimates — the learning pipeline reads it at session end to compute per-step calibration ratios.
 ```
 Write calibration/active-estimate.json:
 {
