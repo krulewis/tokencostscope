@@ -234,7 +234,7 @@ Run: python3 scripts/sum-session-tokens.py <session-jsonl> 0
 Use the returned total_session_cost as baseline_cost. If the command fails, use 0.
 ```
 
-Then write the estimate marker for the learning system:
+Then write the estimate marker for the learning system. Record each step's calibrated Expected band cost in `step_costs`, keyed by the canonical step name (e.g., `"Research Agent"`, `"Implement"`). If the PR Review Loop is in scope (N > 0), also record its calibrated expected cost under the key `"PR Review Loop"`. This field is required — the learning pipeline reads it at session end to compute per-step calibration ratios.
 ```
 Write calibration/active-estimate.json:
 {

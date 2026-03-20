@@ -910,6 +910,83 @@ class TestLearnShIntegrationStepCosts(unittest.TestCase):
             self.assertEqual(last.get("step_costs_estimated", {}), {})
             self.assertEqual(last.get("step_ratios", {}), {})
 
+    def test_end_to_end_outlier_excluded_from_step_factors(self):
+        """update-factors.py end-to-end: outlier records do not contribute to step_factors n count."""
+        with tempfile.TemporaryDirectory() as tmp:
+            history_file = str(Path(tmp) / "history.jsonl")
+            factors_file = str(Path(tmp) / "factors.json")
+
+            # Two normal records: ratio = 0.9 (actual/expected = 4.5/5.0)
+            for i in range(2):
+                record = {
+                    "timestamp": f"2026-01-0{i+1}T00:00:00Z",
+                    "size": "M",
+                    "expected_cost": 5.0,
+                    "actual_cost": 4.5,  # ratio = 0.9 — within [0.2, 3.0]
+                    "step_ratios": {"Research Agent": 0.9},
+                }
+                with open(history_file, "a") as f:
+                    f.write(json.dumps(record) + "\n")
+
+            # One normal record to bring the global clean count to 3 (needed for
+            # update-factors.py to proceed past the early-return at sample_count < 3)
+            record = {
+                "timestamp": "2026-01-03T00:00:00Z",
+                "size": "M",
+                "expected_cost": 5.0,
+                "actual_cost": 4.5,  # ratio = 0.9
+                "step_ratios": {"Research Agent": 0.9},
+            }
+            with open(history_file, "a") as f:
+                f.write(json.dumps(record) + "\n")
+
+            # One outlier record: ratio = 5.0 (actual/expected = 25.0/5.0 > OUTLIER_HIGH=3.0)
+            # This record also carries a step_ratios entry that must NOT appear in step_factors.
+            outlier_record = {
+                "timestamp": "2026-01-04T00:00:00Z",
+                "size": "M",
+                "expected_cost": 5.0,
+                "actual_cost": 25.0,  # ratio = 5.0 → outlier (> 3.0)
+                "step_ratios": {"Research Agent": 5.0},
+            }
+            with open(history_file, "a") as f:
+                f.write(json.dumps(outlier_record) + "\n")
+
+            result = subprocess.run(
+                ["/usr/bin/python3", str(self.UPDATE_FACTORS_PY), history_file, factors_file],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, f"update-factors.py failed: {result.stderr}")
+
+            with open(factors_file) as f:
+                factors = json.load(f)
+
+            # step_factors must be present (3 clean records with step_ratios)
+            self.assertIn("step_factors", factors)
+            self.assertIn("Research Agent", factors["step_factors"])
+
+            # The outlier record must not have contributed: n should be 3 (the three
+            # clean records), not 4 (which would happen if the outlier were included)
+            step_n = factors["step_factors"]["Research Agent"]["n"]
+            self.assertEqual(
+                step_n,
+                3,
+                f"Expected n=3 (outlier excluded), got n={step_n}. "
+                f"Outlier record with ratio=5.0 should have been filtered in Pass 2.",
+            )
+
+            # The factor itself should reflect only the clean ratios (all 0.9)
+            step_factor = factors["step_factors"]["Research Agent"]["factor"]
+            self.assertAlmostEqual(
+                step_factor,
+                0.9,
+                places=3,
+                msg=f"Expected factor≈0.9 from clean records, got {step_factor}",
+            )
+
+            # Confirm the outlier was counted in outlier_count
+            self.assertGreaterEqual(factors.get("outlier_count", 0), 1)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
