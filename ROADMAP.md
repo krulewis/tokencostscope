@@ -46,11 +46,52 @@
 **Goal:** Continue improving estimate accuracy with finer-grained data and modeling.
 
 - [x] **Per-step correction factors** — tag sessions with pipeline step name, learn per-step accuracy (Research overestimated? Staff Review underestimated?) (shipped as v1.4.0)
-- [ ] **File size awareness** — read actual file sizes from the plan's file list, adjust token budgets (small files < 50 lines get 3k, large files > 500 lines get 20k+)
 - [x] **Parallel agent accounting** — when steps run as parallel subagents, model overlapping context differently than sequential (shipped as v1.3.0)
-- [x] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads
-- [ ] **Decay on stale data** — down-weight sessions older than 30 days more aggressively
-- [ ] **Per-pipeline-signature calibration** — calibrate by agent sequence, not just size class
+- [x] **Cache write modeling in estimates** — first turn pays cache_write price, subsequent turns pay cache_read; currently estimates only model cache reads (shipped as v1.3.1)
+
+---
+
+## v1.4 — Per-Step Calibration (shipped 2026-03-20)
+
+**Goal:** Distinguish between overestimated and underestimated pipeline steps.
+
+- [x] **Per-step correction factors** — Distinguish Research vs. Implementation vs. QA costs (each step learns its own factor after 3+ samples)
+- [x] **Step-level cost tracking** — `step_costs` field in calibration history enables per-step accuracy analysis
+- [x] **5-level precedence chain** — per-step factors take priority over size-class and global factors
+
+---
+
+## v1.5 — File Size Awareness (shipped 2026-03-20)
+
+**Goal:** Auto-measure file sizes and adjust token budgets accordingly.
+
+- [x] **File size awareness** — read actual file sizes from the plan's file list via `wc -l`, three brackets (small/medium/large)
+- [x] **Three-bracket model** — small (≤49 lines) = 3k, medium (50–500) = 10k, large (≥501) = 20k tokens/read
+- [x] **Override support** — `avg_file_lines=N` for greenfield projects with unmeasured files
+- [x] **`file_brackets` history tracking** — calibration history captures bracket distribution per estimate
+
+---
+
+## v1.6 — Time-Decay & Per-Signature Calibration (shipped 2026-03-21)
+
+**Goal:** Respond to recent session patterns and calibrate by workflow signature, not just size class.
+
+- [x] **Exponential time-decay weighting** — records older than 30 days have reduced influence (50% at 30 days, 25% at 60 days). Never deletes records.
+- [x] **Cold-start guard** — decay only applies when 5+ records exist in a calibration stratum (statistical invariant)
+- [x] **Per-signature correction factors** — after 3+ runs of the same pipeline signature, a `P:x` Cal column factor activates
+- [x] **Per-signature Pass 5** — dedicated calibration phase for signature-based factors in `update-factors.py`
+- [x] **Mid-session cost tracking** — PreToolUse hook `tokencostscope-midcheck.sh` warns when spend approaches 80% of pessimistic estimate
+- [x] **Sampling & cooldown** — ~50KB sampling gate and ~200KB cooldown to avoid warning spam
+
+---
+
+## v1.7 — Per-Agent Step Actuals (planned)
+
+**Goal:** Break down actual costs by agent step, not just session-level summary.
+
+**Blocker:** Requires JSONL-level step tagging by agent frameworks. Deferred pending framework support.
+
+- [ ] **Per-agent step actuals breakdown** *(Item D from v1.6)* — capture actuals per agent step (not just session-level), enabling per-agent calibration and identifying the biggest cost drivers
 
 ---
 
@@ -58,8 +99,8 @@
 
 **Goal:** See what's happening *during* a session, not just before and after. Prerequisite for mid-pipeline reallocation in v5.0.
 
-- [ ] **Mid-session cost tracking** *(email #4)* — periodic check-ins that read partial JSONL mid-session and warn if tracking toward the pessimistic band
-- [ ] **Per-agent step actuals breakdown** *(email #5)* — capture actuals per agent step (not just session-level), enabling per-agent calibration and identifying the biggest cost drivers
+- [x] **Mid-session cost tracking** — warn if trending toward the pessimistic band (shipped in v1.6)
+- [ ] **Per-agent step actuals breakdown** — capture actuals per agent step (blocked on framework support, see v1.7)
 - [ ] **Cache efficiency score** *(email #7)* — track cache hit rate per session and over time, with tips when efficiency drops
 - [ ] **Cost annotations in responses** *(email #8)* — surface cost info inline after each major agent step: `[tokencostscope: Research Agent — 18,400 tokens, $0.92, 94% cache]`
 - [ ] **`/tokencostscope status`** — show calibration health: sample count, factor stability, band accuracy (% of actuals within each band)
@@ -136,4 +177,4 @@
 
 ---
 
-*Last updated: 2026-03-19*
+*Last updated: 2026-03-21*

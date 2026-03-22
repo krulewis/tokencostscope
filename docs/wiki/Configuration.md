@@ -66,6 +66,46 @@ Research Agent and PM Agent run in parallel, then Architect Agent sequentially.
 
 ---
 
+## Time-Based Decay
+
+As your calibration history grows, older records exert less influence on current estimates via exponential time-decay weighting. Older sessions are never deleted — the skill preserves your full history.
+
+**Tunable parameters** (in `references/heuristics.md`):
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `decay_halflife_days` | 30 | Halflife for exponential decay: 30 days old → 50% influence |
+
+**Cold-start guard:** Records are NOT decayed when fewer than 5 records are available in a calibration stratum (size-class, step, or signature). This prevents pathological early down-weighting.
+
+---
+
+## Per-Signature Calibration
+
+After 3+ runs of the same pipeline signature (e.g., the same ordered sequence of steps), a per-signature calibration factor activates. This captures cost profiles unique to your workflow without requiring manual tuning.
+
+**Tunable parameters** (in `references/heuristics.md`):
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `per_signature_min_samples` | 3 | Minimum runs required for per-signature factor activation |
+
+---
+
+## Mid-Session Cost Tracking
+
+During your session, tokencostscope periodically checks spend against the pessimistic estimate and warns if you're approaching the upper band. Warnings are sampled to avoid spam.
+
+**Tunable parameters** (in `references/heuristics.md`):
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `midcheck_warn_threshold` | 0.80 | Warn when actual spend reaches 80% of pessimistic estimate |
+| `midcheck_sampling_bytes` | 50000 | Check interval (approx 50KB) to avoid verbosity |
+| `midcheck_cooldown_bytes` | 200000 | Once warned, cooldown before checking again (~200KB) |
+
+---
+
 ## File Size Awareness
 
 tokencostscope auto-measures file sizes when paths are present in the plan:

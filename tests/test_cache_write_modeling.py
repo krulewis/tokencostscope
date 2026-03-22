@@ -451,19 +451,19 @@ class TestDocumentContent:
         assert "not yet used" not in content
 
     def test_skill_md_version_140_frontmatter(self):
-        """SKILL.md frontmatter must contain 'version: 1.5.0'."""
+        """SKILL.md frontmatter must contain 'version: 1.6.0'."""
         content = SKILL_MD.read_text()
-        assert "version: 1.5.0" in content
+        assert "version: 1.6.0" in content
 
     def test_skill_md_version_140_output_header(self):
-        """SKILL.md must contain '## costscope estimate (v1.5.0)' in the output template."""
+        """SKILL.md must contain '## costscope estimate (v1.6.0)' in the output template."""
         content = SKILL_MD.read_text()
-        assert "## costscope estimate (v1.5.0)" in content
+        assert "## costscope estimate (v1.6.0)" in content
 
     def test_learn_sh_version_140(self):
-        """scripts/tokencostscope-learn.sh must contain 'VERSION=\"1.5.0\"'."""
+        """scripts/tokencostscope-learn.sh must contain 'VERSION=\"1.6.0\"'."""
         content = LEARN_SH.read_text()
-        assert 'VERSION="1.5.0"' in content
+        assert 'VERSION="1.6.0"' in content
 
 
 if __name__ == "__main__":

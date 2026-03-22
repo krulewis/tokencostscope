@@ -24,8 +24,37 @@ The next estimate automatically loads the updated factors.
 | Sessions | Behavior |
 |----------|----------|
 | 0–2      | No correction applied. Output shows "no prior data — will learn after this session" |
-| 3–10     | Global correction factor via **trimmed mean** of actual/expected ratios (trim 10% each tail) |
-| 10+      | **EWMA** (exponentially weighted moving average) with recency weighting. Per-size-class factors (`XS`, `S`, `M`, `L`) activate when a class has 3+ samples |
+| 3–10     | Global correction factor via **trimmed mean** of actual/expected ratios (trim 10% each tail). Time-decay weighting begins (30-day halflife) once 5+ records exist. |
+| 10+      | **EWMA** (exponentially weighted moving average) with recency weighting. Per-size-class factors (`XS`, `S`, `M`, `L`) activate when a class has 3+ samples. Per-step factors activate when a step has 3+ samples. Per-signature factors activate when a signature has 3+ samples. |
+
+---
+
+## Time-Decay Weighting
+
+Older calibration records lose influence over time. Each record is weighted by an exponential decay function based on how long ago the session ran:
+
+```
+weight = exp(−ln(2) / halflife × days_elapsed)
+```
+
+With a 30-day halflife:
+- A 30-day-old record has 50% of the influence of a fresh record
+- A 60-day-old record has 25% influence
+- Older records are never deleted — your full history is preserved
+
+**Cold-start guard:** Decay weighting only applies when 5 or more records exist in a calibration stratum (size-class, step, or signature). Below that threshold, all weights are 1.0 (equal influence). This prevents pathological down-weighting in the early stages of learning.
+
+---
+
+## Per-Signature Calibration
+
+A pipeline signature is a normalized hash of the ordered sequence of pipeline steps. After 3+ runs of the same signature, a per-signature correction factor activates (labeled `P:x` in the Cal column).
+
+This captures cost profiles unique to your workflow. For example:
+- An organization that always runs "Research → Architecture → Engineering → QA → Review" might have consistent overestimation in the research phase
+- A signature-level factor corrects for this without affecting global or per-step factors
+
+Per-signature factors are computed in **Pass 5** of `update-factors.py` and stored in `factors.json` under `signature_factors`. They are the highest-priority factors in the 5-level precedence chain (above per-step and size-class factors).
 
 ---
 
@@ -41,9 +70,45 @@ All calibration data lives in `calibration/` (gitignored — local to each user)
 
 | File | Purpose |
 |------|---------|
-| `history.jsonl` | One record per completed session. Each record includes estimate, actual, ratio, size class, pipeline steps, project type, language, and (v1.3+) parallel groups. |
-| `factors.json` | Learned correction factors keyed by size class. |
-| `active-estimate.json` | Transient marker written when an estimate is produced; deleted after learning. |
+| `history.jsonl` | One record per completed session. Each record includes estimate, actual, ratio, size class, pipeline steps, project type, language, parallel groups, and step costs. |
+| `factors.json` | Learned correction factors: global, size-class (`M`, `L`, etc.), per-step (`step_factors`), and per-signature (`signature_factors`). |
+| `active-estimate.json` | Transient marker written when an estimate is produced; read by learn.sh at session end, then deleted. |
+| `.midcheck-state` | Ephemeral state file written by the PreToolUse hook during a session. Tracks last checked byte size and cooldown sentinel. Not part of calibration history. |
+
+---
+
+## Sharing Calibration
+
+---
+
+## Example: factors.json Structure
+
+After several sessions, `factors.json` contains learned factors at multiple levels:
+
+```json
+{
+  "sample_count": 12,
+  "global": 1.12,
+  "status": "active",
+  "M": 1.08,
+  "M_n": 5,
+  "L": 1.15,
+  "L_n": 4,
+  "step_factors": {
+    "Research Agent": {"factor": 0.82, "n": 6, "status": "active"},
+    "Implementation": {"factor": 1.20, "n": 4, "status": "active"}
+  },
+  "signature_factors": {
+    "research_agent+architect_agent+implementation": {
+      "factor": 0.95,
+      "n": 3,
+      "status": "active"
+    }
+  }
+}
+```
+
+The factor selection order is: per-signature → per-step → size-class → global. When a signature has 3+ runs, its `P:x` factor activates and takes precedence in the output table.
 
 ---
 

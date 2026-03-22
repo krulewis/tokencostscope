@@ -207,3 +207,58 @@ If `total_measured = 0` (no files measured): `avg_file_read_tokens = 10,000` and
 plan order). Files beyond the cap receive the weighted-average bracket of the first 30
 measured files. If no files are successfully measured, overflow files receive the override
 bracket or medium default.
+
+## Time-Based Decay
+
+Exponential time-decay weights are applied before aggregation in `update-factors.py`
+Passes 3–5. Older records receive lower weight but are never deleted from history.
+
+| Parameter             | Value | Notes                                              |
+|-----------------------|-------|----------------------------------------------------|
+| decay_halflife_days   | 30    | Records halve in weight every 30 days              |
+
+Decay weight formula: `w = exp(-ln(2) / halflife_days * days_elapsed)`
+
+where `ln(2)` is the natural log of 2, approximately 0.693.
+
+A record 30 days old receives weight 0.5; 60 days old receives 0.25.
+
+Cold-start guard: decay is not applied to strata with 5 or fewer records.
+This prevents down-weighting early data before the system has enough samples.
+The cold-start record count (`DECAY_MIN_RECORDS = 5`) is a statistical invariant
+hardcoded in `update-factors.py` — it is intentionally NOT listed here as a tunable
+parameter. Changing it requires understanding the convergence implications; do not
+treat it as equivalent to the min-samples thresholds above.
+
+Decay applies to all factor strata (global, size-class, per-step, per-signature).
+
+## Per-Signature Calibration
+
+When pipeline signatures accumulate 3+ history records, a per-signature factor
+is computed in Pass 5 of `update-factors.py`. The signature is derived from the
+`steps` array in each history record at read time.
+
+| Parameter                   | Value | Notes                                            |
+|-----------------------------|-------|--------------------------------------------------|
+| per_signature_min_samples   | 3     | Minimum history entries before activation        |
+
+Matches per-step and size-class activation thresholds. All three should be updated
+together if changed.
+
+Pipeline signature example: `architect_agent+engineer_final_plan+implementation+research_agent`
+
+## Mid-Session Cost Tracking
+
+`tokencostscope-midcheck.sh` fires as a PreToolUse hook and warns when session
+spend approaches the pessimistic estimate band.
+
+| Parameter                 | Value  | Notes                                            |
+|---------------------------|--------|--------------------------------------------------|
+| midcheck_warn_threshold   | 0.80   | Warn when spend reaches 80% of pessimistic       |
+| midcheck_sampling_bytes   | 50000  | Check cost every ~50KB of JSONL growth           |
+| midcheck_cooldown_bytes   | 200000 | After warning, suppress for ~200KB of growth    |
+
+The sampling gate checks file size via `stat` (single syscall, no I/O) rather
+than line counting to avoid O(n) overhead on every tool call. The fast path
+(no active estimate, or JSONL unchanged) completes in < 5ms. The slow path
+(full JSONL parse) fires at most once per ~50KB growth (~20 assistant turns).

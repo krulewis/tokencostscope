@@ -35,14 +35,16 @@ fi
 if [ -f "$SETTINGS_FILE" ]; then
     LEARN_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-learn.sh"
     TRACK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-track.sh"
+    MIDCHECK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-midcheck.sh"
 
-    python3 - "$SETTINGS_FILE" "$LEARN_SCRIPT" "$TRACK_SCRIPT" <<'PYEOF'
+    python3 - "$SETTINGS_FILE" "$LEARN_SCRIPT" "$TRACK_SCRIPT" "$MIDCHECK_SCRIPT" <<'PYEOF'
 import json
 import sys
 
 settings_path = sys.argv[1]
 learn_script = sys.argv[2]
 track_script = sys.argv[3]
+midcheck_script = sys.argv[4]
 
 with open(settings_path) as f:
     settings = json.load(f)
@@ -60,6 +62,12 @@ if "PostToolUse" in hooks:
     hooks["PostToolUse"] = [h for h in hooks["PostToolUse"] if track_script not in json.dumps(h)]
     if not hooks["PostToolUse"]:
         del hooks["PostToolUse"]
+
+# Remove PreToolUse hook entries containing our script
+if "PreToolUse" in hooks:
+    hooks["PreToolUse"] = [h for h in hooks["PreToolUse"] if midcheck_script not in json.dumps(h)]
+    if not hooks["PreToolUse"]:
+        del hooks["PreToolUse"]
 
 if not hooks:
     settings.pop("hooks", None)

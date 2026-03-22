@@ -21,7 +21,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 After a plan is created, tokencostscope automatically outputs a cost table:
 
 ```
-## costscope estimate (v1.5.0)
+## costscope estimate (v1.6.0)
 
 Change: size=M, files=5, complexity=medium, type=greenfield, lang=python
 Steps: all (8 steps)
@@ -40,12 +40,14 @@ Calibration: size-class M=1.12x (8 runs) | global 1.12x (8 runs)
 
 Parallel steps detected in the plan are grouped and discounted automatically — parallel agents start fresh (no inherited context) and miss the warmed cache.
 
-The **Cal** column shows the calibration source: `S:x` = per-step factor, `Z:x` = size-class factor, `G:x` = global factor, `--` = uncalibrated.
+The **Cal** column shows the calibration source: `S:x` = per-step factor, `P:x` = per-signature factor, `Z:x` = size-class factor, `G:x` = global factor, `--` = uncalibrated.
 
 ---
 
 ## How It Gets Smarter
 
-Every session end, the learning hook reads the JSONL log, computes actual cost, and updates calibration factors. After 3+ sessions, estimates are corrected by a learned multiplier. After 10+ sessions, per-size-class EWMA factors kick in. After 3+ sessions per step, per-step correction factors activate — letting the skill distinguish between overestimated steps (e.g., Research) and underestimated steps (e.g., QA).
+Every session end, the learning hook reads the JSONL log, computes actual cost, and updates calibration factors. After 3+ sessions, estimates are corrected by a learned multiplier. After 10+ sessions, per-size-class EWMA factors kick in. After 3+ sessions per step, per-step correction factors activate. After 3+ runs of the same pipeline signature, per-signature factors activate — letting the skill distinguish between cost profiles for different workflows.
+
+Additionally, older calibration records are time-decay weighted (30-day halflife) to give recent sessions more influence. Mid-session cost tracking warns you if actual spend approaches the pessimistic estimate, sampled at ~50KB intervals.
 
 No configuration required — it just learns.

@@ -74,15 +74,17 @@ fi
 
 LEARN_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-learn.sh"
 TRACK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-track.sh"
+MIDCHECK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-midcheck.sh"
 
 # Use python3 for reliable JSON merging (jq may not be installed)
-python3 - "$SETTINGS_FILE" "$LEARN_SCRIPT" "$TRACK_SCRIPT" <<'PYEOF'
+python3 - "$SETTINGS_FILE" "$LEARN_SCRIPT" "$TRACK_SCRIPT" "$MIDCHECK_SCRIPT" <<'PYEOF'
 import json
 import sys
 
 settings_path = sys.argv[1]
 learn_script = sys.argv[2]
 track_script = sys.argv[3]
+midcheck_script = sys.argv[4]
 
 with open(settings_path) as f:
     settings = json.load(f)
@@ -102,6 +104,12 @@ track_entry = {"matcher": "Agent", "hooks": [{"type": "command", "command": f"ba
 if not any(track_script in json.dumps(h) for h in post_hooks):
     post_hooks.append(track_entry)
 
+# Add PreToolUse hook for mid-session cost tracking
+pre_hooks = hooks.setdefault("PreToolUse", [])
+midcheck_entry = {"hooks": [{"type": "command", "command": f"bash '{midcheck_script}'"}]}
+if not any(midcheck_script in json.dumps(h) for h in pre_hooks):
+    pre_hooks.append(midcheck_entry)
+
 with open(settings_path, "w") as f:
     json.dump(settings, f, indent=2)
     f.write("\n")
@@ -110,7 +118,7 @@ print(f"  Hooks merged into {settings_path}")
 PYEOF
 
 # 5. Make scripts executable
-chmod +x "$LEARN_SCRIPT" "$TRACK_SCRIPT"
+chmod +x "$LEARN_SCRIPT" "$TRACK_SCRIPT" "$MIDCHECK_SCRIPT"
 
 echo ""
 echo "tokencostscope installed successfully."
