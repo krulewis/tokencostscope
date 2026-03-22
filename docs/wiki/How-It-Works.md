@@ -110,32 +110,42 @@ Band multipliers: Optimistic=0.6×, Expected=1.0×, Pessimistic=3.0×
 
 **3e. Calibration (Expected band only)**
 
-Applies a 4-level precedence chain to select the calibration factor:
+Applies a 5-level precedence chain to select the calibration factor:
 
 ```
 # Pseudocode using actual factors.json keys.
+# Per-signature: factors["signature_factors"][signature]["status"] == "active" and n >= 3
 # Per-step: factors["step_factors"][step_name]["status"] == "active" and n >= 3
 # Size-class: factors[size] exists and factors["{size}_n"] >= 3 (e.g. factors["M_n"])
 # Global: factors["global"] exists and factors["status"] == "active"
 if step_name in factors["step_factors"] and factors["step_factors"][step_name]["status"] == "active":
-  factor = factors["step_factors"][step_name]["factor"]   (Cal: S:x)
+  factor = factors["step_factors"][step_name]["factor"]        (Cal: S:x)
+elif signature in factors["signature_factors"] and factors["signature_factors"][signature]["status"] == "active":
+  factor = factors["signature_factors"][signature]["factor"]   (Cal: P:x)
 elif factors[size] exists and factors["{size}_n"] >= 3:
-  factor = factors[size]                                   (Cal: Z:x)
+  factor = factors[size]                                       (Cal: Z:x)
 elif factors["global"] exists and factors["status"] == "active":
-  factor = factors["global"]                               (Cal: G:x)
+  factor = factors["global"]                                   (Cal: G:x)
 else:
-  factor = 1.0                                             (Cal: --)
+  factor = 1.0                                                 (Cal: --)
 
 calibrated_expected    = expected_cost × factor
 calibrated_optimistic  = calibrated_expected × 0.6
 calibrated_pessimistic = calibrated_expected × 3.0
 ```
 
-**Calibration source (Cal column in output table):**
+**Calibration source (Cal column in output table, listed in precedence order):**
 - `S:0.82` — per-step factor applied (3+ sessions recorded for this specific step)
+- `P:0.79` — per-signature factor applied (3+ runs of the same pipeline signature; only when no per-step factor is active)
 - `Z:0.88` — size-class factor applied (3+ sessions in this size class)
 - `G:0.95` — global factor applied (3+ sessions total, but step not yet calibrated)
 - `--` — uncalibrated (no factors available; factor = 1.0)
+
+### Per-Signature Calibration
+
+A pipeline signature is a normalized hash of the steps array in the estimate. After 3+ runs of the same signature (e.g., "Planning → Implementation → Review" repeated 3+ times), a per-signature calibration factor activates in the `factors.json` under `signature_factors`. This factor appears in the Cal column as `P:x` and applies after per-step but before size-class factors in the 5-level precedence chain.
+
+Per-signature factors are learned via a dedicated Pass 5 in the calibration algorithm, capturing cost profiles unique to a workflow type. For example, some orgs may consistently over-estimate planning phases while under-estimating QA, resulting in a signature-level correction distinct from global or per-step factors.
 
 ### Step 3.5 — PR Review Loop
 
@@ -161,6 +171,36 @@ Sums all step costs per band, renders the table, and writes `calibration/active-
 | Optimistic  | 60%           | 0.6×       | Best case — focused, cache-warm agent work |
 | Expected    | 50%           | 1.0×       | Typical run |
 | Pessimistic | 30%           | 3.0×       | With rework loops, debugging, retries |
+
+---
+
+## Time-Decay Weighting
+
+Calibration records older than a few weeks exert less influence on current estimates. Each record is weighted by an exponential decay function:
+
+```
+weight = exp(−ln(2) / halflife × days_elapsed)
+```
+
+With a 30-day halflife, a 30-day-old record has 50% influence; a 60-day-old record has 25% influence. This keeps estimates responsive to recent session patterns without discarding historical data.
+
+**Cold-start guard:** When fewer than 5 records are available in a calibration stratum (size-class, step, or signature), decay is not applied — all weights equal 1.0. This prevents pathological down-weighting in early stages.
+
+Records are never deleted — the skill preserves your full history for long-term trend analysis and fallback.
+
+---
+
+## Mid-Session Cost Tracking
+
+As your session progresses, tokencostscope periodically checks actual spend against the pessimistic estimate via a PreToolUse hook. If spend approaches 80% of the pessimistic band, a warning is issued. Warnings are sampled at ~50KB intervals to avoid verbosity.
+
+Example output:
+```
+⚠ Cost warning: session spend $15.34 is 82% of pessimistic estimate ($18.70)
+  Consider pausing to review plan scope or revisit confidence bands.
+```
+
+The check is fail-silent — hook failures do not interrupt your work.
 
 ---
 

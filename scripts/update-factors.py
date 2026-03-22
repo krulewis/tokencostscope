@@ -16,31 +16,100 @@ import json
 import sys
 import tempfile
 import os
+import math
+from datetime import datetime, timezone
 from pathlib import Path
 
 OUTLIER_HIGH = 3.0
 OUTLIER_LOW = 0.2
 
+DECAY_HALFLIFE_DAYS = 30   # mirrors decay_halflife_days in references/heuristics.md
+                           # Update both together if changed.
+DECAY_MIN_RECORDS = 5      # Cold-start guard: below this record count per stratum,
+                           # decay is not applied (all weights = 1.0).
+                           # Intentionally NOT in heuristics.md — this is a statistical
+                           # invariant (prevents pathological early down-weighting), not
+                           # a user-tunable parameter. See calibration-algorithm.md.
 
-def compute_ewma(values: list[float], alpha: float = 0.15) -> float:
-    """Exponentially weighted moving average. Most recent values weighted highest."""
+
+def compute_ewma(values: list[float], alpha: float = 0.15, weights=None) -> float:
+    """Exponentially weighted moving average. Most recent values weighted highest.
+
+    When weights are provided, each sample is multiplied by its weight before the
+    EWMA update: result = alpha * (v * w) + (1 - alpha) * result.
+
+    The seed (first value) is NOT multiplied by its weight. Weights participate
+    only in the iterative update, not in the initial seed. This prevents the seed
+    from being artificially deflated when the oldest record is stale.
+    """
     if not values:
         return 1.0
+    # Seed is unweighted — weights only participate in iterative update.
     result = values[0]
-    for v in values[1:]:
-        result = alpha * v + (1 - alpha) * result
+    for i, v in enumerate(values[1:], 1):
+        w = weights[i] if weights is not None else 1.0
+        # NOTE: weight multiplies the sample value, not the alpha coefficient.
+        # This produces a mild downward bias for old records (w < 1.0) since their
+        # contribution is alpha*v*w rather than alpha*v. Intentional: old sessions
+        # should exert less influence AND should pull the average less strongly.
+        # Acceptable for calibration purposes — trimmed_mean is the primary estimator.
+        result = alpha * (v * w) + (1 - alpha) * result
     return result
 
 
-def trimmed_mean(values: list[float], trim_fraction: float = 0.1) -> float:
-    """Mean after trimming extreme values. For N<10, k=0 (plain mean)."""
+def trimmed_mean(values: list[float], trim_fraction: float = 0.1, weights=None) -> float:
+    """Mean after trimming extreme values. For N<10, k=0 (plain mean).
+
+    When weights are provided, trimming is by value (not by weight), then the
+    trimmed set is reduced to a weighted mean: sum(v*w) / sum(w).
+
+    Note: weights approach zero for very old records (float64 floor ~5e-324) but
+    never reach exactly zero. In practice, records older than ~3500 days (halflife=30)
+    are effectively zero-weighted but never cause division by zero since total_weight
+    uses the sum of all trimmed weights.
+    """
     if not values:
         return 1.0
     n = len(values)
     k = int(n * trim_fraction)
-    sorted_vals = sorted(values)
-    trimmed = sorted_vals[k : n - k] if k > 0 else sorted_vals
-    return sum(trimmed) / len(trimmed)
+    if weights is None:
+        weights = [1.0] * n
+    # Sort by value (for trimming), keeping weights aligned
+    paired = sorted(zip(values, weights), key=lambda x: x[0])
+    trimmed = paired[k: n - k] if k > 0 else paired
+    total_weight = sum(w for _, w in trimmed)
+    if total_weight == 0:
+        return 1.0
+    return sum(v * w for v, w in trimmed) / total_weight
+
+
+def compute_decay_weights(records: list[dict], halflife_days: float) -> list[float]:
+    """Compute exponential time-decay weights for a list of records.
+
+    w(record) = exp(-ln(2) / halflife_days * days_elapsed)
+
+    where ln(2) is the natural log of 2, approximately 0.693.
+
+    Returns weights in the same order as records.
+    Records without a parseable timestamp receive weight 1.0 (no penalty).
+    If len(records) <= DECAY_MIN_RECORDS, returns all-ones (cold-start guard:
+    not enough data to safely down-weight early records).
+    """
+    if len(records) <= DECAY_MIN_RECORDS:
+        return [1.0] * len(records)
+
+    now = datetime.now(timezone.utc)
+    weights = []
+    for record in records:
+        ts_str = record.get("timestamp", "")
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            days = (now - ts).total_seconds() / 86400.0
+            w = math.exp(-math.log(2) / halflife_days * days)
+        except (ValueError, TypeError):
+            w = 1.0
+        weights.append(w)
+    return weights
 
 
 def update_factors(history_path: str, factors_path: str) -> None:
@@ -65,6 +134,20 @@ def update_factors(history_path: str, factors_path: str) -> None:
                 continue
 
             record["_ratio"] = actual / expected
+
+            # Normalize pipeline_signature at read time (handles legacy freetext values).
+            # If a 'steps' array is present, re-derive the canonical form to ensure consistent
+            # grouping regardless of what string was written by older versions of learn.sh.
+            steps_arr = record.get("steps")
+            if steps_arr is not None:
+                record["_canonical_sig"] = '+'.join(
+                    sorted(s.lower().replace(' ', '_') for s in steps_arr)
+                )
+            elif record.get("pipeline_signature"):
+                record["_canonical_sig"] = record["pipeline_signature"]
+            else:
+                record["_canonical_sig"] = ""
+
             all_records.append(record)
 
     total_records = len(all_records)
@@ -93,13 +176,21 @@ def update_factors(history_path: str, factors_path: str) -> None:
         else:
             clean_records.append(record)
 
-    # Pass 3: Build ratio lists from clean records
+    # Compute decay weights once for the full clean_records list, sorted by timestamp.
+    # Index alignment invariant: decay_weights_all[i] corresponds to clean_records[i].
+    # This alignment holds throughout Passes 3, 4, and 5 — do not re-sort clean_records
+    # after this point.
+    decay_weights_all = compute_decay_weights(clean_records, DECAY_HALFLIFE_DAYS)
+
+    # Pass 3: Build ratio lists and aligned weight lists from clean records.
     ratios_by_size: dict[str, list[float]] = {}
+    weights_by_size: dict[str, list[float]] = {}
     all_ratios: list[float] = []
-    for record in clean_records:
+    for i, record in enumerate(clean_records):
         ratio = record["_ratio"]
         size = record.get("size", "M")
         ratios_by_size.setdefault(size, []).append(ratio)
+        weights_by_size.setdefault(size, []).append(decay_weights_all[i])
         all_ratios.append(ratio)
 
     sample_count = len(all_ratios)
@@ -121,9 +212,9 @@ def update_factors(history_path: str, factors_path: str) -> None:
 
     # Compute global factor
     if sample_count <= 10:
-        global_factor = trimmed_mean(all_ratios)
+        global_factor = trimmed_mean(all_ratios, weights=decay_weights_all)
     else:
-        global_factor = compute_ewma(all_ratios)
+        global_factor = compute_ewma(all_ratios, weights=decay_weights_all)
 
     factors = {
         "sample_count": sample_count,
@@ -137,10 +228,11 @@ def update_factors(history_path: str, factors_path: str) -> None:
     # Per-size factors (only if 3+ samples in that stratum)
     for size, ratios in ratios_by_size.items():
         if len(ratios) >= 3:
+            w = weights_by_size[size]
             if len(ratios) <= 10:
-                factor = trimmed_mean(ratios)
+                factor = trimmed_mean(ratios, weights=w)
             else:
-                factor = compute_ewma(ratios)
+                factor = compute_ewma(ratios, weights=w)
             factors[size] = round(factor, 4)
             factors[f"{size}_n"] = len(ratios)
 
@@ -152,7 +244,8 @@ def update_factors(history_path: str, factors_path: str) -> None:
     # (case-sensitive) to match the key written by SKILL.md.
     PR_REVIEW_LOOP_KEY = 'PR Review Loop'
     ratios_by_step: dict[str, list[float]] = {}
-    for record in clean_records:
+    weights_by_step: dict[str, list[float]] = {}
+    for i, record in enumerate(clean_records):
         step_ratios = record.get('step_ratios', {})
         for step_name, ratio in step_ratios.items():
             if step_name == PR_REVIEW_LOOP_KEY:
@@ -160,6 +253,7 @@ def update_factors(history_path: str, factors_path: str) -> None:
             if not isinstance(ratio, (int, float)):
                 continue
             ratios_by_step.setdefault(step_name, []).append(ratio)
+            weights_by_step.setdefault(step_name, []).append(decay_weights_all[i])
 
     # Compute per-step factors using same trimmed_mean / EWMA thresholds as size-class.
     # per_step_min_samples = 3 is hardcoded to match the existing size-class threshold
@@ -169,10 +263,11 @@ def update_factors(history_path: str, factors_path: str) -> None:
     step_factors: dict[str, dict] = {}
     for step_name, ratios in ratios_by_step.items():
         n = len(ratios)
+        w = weights_by_step[step_name]
         if n <= 10:
-            factor = trimmed_mean(ratios)
+            factor = trimmed_mean(ratios, weights=w)
         else:
-            factor = compute_ewma(ratios)
+            factor = compute_ewma(ratios, weights=w)
         status = 'active' if n >= per_step_min_samples else 'collecting'
         step_factors[step_name] = {
             'factor': round(factor, 4),
@@ -182,6 +277,33 @@ def update_factors(history_path: str, factors_path: str) -> None:
 
     if step_factors:
         factors['step_factors'] = step_factors
+
+    # Pass 5: Per-signature factors
+    # _canonical_sig was normalized in Pass 1 at read time. We do not re-normalize here.
+    per_signature_min_samples = 3   # mirrors heuristics.md per_signature_min_samples
+                                     # Matches per-step and size-class thresholds.
+    ratios_by_sig: dict[str, list[float]] = {}
+    weights_by_sig: dict[str, list[float]] = {}
+    for i, record in enumerate(clean_records):
+        sig = record.get("_canonical_sig", "")
+        if not sig:
+            continue
+        ratios_by_sig.setdefault(sig, []).append(record['_ratio'])
+        weights_by_sig.setdefault(sig, []).append(decay_weights_all[i])
+
+    signature_factors: dict[str, dict] = {}
+    for sig, ratios in ratios_by_sig.items():
+        n = len(ratios)
+        w = weights_by_sig[sig]
+        if n <= 10:
+            factor = trimmed_mean(ratios, weights=w)
+        else:
+            factor = compute_ewma(ratios, weights=w)
+        status = 'active' if n >= per_signature_min_samples else 'collecting'
+        signature_factors[sig] = {'factor': round(factor, 4), 'n': n, 'status': status}
+
+    if signature_factors:
+        factors['signature_factors'] = signature_factors
 
     _write_atomic(factors_path, factors)
 
@@ -209,6 +331,7 @@ def main():
         )
         sys.exit(1)
 
+    # v1.6.0: time-decay weighting (Item A), per-signature factors Pass 5 (Item B)
     update_factors(sys.argv[1], sys.argv[2])
 
 

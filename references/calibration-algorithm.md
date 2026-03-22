@@ -85,11 +85,13 @@ accumulate lower factors, and vice versa.
 This cross-contamination is a known limitation. Per-step factors will not converge
 to truly isolated per-step accuracy until step-level JSONL tagging is available.
 
-**Factor precedence (Step 3e):**
+**Factor precedence (Step 3e, v1.5.0 — superseded by v1.6.0 5-level chain):**
   1. Per-step factor (status "active") — most specific; overrides size-class and global
-  2. Size-class factor (`factors["{size}_n"] >= 3` samples in size stratum)
+  2. Size-class factor (`factors["{size}_n"]` >= 3 samples in size stratum)
   3. Global factor (status "active")
   4. No calibration — factor = 1.0
+
+See Phase 5 below for the v1.6.0 updated chain (per-signature inserted at level 2).
 
 **PR Review Loop exclusion:** The PR Review Loop is a composite row with its own
 calibration path (per-band independent factors in Step 3.5). It is stored in
@@ -100,6 +102,56 @@ Exclusion is by exact string match on the key "PR Review Loop" (case-sensitive).
 Renaming a step in heuristics.md resets its calibration history — the old step name's
 accumulated data becomes orphaned (still present in history records but no longer
 matched). Consider this cost before renaming any canonical pipeline step name.
+
+### Phase 5: Per-Signature Factors (3+ records for a given pipeline signature)
+
+Per-signature factors group records by their canonical `pipeline_signature` field.
+At read time in Pass 1 of `update-factors.py`, if a record has a `steps` array, the
+canonical form is re-derived as `'+'.join(sorted(s.lower().replace(' ', '_') for s in steps))`.
+If no `steps` array exists (pre-v1.1 records), the raw `pipeline_signature` value is used.
+
+Same trimmed_mean / EWMA algorithm as size-class and per-step factors.
+Minimum samples before activation: 3 (per_signature_min_samples in heuristics.md).
+
+Signature factors capture systematic accuracy differences between pipeline shapes.
+A full planning pipeline (architect + engineer + review) tends to have different
+estimation accuracy than an implement-only run.
+
+**Factor precedence (Step 3e, updated in v1.6.0):**
+  1. Per-step factor (status "active") — most specific
+  2. Per-signature factor (status "active") — NEW in v1.6.0
+  3. Size-class factor (`factors["{size}_n"]` >= 3 samples)
+  4. Global factor (status "active")
+  5. No calibration — factor = 1.0
+
+### Time-Based Decay (applied in Passes 3–5)
+
+Exponential time-decay weights down-weight stale records before aggregation.
+Records are never deleted; weight approaches zero asymptotically.
+
+```
+w(record) = exp(-ln(2) / halflife_days * days_elapsed)
+```
+
+where `ln(2)` is the natural log of 2, approximately 0.693.
+
+`halflife_days = 30` (tunable in references/heuristics.md).
+
+**Cold-start guard:** Decay is not applied to strata with 5 or fewer records.
+This prevents the pathological case where early records are down-weighted before
+the system has enough data to be selective.
+`DECAY_MIN_RECORDS = 5` is a statistical invariant hardcoded in `update-factors.py`.
+It is intentionally NOT documented in heuristics.md because it is not user-tunable —
+changing it has convergence implications that go beyond simple threshold adjustment.
+
+**Integration with aggregation algorithms:**
+- Trimmed mean: weights applied after trimming (weighted mean of remaining values).
+- EWMA: weight multiplies the sample value before the EWMA update (`alpha * (v * w) + (1-alpha) * prev`).
+  The EWMA seed (first value) is NOT multiplied by its weight — weights participate only in
+  iterative updates. This prevents the seed from being artificially deflated when the oldest
+  record is stale.
+
+Decay applies identically to all strata: global, size-class, per-step, per-signature.
 
 ## Actual Cost Computation
 
@@ -202,6 +254,26 @@ Example `step_factors` entry in factors.json:
 "step_factors": {
   "Research Agent": {"factor": 0.82, "n": 5, "status": "active"},
   "Implementation": {"factor": 1.0, "n": 2, "status": "collecting"}
+}
+```
+
+- `signature_factors`: per-signature correction factors added in v1.6.0. Same structure as
+  `step_factors`. Absent when no signature data has been recorded or all signatures are in
+  "collecting" status. Read with `.get('signature_factors', {})` default.
+
+Example `signature_factors` entry:
+```json
+"signature_factors": {
+  "architect_agent+engineer_final_plan+implementation+research_agent": {
+    "factor": 1.15,
+    "n": 4,
+    "status": "active"
+  },
+  "implementation+test_writing": {
+    "factor": 0.92,
+    "n": 2,
+    "status": "collecting"
+  }
 }
 ```
 

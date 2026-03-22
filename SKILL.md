@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.5.0
+version: 1.6.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -210,26 +210,40 @@ step_cost   = (input_cost + output_cost) × band_mult
 
 **3e. Apply calibration factor (Expected band only)**
 
-Read `step_factors` from `calibration/factors.json` if it exists (default: {}).
+Read `step_factors` and `signature_factors` from `calibration/factors.json` if it
+exists (default: {} for both).
 Read size-class and global factors as before.
+
+Derive the pipeline_signature for the current estimate inline from the `steps` array
+(the same array written to `active-estimate.json`):
+```
+pipeline_signature = '+'.join(sorted(s.lower().replace(' ', '_') for s in steps))
+```
+This is the same formula used by `tokencostscope-learn.sh` line 38 to produce the
+`pipeline_signature` field in history records. Note: `pipeline_signature` is NOT
+stored in `active-estimate.json` (learn.sh recomputes it). Compute it inline here.
 
 For each step, determine the factor and its source using this precedence chain:
   1. Per-step: if `step_factors[step_name]` exists and `step_factors[step_name]["status"] == "active"` → use
      `step_factors[step_name]["factor"]`, source = "S"
-  2. Size-class: if `factors[size]` exists and `factors["{size}_n"]` (e.g.,
+  2. Per-signature: if `signature_factors[pipeline_signature]` exists and its "status" == "active" → use
+     `signature_factors[pipeline_signature]["factor"]`, source = "P"
+  3. Size-class: if `factors[size]` exists and `factors["{size}_n"]` (e.g.,
      `factors["M_n"]`) >= 3 → use `factors[size]`, source = "Z"
-  3. Global: if `factors["global"]` exists and `factors["status"] == "active"` → use
+  4. Global: if `factors["global"]` exists and `factors["status"] == "active"` → use
      `factors["global"]`, source = "G"
-  4. No calibration: factor = 1.0, source = "--"
+  5. No calibration: factor = 1.0, source = "--"
 
 Step factor precedence rules — edge cases:
-- If a step has both a per-step factor (active) and a size-class factor, the per-step
+- If a step has both a per-step factor (active) and a signature factor, the per-step
   factor wins. Cal column shows "S:x.xx".
+- If a step has a per-signature factor but the signature has status "collecting"
+  (n < per_signature_min_samples=3), it is NOT applied; fall through to size-class
+  or global. Cal shows "Z:x.xx", "G:x.xx", or "--" per the remaining chain.
 - If a step's per-step factor has status "collecting" (n < per_step_min_samples=3),
-  it is NOT applied; fall through to size-class or global. Cal shows "Z:x.xx",
-  "G:x.xx", or "--" per the remaining chain.
+  it is NOT applied; fall through to per-signature, size-class, or global.
 - The PR Review Loop row uses the PR Review Loop's own calibration path (Step 3.5).
-  Its Cal column always shows "--"; it is not subject to per-step factor lookup.
+  Its Cal column always shows "--"; it is not subject to per-step or per-signature lookup.
 
 Apply calibration:
 ```
@@ -239,7 +253,7 @@ calibrated_pessimistic = calibrated_expected × 3.0
 ```
 Record the factor source per step for use in the output Cal column.
 
-Note: Per-step factors REPLACE (do not stack with) size-class and global factors.
+Note: Factors REPLACE (do not stack with) lower-precedence factors.
 
 ## Step 3.5 — PR Review Loop Row (post-step-loop computation, default constituents)
 
@@ -369,7 +383,7 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
 ## Output Template
 
 ```
-## costscope estimate (v1.5.0)
+## costscope estimate (v1.6.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Files:** {files} total ({files_measured} measured: {small_count} small, {medium_count} medium, {large_count} large; {files_defaulted} defaulted to {override_bracket or "medium"})
@@ -386,7 +400,12 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
             (d) "3 steps with per-step factors"  (e) "no prior data — will learn after this session"
             (f) "2 steps with per-step factors | global 1.12x (10 runs)"
             (g) "2 steps with per-step factors | size-class M=1.18x (7 runs)"
-            (h) "size-class M=1.18x (7 runs) | global 1.12x (10 runs)"}
+            (h) "size-class M=1.18x (7 runs) | global 1.12x (10 runs)"
+            (i) "sig: arch+eng+impl=1.15x (4 runs)" (per-signature factor active, no per-step or size-class)
+            (j) "3 steps with per-step factors | sig: arch+eng+impl=1.15x (4 runs)"
+  Signature segment: when any signature_factors entry has status "active", append
+  "sig: {signature}={factor}x ({n} runs)" for each active entry.
+  If no signature factors are active, omit the sig segment entirely.}
 {WARNING line if pricing stale}
 
 | Step                  | Model       | Cal    | Optimistic | Expected | Pessimistic |
@@ -397,13 +416,14 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
 | [sequential steps]    | ...         | --     | ...        | ...      | ...         |
 | PR Review Loop        | Opus+Sonnet | --     | $X.XX      | $X.XX    | $X.XX       |
 | **TOTAL**             |             |        | **$X.XX**  | **$X.XX**| **$X.XX**   |
-Cal: S=per-step  Z=size-class  G=global  --=uncalibrated
+Cal: S=per-step  P=per-signature  Z=size-class  G=global  --=uncalibrated
 
-**Cal column values:** S:x.xx = per-step factor applied · Z:x.xx = size-class factor · G:x.xx = global factor · -- = no calibration active (factor=1.0) or PR Review Loop row
+**Cal column values:** S:x.xx = per-step factor applied · P:x.xx = per-signature factor (new in v1.6.0) · Z:x.xx = size-class factor · G:x.xx = global factor · -- = no calibration active (factor=1.0) or PR Review Loop row
 **Cal column edge cases:**
-- Step has active per-step AND size-class factor → per-step wins, show "S:x.xx"
-- Step has active per-step AND global factor → per-step wins, show "S:x.xx"
-- Step's per-step factor has status "collecting" (n < 3) → not applied; fall through to size-class → show "Z:x.xx" if active, else "G:x.xx" if active, else "--"
+- Step has active per-step AND signature/size-class/global factor → per-step wins, show "S:x.xx"
+- Step has active per-signature factor (status "active") → show "P:x.xx" (only when no per-step factor)
+- Step has per-signature factor with status "collecting" (n < 3) → not applied; fall through to size-class or global
+- Step's per-step factor has status "collecting" (n < 3) → not applied; fall through to per-signature → size-class → global
 - PR Review Loop row → always "--" regardless of any factors in factors.json
 **Parallel groups (when detected):** Group 1 (step names...) — modeled with 0.75× input accumulation, −0.15 cache rate
 **Bands:** Optimistic (1 review cycle) · Expected (N cycles) · Pessimistic (N×2 cycles)

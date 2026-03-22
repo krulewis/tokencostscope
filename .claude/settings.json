@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-track.sh'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-midcheck.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}

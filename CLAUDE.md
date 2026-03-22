@@ -5,7 +5,7 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 ## Repo
 
 - GitHub: `krulewis/tokencostscope`
-- Current version: 1.5.0
+- Current version: 1.6.0
 
 ## Key Files
 
@@ -17,6 +17,7 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 | `references/calibration-algorithm.md` | Calibration algorithm documentation |
 | `references/examples.md` | Worked estimation examples |
 | `scripts/tokencostscope-learn.sh` | Stop hook — reads session JSONL at end of session, computes actuals, calls update-factors.py |
+| `scripts/tokencostscope-midcheck.sh` | PreToolUse hook for mid-session cost warnings — checks spend vs pessimistic estimate |
 | `scripts/update-factors.py` | Computes and persists calibration factors from completed session data |
 | `scripts/sum-session-tokens.py` | Parses session JSONL to sum token costs |
 | `calibration/` | Calibration data directory — gitignored; contains `active-estimate.json` and `factors.json` |
@@ -43,8 +44,12 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 
 ## Architecture Conventions
 
-- **All tunable parameters live in `references/heuristics.md`** — not hardcoded in SKILL.md. This includes complexity multipliers, band multipliers, parallel discount factors, cache rate floors, and review cycle defaults.
-- **Shell injection safety** — `learn.sh` uses `shlex.quote()` and env vars pattern to pass data to Python. Never interpolate user-derived strings directly into shell commands.
+- **All tunable parameters live in `references/heuristics.md`** — not hardcoded in SKILL.md. This includes complexity multipliers, band multipliers, parallel discount factors, cache rate floors, review cycle defaults, decay halflife, per-signature min samples, and midcheck parameters.
+- **Time-decay constants:** `DECAY_HALFLIFE_DAYS = 30` in `update-factors.py` mirrors `decay_halflife_days` in `references/heuristics.md`. `DECAY_MIN_RECORDS = 5` (cold-start guard) is hardcoded in `update-factors.py` and intentionally NOT in heuristics.md — it is a statistical invariant, not user-tunable.
+- **Per-signature factors:** Pass 5 of `update-factors.py` computes per-signature factors from signature-normalized step arrays. Signatures are derived at Pass 1 read time and stored as a private `_canonical_sig` field. In `factors.json`, they live under `signature_factors` and are read with `.get('signature_factors', {})` default for backward compatibility.
+- **Mid-session check:** `tokencostscope-midcheck.sh` is a PreToolUse hook. It reads `active-estimate.json` and the session JSONL to compute actual spend, then writes state to `calibration/.midcheck-state` (ephemeral, gitignored). Hook is fail-silent via `set -euo pipefail` + `|| exit 0` — failures do not interrupt your work. State file format: two lines — last-checked byte size and cooldown sentinel (`0` or `COOLDOWN:<size>`).
+- **Pipeline signature derivation:** Not written to `active-estimate.json`. SKILL.md Step 3e derives it inline from the `steps` array using the same normalization formula as `learn.sh` line 38.
+- **Shell injection safety** — `learn.sh` and `midcheck.sh` use `shlex.quote()` and env vars pattern to pass data to Python. Never interpolate user-derived strings directly into shell commands.
 - **`active-estimate.json` is the handshake** between estimation (SKILL.md writes it at estimate time) and learning (learn.sh reads it at session end). Schema changes must be backward compatible.
 - **Backward compatibility** — new fields in `active-estimate.json` and `factors.json` schemas use `.get()` defaults in Python so old files don't break newer scripts.
 - **File size brackets** — when file paths are extractable from the plan and files exist on disk, tokencostscope auto-measures via batched `wc -l` (cap: 30 files). Three brackets: small (≤49 lines) = 3k/1k tokens (read/edit), medium (50–500) = 10k/2.5k, large (≥501) = 20k/5k. Fixed-count file reads in all steps use the weighted-average bracket. Override: `avg_file_lines=N`. Unmeasured files fall back to override bracket or medium default.

@@ -37,20 +37,34 @@ Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/token
 - Bracketed `┌│└` output table for parallel groups
 - `parallel_groups` + `parallel_steps_detected` captured in calibration history
 
+### v1.4
+- Per-step correction factors — after 3+ sessions per step, `S:x` Cal column indicators activate
+- Step-level cost tracking in calibration history
+- 4-level precedence chain (per-step → size-class → global)
+
+### v1.5
+- **File size awareness** — auto-measure file line counts, three brackets (small/medium/large)
+- Cache write modeling in price formula (three-term input cost)
+- `avg_file_lines=` override for greenfield projects
+- `file_brackets` field in calibration history
+
+### v1.6
+- **Time-decay calibration** — records older than 30 days have reduced influence (never deleted)
+- Cold-start guard: decay only applies with 5+ records per stratum
+- **Per-signature correction factors** — after 3+ runs of the same pipeline signature, `P:x` Cal column activates
+- 5-level precedence chain (per-step → per-signature → size-class → global)
+- **Mid-session cost tracking** — PreToolUse hook warns when spend approaches 80% of pessimistic estimate
+- Sampling gate (~50KB) and cooldown (~200KB) to avoid verbosity
+
 ---
 
 ## Planned
 
-### v1.3 (remaining)
-- Per-step correction factors (tag sessions by pipeline step name)
-- File size awareness (adjust token budgets by actual file size)
-- Cache write modeling in estimates
-- Decay on stale calibration data (>30 days)
-- Per-pipeline-signature calibration
+### v1.7
+- Item D deferred from v1.6 — per-agent step actuals breakdown (requires JSONL-level step tagging by agent frameworks)
 
 ### v2.0 — Observability
-- Mid-session cost tracking (warn if trending toward pessimistic band)
-- Per-agent step actuals breakdown
+- Per-agent step actuals breakdown (when frameworks support step-level JSONL tagging)
 - Cache efficiency score per session
 - `/tokencostscope status` command
 
