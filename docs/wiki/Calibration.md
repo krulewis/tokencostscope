@@ -54,7 +54,7 @@ This captures cost profiles unique to your workflow. For example:
 - An organization that always runs "Research → Architecture → Engineering → QA → Review" might have consistent overestimation in the research phase
 - A signature-level factor corrects for this without affecting global or per-step factors
 
-Per-signature factors are computed in **Pass 5** of `update-factors.py` and stored in `factors.json` under `signature_factors`. They are the highest-priority factors in the 5-level precedence chain (above per-step and size-class factors).
+Per-signature factors are computed in **Pass 5** of `update-factors.py` and stored in `factors.json` under `signature_factors`. In the 5-level precedence chain, per-step factors take precedence over per-signature — a per-step factor (labeled `S:x`) overrides a per-signature factor (`P:x`) for the same step when both are active.
 
 ---
 
@@ -74,10 +74,6 @@ All calibration data lives in `calibration/` (gitignored — local to each user)
 | `factors.json` | Learned correction factors: global, size-class (`M`, `L`, etc.), per-step (`step_factors`), and per-signature (`signature_factors`). |
 | `active-estimate.json` | Transient marker written when an estimate is produced; read by learn.sh at session end, then deleted. |
 | `.midcheck-state` | Ephemeral state file written by the PreToolUse hook during a session. Tracks last checked byte size and cooldown sentinel. Not part of calibration history. |
-
----
-
-## Sharing Calibration
 
 ---
 
@@ -108,7 +104,7 @@ After several sessions, `factors.json` contains learned factors at multiple leve
 }
 ```
 
-The factor selection order is: per-signature → per-step → size-class → global. When a signature has 3+ runs, its `P:x` factor activates and takes precedence in the output table.
+The factor selection order is: per-step → per-signature → size-class → global. When a step has 3+ runs, its `S:x` per-step factor takes precedence. When a pipeline signature has 3+ runs but the step lacks a per-step factor, the `P:x` signature factor is used instead.
 
 ---
 

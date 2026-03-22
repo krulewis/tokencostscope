@@ -66,6 +66,9 @@ except Exception:
 # Fall back to finding the most recent JSONL if stdin is absent or invalid.
 # (finding 3: timeout 1 cat prevents blocking on empty/slow stdin)
 # (finding 4: STDIN_JSON passed via env var, not sys.argv, to avoid shell injection)
+# NOTE: `timeout` is not available on macOS by default. When absent, this falls
+# through the `|| true` branch silently, leaving STDIN_JSON empty. The fallback
+# `find $HOME/.claude/projects/` path below handles JSONL discovery in that case.
 STDIN_JSON=$(timeout 1 cat 2>/dev/null || true)
 JSONL_PATH=$(STDIN_ENV="$STDIN_JSON" python3 -c "
 import os, json, sys
@@ -113,6 +116,8 @@ fi
 
 LAST_SIZE=$(sed -n '1p' "$STATE_FILE" 2>/dev/null || echo "0")
 COOLDOWN_VAL=$(sed -n '2p' "$STATE_FILE" 2>/dev/null || echo "0")
+# Guard: ensure LAST_SIZE is numeric (state file may be corrupted or partially written)
+[[ "$LAST_SIZE" =~ ^[0-9]+$ ]] || LAST_SIZE=0
 
 # Check cooldown
 if [[ "$COOLDOWN_VAL" =~ ^COOLDOWN:([0-9]+)$ ]]; then
@@ -135,14 +140,15 @@ printf '%s\n%s\n' "$CURRENT_SIZE" "0" > "$STATE_FILE" 2>/dev/null || true
 # ---- Compute actual cost ----
 RESULT=$(python3 "$SCRIPT_DIR/sum-session-tokens.py" "$JSONL_PATH" "$BASELINE" 2>/dev/null) || exit 0
 
-ACTUAL=$(python3 -c "
-import json, sys
+# (env-var pattern: avoids shell metacharacter issues with JSON blob as argv)
+ACTUAL=$(RESULT_JSON="$RESULT" python3 -c "
+import json, os, sys
 try:
-    d = json.loads(sys.argv[1])
+    d = json.loads(os.environ['RESULT_JSON'])
     print(d.get('actual_cost', 0))
 except Exception:
     sys.exit(1)
-" "$RESULT" 2>/dev/null) || exit 0
+" 2>/dev/null) || exit 0
 
 # ---- Compare to threshold ----
 WARN=$(python3 -c "
@@ -166,16 +172,16 @@ PESS_FMT=$(echo "$WARN" | cut -d: -f3)
 
 MSG="COST WARNING: Session spend is \$$ACTUAL_FMT, which is $PCT of the pessimistic estimate (\$$PESS_FMT). Consider wrapping up or re-estimating."
 
-python3 -c "
-import json, sys
-msg = sys.argv[1]
+# (env-var pattern: MSG may contain quotes or newlines that would break argv)
+MSG_ENV="$MSG" python3 -c "
+import json, os
+msg = os.environ['MSG_ENV']
 print(json.dumps({
     'hookSpecificOutput': {
         'hookEventName': 'PreToolUse',
         'additionalContext': msg
     }
-}))
-" "$MSG"
+}))"
 
 # ---- Set cooldown to suppress further warnings for ~200KB ----
 COOLDOWN_TARGET=$(( CURRENT_SIZE + MIDCHECK_COOLDOWN_BYTES ))

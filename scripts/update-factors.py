@@ -48,6 +48,11 @@ def compute_ewma(values: list[float], alpha: float = 0.15, weights=None) -> floa
     result = values[0]
     for i, v in enumerate(values[1:], 1):
         w = weights[i] if weights is not None else 1.0
+        # NOTE: weight multiplies the sample value, not the alpha coefficient.
+        # This produces a mild downward bias for old records (w < 1.0) since their
+        # contribution is alpha*v*w rather than alpha*v. Intentional: old sessions
+        # should exert less influence AND should pull the average less strongly.
+        # Acceptable for calibration purposes — trimmed_mean is the primary estimator.
         result = alpha * (v * w) + (1 - alpha) * result
     return result
 

@@ -118,10 +118,10 @@ Applies a 5-level precedence chain to select the calibration factor:
 # Per-step: factors["step_factors"][step_name]["status"] == "active" and n >= 3
 # Size-class: factors[size] exists and factors["{size}_n"] >= 3 (e.g. factors["M_n"])
 # Global: factors["global"] exists and factors["status"] == "active"
-if signature in factors["signature_factors"] and factors["signature_factors"][signature]["status"] == "active":
-  factor = factors["signature_factors"][signature]["factor"]   (Cal: P:x)
-elif step_name in factors["step_factors"] and factors["step_factors"][step_name]["status"] == "active":
+if step_name in factors["step_factors"] and factors["step_factors"][step_name]["status"] == "active":
   factor = factors["step_factors"][step_name]["factor"]        (Cal: S:x)
+elif signature in factors["signature_factors"] and factors["signature_factors"][signature]["status"] == "active":
+  factor = factors["signature_factors"][signature]["factor"]   (Cal: P:x)
 elif factors[size] exists and factors["{size}_n"] >= 3:
   factor = factors[size]                                       (Cal: Z:x)
 elif factors["global"] exists and factors["status"] == "active":
