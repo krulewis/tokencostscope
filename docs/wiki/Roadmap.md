@@ -52,7 +52,7 @@ Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/token
 - **Time-decay calibration** — records older than 30 days have reduced influence (never deleted)
 - Cold-start guard: decay only applies with 5+ records per stratum
 - **Per-signature correction factors** — after 3+ runs of the same pipeline signature, `P:x` Cal column activates
-- 5-level precedence chain (per-signature → per-step → size-class → global)
+- 5-level precedence chain (per-step → per-signature → size-class → global)
 - **Mid-session cost tracking** — PreToolUse hook warns when spend approaches 80% of pessimistic estimate
 - Sampling gate (~50KB) and cooldown (~200KB) to avoid verbosity
 

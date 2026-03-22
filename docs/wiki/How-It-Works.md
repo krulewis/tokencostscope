@@ -134,16 +134,16 @@ calibrated_optimistic  = calibrated_expected × 0.6
 calibrated_pessimistic = calibrated_expected × 3.0
 ```
 
-**Calibration source (Cal column in output table):**
-- `P:0.79` — per-signature factor applied (3+ runs of the same pipeline signature)
+**Calibration source (Cal column in output table, listed in precedence order):**
 - `S:0.82` — per-step factor applied (3+ sessions recorded for this specific step)
+- `P:0.79` — per-signature factor applied (3+ runs of the same pipeline signature; only when no per-step factor is active)
 - `Z:0.88` — size-class factor applied (3+ sessions in this size class)
 - `G:0.95` — global factor applied (3+ sessions total, but step not yet calibrated)
 - `--` — uncalibrated (no factors available; factor = 1.0)
 
 ### Per-Signature Calibration
 
-A pipeline signature is a normalized hash of the steps array in the estimate. After 3+ runs of the same signature (e.g., "Planning → Implementation → Review" repeated 3+ times), a per-signature calibration factor activates in the `factors.json` under `signature_factors`. This factor appears in the Cal column as `P:x` and applies before per-step or size-class factors.
+A pipeline signature is a normalized hash of the steps array in the estimate. After 3+ runs of the same signature (e.g., "Planning → Implementation → Review" repeated 3+ times), a per-signature calibration factor activates in the `factors.json` under `signature_factors`. This factor appears in the Cal column as `P:x` and applies after per-step but before size-class factors in the 5-level precedence chain.
 
 Per-signature factors are learned via a dedicated Pass 5 in the calibration algorithm, capturing cost profiles unique to a workflow type. For example, some orgs may consistently over-estimate planning phases while under-estimating QA, resulting in a signature-level correction distinct from global or per-step factors.
 
@@ -171,8 +171,6 @@ Sums all step costs per band, renders the table, and writes `calibration/active-
 | Optimistic  | 60%           | 0.6×       | Best case — focused, cache-warm agent work |
 | Expected    | 50%           | 1.0×       | Typical run |
 | Pessimistic | 30%           | 3.0×       | With rework loops, debugging, retries |
-
----
 
 ---
 
