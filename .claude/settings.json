@@ -19,6 +19,15 @@
             "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-track.sh'"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -27,6 +36,15 @@
           {
             "type": "command",
             "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-midcheck.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'"
           }
         ]
       }

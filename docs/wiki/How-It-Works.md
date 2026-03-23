@@ -164,6 +164,36 @@ Sums all step costs per band, renders the table, and writes `calibration/active-
 
 ---
 
+## Per-Agent Step Cost Attribution (v1.7+)
+
+A PreToolUse/PostToolUse hook (`tokencostscope-agent-hook.sh`) writes a sidecar timeline JSONL during your session. This captures the start/stop of each agent span with token counts, allowing the learning hook to attribute actual costs to specific pipeline steps.
+
+At session end, `tokencostscope-learn.sh` reads the sidecar timeline and computes per-step actuals via FIFO span matching. History records now include `step_actuals: {step_name: float}` alongside proportional step-level attribution as a fallback.
+
+---
+
+## Calibration Health Dashboard (v2.0+)
+
+Invoke `/tokencostscope status` at any time to analyze your calibration health:
+
+```
+/tokencostscope status
+/tokencostscope status --window 30
+/tokencostscope status --window adaptive
+/tokencostscope status --verbose --json
+```
+
+The dashboard outputs five sections:
+1. **Health** — calibration readiness, record count, per-stratum status
+2. **Accuracy** — ratio distribution, bands hit (optimistic/expected/pessimistic), outlier count
+3. **Cost Attribution** — actual cost by step, top cost drivers
+4. **Outliers** — sessions with extreme actual/expected ratios, flagged for review
+5. **Recommendations** — tuning suggestions based on patterns
+
+See `Configuration` for tunable window and threshold parameters.
+
+---
+
 ## Confidence Bands
 
 | Band        | Cache Hit Rate | Multiplier | Meaning |

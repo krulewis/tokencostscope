@@ -10,10 +10,11 @@ At the end of every Claude Code session, the `Stop` hook automatically:
 
 1. Reads `calibration/active-estimate.json` (written when the estimate was produced)
 2. Finds the session's JSONL log (`~/.claude/projects/.../session.jsonl`)
-3. Parses actual token usage (minus baseline tokens spent before the estimate)
-4. Computes `ratio = actual_cost / expected_cost`
-5. Appends a record to `calibration/history.jsonl`
-6. Runs `update-factors.py` to recompute `calibration/factors.json`
+3. Finds the sidecar timeline (v1.7+, if agent-hook was enabled) for per-step cost attribution
+4. Parses actual token usage (minus baseline tokens spent before the estimate)
+5. Computes `ratio = actual_cost / expected_cost` and per-step actuals
+6. Appends a record to `calibration/history.jsonl` (includes `step_actuals: {step_name: float}`)
+7. Runs `update-factors.py` to recompute `calibration/factors.json`
 
 The next estimate automatically loads the updated factors.
 
@@ -70,10 +71,11 @@ All calibration data lives in `calibration/` (gitignored — local to each user)
 
 | File | Purpose |
 |------|---------|
-| `history.jsonl` | One record per completed session. Each record includes estimate, actual, ratio, size class, pipeline steps, project type, language, parallel groups, and step costs. |
+| `history.jsonl` | One record per completed session. Each record includes estimate, actual, ratio, size class, pipeline steps, project type, language, parallel groups, step costs, and per-step actuals (v1.7+). |
 | `factors.json` | Learned correction factors: global, size-class (`M`, `L`, etc.), per-step (`step_factors`), and per-signature (`signature_factors`). |
 | `active-estimate.json` | Transient marker written when an estimate is produced; read by learn.sh at session end, then deleted. |
 | `.midcheck-state` | Ephemeral state file written by the PreToolUse hook during a session. Tracks last checked byte size and cooldown sentinel. Not part of calibration history. |
+| `{hash}-timeline.jsonl` (v1.7+) | Sidecar file written by agent-hook.sh during the session. Records agent span start/stop with token counts. Cleaned up after learning completes. |
 
 ---
 
@@ -115,6 +117,25 @@ To share your calibration data with another machine or team member, copy the `ca
 ```bash
 python3 scripts/update-factors.py calibration/history.jsonl calibration/factors.json
 ```
+
+---
+
+## Calibration Health Dashboard (v2.0+)
+
+View a live analysis of your calibration health, cost attribution patterns, and recommendations:
+
+```bash
+/tokencostscope status
+```
+
+The dashboard reports:
+- **Health** — calibration phase, per-stratum activation status, record count
+- **Accuracy** — percentage of sessions hitting optimistic / expected / pessimistic bands, outlier ratio
+- **Cost Attribution** — top cost-driving steps (if sidecar data available), per-step accuracy
+- **Outliers** — sessions with extreme actual/expected ratios, flagged for manual review
+- **Recommendations** — tuning suggestions (e.g., if a step is systematically under-estimated)
+
+Window parameters: `--window 30` (days), `--window 10` (session count), `--window all` (entire history), `--window adaptive` (auto-select). Default is adaptive.
 
 ---
 

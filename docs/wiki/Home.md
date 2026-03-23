@@ -21,7 +21,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 After a plan is created, tokencostscope automatically outputs a cost table:
 
 ```
-## costscope estimate (v1.6.0)
+## costscope estimate (v2.0.0)
 
 Change: size=M, files=5, complexity=medium, type=greenfield, lang=python
 Steps: all (8 steps)
@@ -49,5 +49,7 @@ The **Cal** column shows the calibration source: `S:x` = per-step factor, `P:x` 
 Every session end, the learning hook reads the JSONL log, computes actual cost, and updates calibration factors. After 3+ sessions, estimates are corrected by a learned multiplier. After 10+ sessions, per-size-class EWMA factors kick in. After 3+ sessions per step, per-step correction factors activate. After 3+ runs of the same pipeline signature, per-signature factors activate — letting the skill distinguish between cost profiles for different workflows.
 
 Additionally, older calibration records are time-decay weighted (30-day halflife) to give recent sessions more influence. Mid-session cost tracking warns you if actual spend approaches the pessimistic estimate, sampled at ~50KB intervals.
+
+Per-agent step cost attribution (v1.7) tracks actual cost per pipeline step via a sidecar timeline. A live dashboard (`/tokencostscope status`) analyzes your calibration health, cost attribution, and outliers.
 
 No configuration required — it just learns.

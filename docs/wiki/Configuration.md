@@ -21,6 +21,14 @@ With overrides:
 /tokencostscope review_cycles=0
 ```
 
+View calibration health and cost attribution:
+
+```
+/tokencostscope status
+/tokencostscope status --window 30
+/tokencostscope status --verbose --json
+```
+
 ---
 
 ## Override Reference
@@ -181,3 +189,48 @@ Default pipeline steps and their assigned models:
 | PR Review Loop | Opus+Sonnet | Composite: Staff Review + Engineer Final Plan per cycle |
 
 Map your own pipeline step names to the closest defaults — the formulas are pipeline-agnostic.
+
+---
+
+## Agent Span Tracking (v1.7+)
+
+Per-agent step cost attribution requires registration of the agent-hook in `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "pre_tool_use": [
+      {
+        "matcher": {
+          "event_type": "agent_start"
+        },
+        "run": "bash scripts/tokencostscope-agent-hook.sh"
+      }
+    ],
+    "post_tool_use": [
+      {
+        "matcher": {
+          "event_type": "agent_stop"
+        },
+        "run": "bash scripts/tokencostscope-agent-hook.sh"
+      }
+    ]
+  }
+}
+```
+
+The hook is fail-silent — hook failures do not interrupt your work. A sidecar timeline file is written alongside `active-estimate.json` and automatically cleaned up after learning completes.
+
+---
+
+## Calibration Health Dashboard (v2.0+)
+
+**Status command parameters** (in `references/heuristics.md`):
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `status_default_window` | `adaptive` | Window mode: `30` (days), `10` (session count), `all` (entire history), `adaptive` (auto-select based on record count) |
+| `status_outlier_high` | 3.0 | Ratio threshold for high outlier flagging |
+| `status_outlier_low` | 0.2 | Ratio threshold for low outlier flagging |
+
+Invoke with `--window 30` to override the default window mode, `--verbose` for detailed breakdown, or `--json` for machine-readable output.

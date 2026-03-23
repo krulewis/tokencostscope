@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 1.6.0
+version: 2.0.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -22,6 +22,7 @@ This skill activates automatically when:
 - A planning agent returns an implementation plan, architecture decision, or final plan
 - The conversation contains a plan with steps, file lists, or size classification
 - The user explicitly invokes `/tokencostscope`
+- The user invokes `/tokencostscope status` → run the **Status Dashboard** mode (see below)
 
 Do NOT activate when:
 - No plan exists in the conversation yet
@@ -383,7 +384,7 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
 ## Output Template
 
 ```
-## costscope estimate (v1.6.0)
+## costscope estimate (v2.0.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Files:** {files} total ({files_measured} measured: {small_count} small, {medium_count} medium, {large_count} large; {files_defaulted} defaulted to {override_bracket or "medium"})
@@ -436,6 +437,37 @@ The "Opus+Sonnet" value in the Model column is an accepted composite value indic
 row spans two models (Staff Review on Opus, Engineer Final Plan on Sonnet). The PR Review
 Loop row is omitted when review_cycles=0. When the PR Review Loop row is absent, the Bands
 line reverts to: `Optimistic (best case) · Expected (typical) · Pessimistic (with rework)`
+
+## Status Dashboard Mode (`/tokencostscope status`)
+
+When the user invokes `/tokencostscope status`, run the status analysis script and render
+the results as a human-readable dashboard. This mode does **not** produce a cost estimate —
+it analyzes historical calibration data and reports on accuracy health.
+
+**Invocation:**
+```bash
+/usr/bin/python3 scripts/tokencostscope-status.py \
+    [--history calibration/history.jsonl] \
+    [--factors calibration/factors.json] \
+    [--heuristics references/heuristics.md] \
+    [--window SPEC] [--verbose] [--json]
+```
+
+**Window spec:** `"30d"` (last 30 days), `"10"` (last 10 sessions), `"all"` (all records),
+or omit for adaptive (last 30 days OR last 10 sessions, whichever is larger).
+
+**Output sections:**
+1. **Health** — calibration status (collecting/active), active factor level, session count
+2. **Accuracy** — mean/median ratio, trend (improving/stable/degrading), band hit rates
+3. **Cost Attribution** — per-step actual cost totals (requires v1.7 sidecar data)
+4. **Outliers** — sessions with ratio < 0.2 or > 3.0, with pattern detection
+5. **Recommendations** — actionable suggestions (review cycle default, band width, outlier rate, step dominance)
+
+**Sparse data:** If fewer than 3 clean (non-outlier, non-excluded) sessions exist, the script
+outputs a "not enough data yet" message with the clean session count. Use `--verbose` to
+bypass this gate and see raw data regardless.
+
+**JSON output:** Pass `--json` to get machine-readable output with `schema_version: 1`.
 
 ## Overrides (manual invocation only)
 

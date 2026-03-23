@@ -427,7 +427,7 @@ class TestDocumentContent:
         assert "file_brackets" in SKILL_MD.read_text()
 
     def test_skill_version_is_150(self):
-        assert "version: 1.6.0" in SKILL_MD.read_text()
+        assert "version: 2.0.0" in SKILL_MD.read_text()
 
     def test_skill_output_template_has_files_line(self):
         assert "**Files:**" in SKILL_MD.read_text()

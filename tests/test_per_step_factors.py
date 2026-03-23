@@ -583,11 +583,11 @@ class TestDocumentContent:
 
     def test_skill_md_version_v1_5_0(self):
         """SKILL.md frontmatter contains 'version: 1.6.0'."""
-        assert "version: 1.6.0" in SKILL_MD.read_text()
+        assert "version: 2.0.0" in SKILL_MD.read_text()
 
     def test_skill_md_output_template_v1_5_0(self):
         """SKILL.md output template header contains 'v1.6.0'."""
-        assert "v1.6.0" in SKILL_MD.read_text()
+        assert "v2.0.0" in SKILL_MD.read_text()
 
     def test_learn_sh_version_v1_5_0(self):
         """learn.sh VERSION variable is '1.6.0'."""
@@ -596,7 +596,7 @@ class TestDocumentContent:
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "1.6.0" in result.stdout
+        assert "2.0.0" in result.stdout
 
     def test_skill_md_step3e_documents_per_step_factor(self):
         """SKILL.md Step 3e documents 'step_factors' lookup."""
@@ -705,7 +705,7 @@ class TestDocumentContent:
 
     def test_claude_md_version_v1_5_0(self):
         """CLAUDE.md contains 'Current version: 1.6.0'."""
-        assert "Current version: 1.6.0" in CLAUDE_MD.read_text()
+        assert "Current version: 2.0.0" in CLAUDE_MD.read_text()
 
 
 # ---------------------------------------------------------------------------
