@@ -115,7 +115,7 @@ def load_factors(path: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def parse_heuristics_pricing_date(path: str):
-    """Read heuristics.md, find 'last_updated' line, return date string or None."""
+    """Read a markdown file, find 'last_updated' line, return date string or None."""
     try:
         with open(path) as f:
             for line in f:
@@ -469,15 +469,18 @@ def compute_cost_attribution(windowed_records: list) -> dict:
                 r.get('step_costs_estimated', {}).get(step_name, 0.0)
 
     # Build sorted steps list
+    total_actual = sum(step_actual.values())
     steps = []
     for step_name in sorted(step_actual.keys(), key=lambda s: step_actual[s], reverse=True):
         est = step_estimated[step_name]
         acc_ratio = step_actual[step_name] / est if est > 0 else None
+        pct = step_actual[step_name] / total_actual if total_actual > 0 else 0.0
         steps.append({
             'step': step_name,
             'total': step_actual[step_name],
             'estimated_total': est,
             'accuracy_ratio': acc_ratio,
+            'pct_of_total': pct,
         })
 
     sessions_without = len(windowed_records) - len(sidecar_records)
@@ -500,7 +503,8 @@ def compute_cost_attribution(windowed_records: list) -> dict:
 
 def compute_outliers(all_records: list) -> dict:
     outliers = [r for r in all_records if not r.get('excluded') and is_outlier(r)]
-    outlier_rate = len(outliers) / max(len(all_records), 1)
+    non_excluded = [r for r in all_records if not r.get('excluded')]
+    outlier_rate = len(outliers) / max(len(non_excluded), 1)
 
     # Pattern detection
     patterns = []
@@ -732,7 +736,9 @@ def rec_step_dominance(records: list):
 
 
 def rec_stale_pricing(heuristics_path: str):
-    date_str = parse_heuristics_pricing_date(heuristics_path)
+    # last_updated is in pricing.md, not heuristics.md — derive path from same directory
+    pricing_path = str(pathlib.Path(heuristics_path).parent / 'pricing.md')
+    date_str = parse_heuristics_pricing_date(pricing_path)
     if not date_str:
         return None
     try:

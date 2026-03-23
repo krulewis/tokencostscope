@@ -66,6 +66,8 @@ print(f'SESSION_ID={shlex.quote(str(d.get(\"session_id\", \"\")))}')
     # JSONL line count — used for span attribution in sum_session_by_agent()
     ESTIMATE_FILE="$CALIBRATION_DIR/active-estimate.json"
     if [ -f "$ESTIMATE_FILE" ]; then
+        # TODO: cache the discovered JSONL path in a sibling state file (alongside
+        # span-counter) to avoid repeating this find call on every hook invocation.
         JSONL_PATH=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
             -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
             xargs -0 ls -t 2>/dev/null | head -1 || echo "")
