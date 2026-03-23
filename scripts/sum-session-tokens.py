@@ -278,7 +278,16 @@ def _build_spans(sidecar_path: str, agent_to_step: dict) -> dict:
     total_lines = max((ev.get("jsonl_line_count", 0) for ev in events), default=0)
     for agent_name, starts_list in open_starts.items():
         for start_ev in starts_list:
-            step_name = agent_to_step.get(agent_name, agent_name)
+            if agent_name == "engineer":
+                engineer_count += 1
+                if engineer_count == 1:
+                    step_name = "Engineer Initial Plan"
+                elif engineer_count == 2:
+                    step_name = "Engineer Final Plan"
+                else:
+                    step_name = agent_name
+            else:
+                step_name = agent_to_step.get(agent_name, agent_name)
             completed_spans.append({
                 "step_name": step_name,
                 "start_line": start_ev["start_line"],

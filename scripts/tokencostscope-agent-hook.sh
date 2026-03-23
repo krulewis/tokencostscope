@@ -51,13 +51,13 @@ print(f'SESSION_ID={shlex.quote(str(d.get(\"session_id\", \"\")))}')
 
     # Session ID — use payload value; fall back to deterministic hash (F6: printf '%s', cross-platform)
     if [ -z "$SESSION_ID" ]; then
-        HASH_INPUT="$CALIBRATION_DIR/active-estimate.json:$$"
+        HASH_INPUT="$CALIBRATION_DIR/active-estimate.json"
         if command -v md5 >/dev/null 2>&1; then
             SESSION_ID=$(printf '%s' "$HASH_INPUT" | md5 | cut -c1-12)
         elif command -v md5sum >/dev/null 2>&1; then
             SESSION_ID=$(printf '%s' "$HASH_INPUT" | md5sum | cut -c1-12)
         else
-            SESSION_ID="unknown-$$"
+            SESSION_ID="unknown"
         fi
     fi
 

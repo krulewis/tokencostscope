@@ -233,11 +233,11 @@ class TestHealthComputation:
         assert health['active_factor_level'] == 'per-step'
 
     def test_active_factor_level_global(self, tmp_path):
-        """factors with 'global' factor and status='active' → 'global'."""
+        """factors with 'global' as plain float (as written by update-factors.py) → 'global'."""
         mod = load_status_module()
         records = [make_record() for _ in range(3)]
         factors = {
-            'global': {'factor': 0.85, 'n': 10, 'status': 'active'}
+            'global': 0.85
         }
         factors_path = make_factors_file(tmp_path, factors)
         health = mod.compute_health(records, mod.load_factors(factors_path))
@@ -265,7 +265,7 @@ class TestAccuracyComputation:
             make_record(ratio=1.5),
             make_record(ratio=2.0),
         ]
-        acc = mod.compute_accuracy(records, False)
+        acc = mod.compute_accuracy(records)
         assert acc['mean_ratio'] == pytest.approx(1.5)
         assert acc['median_ratio'] == pytest.approx(1.5)
 
@@ -278,7 +278,7 @@ class TestAccuracyComputation:
             make_record(ratio=1.2, timestamp='2026-01-15T00:00:00Z'),
             make_record(ratio=1.1, timestamp='2026-01-22T00:00:00Z'),
         ]
-        acc = mod.compute_accuracy(records, False)
+        acc = mod.compute_accuracy(records)
         assert acc['trend'] == 'improving'
 
     def test_trend_stable(self, tmp_path):
@@ -290,7 +290,7 @@ class TestAccuracyComputation:
             make_record(ratio=1.0, timestamp='2026-01-15T00:00:00Z'),
             make_record(ratio=1.2, timestamp='2026-01-22T00:00:00Z'),
         ]
-        acc = mod.compute_accuracy(records, False)
+        acc = mod.compute_accuracy(records)
         assert acc['trend'] == 'stable'
 
     def test_trend_degrading(self, tmp_path):
@@ -302,7 +302,7 @@ class TestAccuracyComputation:
             make_record(ratio=2.0, timestamp='2026-01-15T00:00:00Z'),
             make_record(ratio=2.5, timestamp='2026-01-22T00:00:00Z'),
         ]
-        acc = mod.compute_accuracy(records, False)
+        acc = mod.compute_accuracy(records)
         assert acc['trend'] == 'degrading'
 
     def test_pct_within_expected(self, tmp_path):
@@ -320,14 +320,14 @@ class TestAccuracyComputation:
             # ratio=1.8 (not outlier), actual=9.0 > pess=7.0 → 'over_pessimistic'
             make_record(ratio=1.8, optimistic_cost=3.0, pessimistic_cost=7.0),
         ]
-        acc = mod.compute_accuracy(records, False)
+        acc = mod.compute_accuracy(records)
         assert acc['pct_within_expected'] == pytest.approx(2 / 3, rel=0.01)
 
     def test_insufficient_data_trend(self, tmp_path):
         """1 record → trend 'insufficient_data'."""
         mod = load_status_module()
         records = [make_record(ratio=1.2)]
-        acc = mod.compute_accuracy(records, False)
+        acc = mod.compute_accuracy(records)
         assert acc['trend'] == 'insufficient_data'
 
 
@@ -390,7 +390,7 @@ class TestOutlierReport:
             make_record(ratio=1.2),
             make_record(ratio=0.8),
         ]
-        outliers = mod.compute_outliers(records, records)
+        outliers = mod.compute_outliers(records)
         assert outliers['count'] == 0
 
     def test_high_ratio_outlier(self, tmp_path):
@@ -400,7 +400,7 @@ class TestOutlierReport:
             make_record(ratio=4.0),
             make_record(ratio=1.0),
         ]
-        outliers = mod.compute_outliers(records, records)
+        outliers = mod.compute_outliers(records)
         assert outliers['count'] >= 1
         ratios = [o['ratio'] for o in outliers['records']]
         assert 4.0 in ratios
@@ -412,7 +412,7 @@ class TestOutlierReport:
             make_record(ratio=0.1),
             make_record(ratio=1.0),
         ]
-        outliers = mod.compute_outliers(records, records)
+        outliers = mod.compute_outliers(records)
         assert outliers['count'] >= 1
         ratios = [o['ratio'] for o in outliers['records']]
         assert 0.1 in ratios
@@ -424,7 +424,7 @@ class TestOutlierReport:
             make_record(ratio=5.0, excluded=True),
             make_record(ratio=1.0),
         ]
-        outliers = mod.compute_outliers(records, records)
+        outliers = mod.compute_outliers(records)
         assert outliers['count'] == 0
 
 
@@ -441,7 +441,7 @@ class TestRecommendations:
             make_record(review_cycles_actual=5),
             make_record(review_cycles_actual=5),
         ]
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         types = [r['type'] for r in recs]
         assert any('review' in t.lower() or 'cycle' in t.lower() for t in types)
 
@@ -452,7 +452,7 @@ class TestRecommendations:
             make_record(review_cycles_actual=5),
             make_record(review_cycles_actual=5),
         ]
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         # Should not fire with fewer than 3 records
         cycle_recs = [r for r in recs if 'cycle' in r.get('type', '').lower() or
                       'review' in r.get('type', '').lower()]
@@ -466,7 +466,7 @@ class TestRecommendations:
             for _ in range(5)
         ]
         # actual = 5.0 * 0.4 = 2.0 <= optimistic_cost 3.0
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         types = [r['type'] for r in recs]
         assert any('band' in t.lower() or 'wide' in t.lower() or 'optimistic' in t.lower()
                    for t in types)
@@ -478,7 +478,7 @@ class TestRecommendations:
             make_record(ratio=0.4, optimistic_cost=3.0, pessimistic_cost=15.0)
             for _ in range(4)
         ]
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         band_recs = [r for r in recs if 'band' in r.get('type', '').lower() or
                      'wide' in r.get('type', '').lower()]
         assert len(band_recs) == 0
@@ -488,7 +488,7 @@ class TestRecommendations:
         mod = load_status_module()
         records = [make_record(ratio=1.0)] * 2 + [make_record(ratio=4.0)] * 4
         outlier_records = [r for r in records if r['ratio'] > OUTLIER_HIGH]
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         types = [r['type'] for r in recs]
         assert any('outlier' in t.lower() for t in types)
         # Should be marked destructive (high outlier rate is a data quality concern)
@@ -503,7 +503,7 @@ class TestRecommendations:
             make_record(step_actuals={'Implementation': 9.0, 'QA': 1.0}),
             make_record(step_actuals={'Implementation': 9.0, 'QA': 1.0}),
         ]
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         types = [r['type'] for r in recs]
         assert any('dominan' in t.lower() or 'step' in t.lower() for t in types)
 
@@ -524,7 +524,7 @@ class TestRecommendations:
         """2 records → no non-outlier-session recommendations."""
         mod = load_status_module()
         records = [make_record(ratio=1.1), make_record(ratio=0.9)]
-        recs = mod.compute_recommendations(records, records, {}, HEURISTICS_PATH, 2)
+        recs = mod.compute_recommendations(records, records, HEURISTICS_PATH, 2)
         # With only 2 records, no threshold-based recs should fire
         assert len(recs) == 0
 

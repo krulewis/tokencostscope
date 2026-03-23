@@ -178,7 +178,7 @@ if sidecar_path_env and os.path.exists(sidecar_path_env):
     with open(sidecar_path_env) as sf:
         for sline in sf:
             try: sidecar_events.append(json.loads(sline))
-            except: pass
+            except (json.JSONDecodeError, ValueError): pass
     rc_count = len([e for e in sidecar_events
         if e.get('type') == 'agent_stop'
         and 'staff' in e.get('agent_name', '').lower()

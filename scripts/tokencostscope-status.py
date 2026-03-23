@@ -350,23 +350,22 @@ def compute_health(all_records: list, factors: dict) -> dict:
                     break
 
     if active_factor_level == 'none':
-        # Check size-class factors (any factor with _n >= 3)
-        size_factors = factors.get('size_factors', {})
-        if not size_factors:
-            # Try alternate key name
-            size_factors = factors.get('size_class_factors', {})
-        for sf in size_factors.values():
-            if isinstance(sf, dict) and sf.get('n', 0) >= 3:
-                active_factor_level = 'size-class'
-                factor_value = sf.get('factor')
-                break
+        # Size-class factors are flat top-level single-uppercase-letter keys
+        # e.g., factors["M"] = 0.95, factors["M_n"] = 7 (written only when n >= 3)
+        for k, v in factors.items():
+            if len(k) == 1 and k.isupper() and isinstance(v, (int, float)):
+                n = factors.get(f'{k}_n', 0)
+                if n >= 3:
+                    active_factor_level = 'size-class'
+                    factor_value = v
+                    break
 
     if active_factor_level == 'none':
-        # Check global factor
-        global_factor = factors.get('global', {})
-        if isinstance(global_factor, dict) and global_factor.get('status') == 'active':
+        # Check global factor — written as plain float by update-factors.py
+        global_factor = factors.get('global')
+        if isinstance(global_factor, (int, float)) and global_factor > 0:
             active_factor_level = 'global'
-            factor_value = global_factor.get('factor')
+            factor_value = global_factor
 
     # Status message
     if status == 'no_data':
@@ -389,7 +388,7 @@ def compute_health(all_records: list, factors: dict) -> dict:
 # Accuracy
 # ---------------------------------------------------------------------------
 
-def compute_accuracy(windowed_records: list, verbose: bool) -> dict:
+def compute_accuracy(windowed_records: list) -> dict:
     clean = [r for r in windowed_records if not r.get('excluded') and not is_outlier(r)]
     ratios = [get_ratio(r) for r in clean]
 
@@ -499,7 +498,7 @@ def compute_cost_attribution(windowed_records: list) -> dict:
 # Outliers
 # ---------------------------------------------------------------------------
 
-def compute_outliers(all_records: list, windowed_records: list) -> dict:
+def compute_outliers(all_records: list) -> dict:
     outliers = [r for r in all_records if not r.get('excluded') and is_outlier(r)]
     outlier_rate = len(outliers) / max(len(all_records), 1)
 
@@ -769,7 +768,6 @@ _PRIORITY_ORDER = {'accuracy': 0, 'guidance': 1, 'informational': 2}
 def compute_recommendations(
     windowed_records: list,
     all_records: list,
-    factors: dict,
     heuristics_path: str,
     review_cycles_default: int,
 ) -> list:
@@ -836,10 +834,10 @@ def analyze(args) -> dict:
     windowed = resolve_window(all_records, args.window)
     rc_default = parse_review_cycles_default(args.heuristics)
     health = compute_health(all_records, factors)
-    accuracy = compute_accuracy(windowed, args.verbose)
+    accuracy = compute_accuracy(windowed)
     cost_attribution = compute_cost_attribution(windowed)
-    outliers = compute_outliers(all_records, windowed)
-    recs = compute_recommendations(windowed, all_records, factors, args.heuristics, rc_default)
+    outliers = compute_outliers(all_records)
+    recs = compute_recommendations(windowed, all_records, args.heuristics, rc_default)
 
     # JSON OUTPUT SCHEMA CONTRACT (E3): schema_version=1 is a versioned API contract.
     # Consumers of this output should check schema_version before parsing fields.
@@ -887,10 +885,10 @@ def build_status_output(all_records, factors, verbose=False, window_spec=None,
     windowed = resolve_window(all_records, window_spec)
     rc_default = parse_review_cycles_default(heuristics_path)
     health = compute_health(all_records, factors)
-    accuracy = compute_accuracy(windowed, verbose)
+    accuracy = compute_accuracy(windowed)
     cost_attribution = compute_cost_attribution(windowed)
-    outliers = compute_outliers(all_records, windowed)
-    recs = compute_recommendations(windowed, all_records, factors, heuristics_path, rc_default)
+    outliers = compute_outliers(all_records)
+    recs = compute_recommendations(windowed, all_records, heuristics_path, rc_default)
     return {
         'schema_version': 1,
         'health': health,
