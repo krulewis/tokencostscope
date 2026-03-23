@@ -128,6 +128,11 @@ def update_factors(history_path: str, factors_path: str) -> None:
             except json.JSONDecodeError:
                 continue
 
+            # Skip records explicitly marked as excluded.
+            # string 'true' is truthy — IS excluded. Users should use JSON boolean true.
+            if record.get('excluded', False):
+                continue
+
             expected = record.get("expected_cost", 0)
             actual = record.get("actual_cost", 0)
             if expected <= 0 or actual <= 0:

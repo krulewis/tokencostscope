@@ -5,7 +5,7 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 ## Repo
 
 - GitHub: `krulewis/tokencostscope`
-- Current version: 1.6.0
+- Current version: 2.0.0
 
 ## Key Files
 

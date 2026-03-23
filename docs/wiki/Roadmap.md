@@ -56,17 +56,22 @@ Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/token
 - **Mid-session cost tracking** — PreToolUse hook warns when spend approaches 80% of pessimistic estimate
 - Sampling gate (~50KB) and cooldown (~200KB) to avoid verbosity
 
+### v1.7
+- **Per-agent step cost attribution** — agent-hook.sh sidecar writes timeline JSONL during session
+- Per-step actuals computed via FIFO span matching; added to history records
+- Storage abstraction (`calibration_store.py`) for extensible calibration I/O
+- `sum_session_tokens.py` enhanced with per-step attribution logic
+
+### v2.0 — Observability
+- **Calibration health dashboard** — `/tokencostscope status` command
+- Five sections: health, accuracy, cost attribution, outliers, recommendations
+- Window modes: 30-day, 10-session, all-time, adaptive auto-select
+- Per-step cost drivers and outlier flagging for manual review
+- JSON output mode (`--json`, `--verbose`)
+
 ---
 
 ## Planned
-
-### v1.7
-- Item D deferred from v1.6 — per-agent step actuals breakdown (requires JSONL-level step tagging by agent frameworks)
-
-### v2.0 — Observability
-- Per-agent step actuals breakdown (when frameworks support step-level JSONL tagging)
-- Cache efficiency score per session
-- `/tokencostscope status` command
 
 ### v3.0 — Cross-Project Intelligence
 - Global calibration layer (fall back when project data is sparse)
