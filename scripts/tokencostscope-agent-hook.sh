@@ -51,7 +51,7 @@ print(f'SESSION_ID={shlex.quote(str(d.get(\"session_id\", \"\")))}')
 
     # Session ID — use payload value; fall back to deterministic hash (F6: printf '%s', cross-platform)
     if [ -z "$SESSION_ID" ]; then
-        HASH_INPUT="$CALIBRATION_DIR/active-estimate.json"
+        HASH_INPUT="$CALIBRATION_DIR/active-estimate.json:$$"
         if command -v md5 >/dev/null 2>&1; then
             SESSION_ID=$(printf '%s' "$HASH_INPUT" | md5 | cut -c1-12)
         elif command -v md5sum >/dev/null 2>&1; then
@@ -64,15 +64,26 @@ print(f'SESSION_ID={shlex.quote(str(d.get(\"session_id\", \"\")))}')
     SIDECAR_FILE="$CALIBRATION_DIR/${SESSION_ID}-timeline.jsonl"
 
     # JSONL line count — used for span attribution in sum_session_by_agent()
-    JSONL_PATH=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
-        -newer "$CALIBRATION_DIR" -print0 2>/dev/null | \
-        xargs -0 ls -t 2>/dev/null | head -1 || echo "")
-    if [ -n "$JSONL_PATH" ] && [ -f "$JSONL_PATH" ]; then
-        JSONL_LINE_COUNT=$(wc -l < "$JSONL_PATH" 2>/dev/null || echo 0)
+    ESTIMATE_FILE="$CALIBRATION_DIR/active-estimate.json"
+    if [ -f "$ESTIMATE_FILE" ]; then
+        JSONL_PATH=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
+            -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
+            xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+        if [ -n "$JSONL_PATH" ] && [ -f "$JSONL_PATH" ]; then
+            JSONL_LINE_COUNT=$(wc -l < "$JSONL_PATH" 2>/dev/null || echo 0)
+        else
+            JSONL_LINE_COUNT=0
+        fi
     else
         JSONL_LINE_COUNT=0
     fi
 
+    # span_id: global sequence counter used for chronological ordering and FIFO
+    # deduplication in _build_spans(). Each hook invocation (PreToolUse AND PostToolUse)
+    # gets its own span_id — start and stop events for the same agent invocation will
+    # have consecutive values (e.g., start=3, stop=4). The FIFO matching in
+    # sum_session_by_agent() uses start event span_id for open_spans removal, not
+    # start/stop matching by span_id value.
     # span_id counter (F2 — incrementing per-file counter for unambiguous FIFO matching)
     COUNTER_FILE="$CALIBRATION_DIR/${SESSION_ID}-span-counter"
     SPAN_ID=1

@@ -167,15 +167,15 @@ def is_outlier(record: dict) -> bool:
 
 
 def band_hit(record: dict) -> str:
-    # F10: use stored costs when available
+    # F10: use stored costs when available — both required for consistent classification
     actual = record.get('actual_cost', 0)
     opt_cost = record.get('optimistic_cost')
     pess_cost = record.get('pessimistic_cost')
-    if opt_cost is not None and actual <= opt_cost:
-        return 'optimistic'
-    if pess_cost is not None and actual <= pess_cost:
-        return 'expected'
-    if pess_cost is not None and actual > pess_cost:
+    if opt_cost is not None and pess_cost is not None:
+        if actual <= opt_cost:
+            return 'optimistic'
+        if actual <= pess_cost:
+            return 'expected'
         return 'over_pessimistic'
     # Fallback: ratio-based
     r = get_ratio(record)

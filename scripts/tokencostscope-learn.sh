@@ -204,7 +204,7 @@ print(json.dumps({
     'review_cycles_estimated': int(os.environ['RC_ENV']),
     'review_cycles_actual': review_cycles_actual,
     'parallel_groups': parallel_groups,
-    'parallel_steps_detected': int(os.environ['PSD_ENV']),
+    'parallel_steps_detected': (lambda v: int(v) if v.lstrip('-').isdigit() else (1 if v.lower() in ('true', 'yes', '1') else 0))(os.environ.get('PSD_ENV', '0')),
     'file_brackets': _est.get('file_brackets'),
     'files_measured': _est.get('files_measured', 0),
     'step_costs_estimated': step_costs_estimated,

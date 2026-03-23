@@ -9,6 +9,7 @@ CLI usage (called by learn.sh):
     python3 calibration_store.py read-history --history PATH
 """
 
+import argparse
 import json
 import os
 import sys
@@ -77,7 +78,6 @@ if __name__ == "__main__":
     if cmd == "append-history":
         # Args: --history PATH --factors PATH --record JSON_STRING
         # Appends record to history.jsonl, then recomputes factors via update-factors.py.
-        import argparse
         import subprocess
 
         parser = argparse.ArgumentParser()
@@ -102,8 +102,6 @@ if __name__ == "__main__":
     elif cmd == "read-history":
         # Args: --history PATH
         # Reads and prints all history records as JSON array.
-        import argparse
-
         parser = argparse.ArgumentParser()
         parser.add_argument("--history", required=True)
         args = parser.parse_args(sys.argv[2:])

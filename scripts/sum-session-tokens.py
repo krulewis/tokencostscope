@@ -17,6 +17,7 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Optional
 
 # Prices per million tokens — update when pricing changes.
 # Must match references/pricing.md.
@@ -233,10 +234,12 @@ def _build_spans(sidecar_path: str, agent_to_step: dict) -> dict:
 
         if ev_type == "agent_start":
             parent_name = open_spans[-1][0] if open_spans else None
+            parent_start_line = open_spans[-1][1] if open_spans else None
             open_starts[agent_name].append({
                 "start_line": line_count,
                 "span_id": span_id,
                 "parent_name": parent_name,
+                "parent_start_line": parent_start_line,
             })
             open_spans.append((agent_name, line_count, span_id))
 
@@ -268,6 +271,7 @@ def _build_spans(sidecar_path: str, agent_to_step: dict) -> dict:
                 "start_line": start_ev["start_line"],
                 "end_line": line_count,
                 "parent_name": start_ev["parent_name"],
+                "parent_start_line": start_ev.get("parent_start_line"),
             })
 
     # Unmatched starts: give end_line = last recorded line count
@@ -280,17 +284,25 @@ def _build_spans(sidecar_path: str, agent_to_step: dict) -> dict:
                 "start_line": start_ev["start_line"],
                 "end_line": total_lines,
                 "parent_name": start_ev["parent_name"],
+                "parent_start_line": start_ev.get("parent_start_line"),
             })
 
     # Build effective ranges: subtract child spans from parent spans
     spans_by_step = {}
     all_child_ranges = {}  # step_name (parent) → [(start, end)]
+    # Build start_line → step_name lookup for parent resolution (handles engineer ordinal disambiguation)
+    start_to_step = {sp["start_line"]: sp["step_name"] for sp in completed_spans}
     for sp in completed_spans:
         step = sp["step_name"]
         spans_by_step.setdefault(step, []).append((sp["start_line"], sp["end_line"]))
         if sp["parent_name"]:
-            # Resolve parent agent_name to its step_name for correct range subtraction
-            parent_step = agent_to_step.get(sp["parent_name"], sp["parent_name"])
+            # Resolve parent to its step_name via start_line lookup (handles engineer ordinal
+            # disambiguation — agent_to_step doesn't contain "engineer" directly)
+            parent_sl = sp.get("parent_start_line")
+            if parent_sl is not None and parent_sl in start_to_step:
+                parent_step = start_to_step[parent_sl]
+            else:
+                parent_step = agent_to_step.get(sp["parent_name"], sp["parent_name"])
             all_child_ranges.setdefault(parent_step, []).append(
                 (sp["start_line"], sp["end_line"])
             )
@@ -310,7 +322,7 @@ def sum_session_by_agent(
     jsonl_path: str,
     sidecar_path: str,
     baseline_cost: float = 0.0,
-    calibration_dir: str = None,
+    calibration_dir: Optional[str] = None,
 ) -> dict:
     """Single-pass JSONL cost attribution by agent span (F4).
 
@@ -321,7 +333,8 @@ def sum_session_by_agent(
     agent_to_step = _load_agent_map(cal_dir)
     effective_ranges = _build_spans(sidecar_path, agent_to_step)
 
-    # Build sorted flat list of (start_line, end_line, step_name) for O(n) lookup
+    # Build sorted flat list of (start_line, end_line, step_name) for O(m) lookup per line
+    # (m = number of ranges); total attribution pass is O(n×m) over n JSONL lines
     all_ranges = sorted(
         (s, e, step)
         for step, ranges in effective_ranges.items()

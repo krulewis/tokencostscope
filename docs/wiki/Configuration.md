@@ -199,20 +199,26 @@ Per-agent step cost attribution requires registration of the agent-hook in `.cla
 ```json
 {
   "hooks": {
-    "pre_tool_use": [
+    "PreToolUse": [
       {
-        "matcher": {
-          "event_type": "agent_start"
-        },
-        "run": "bash scripts/tokencostscope-agent-hook.sh"
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/tokencostscope-agent-hook.sh"
+          }
+        ]
       }
     ],
-    "post_tool_use": [
+    "PostToolUse": [
       {
-        "matcher": {
-          "event_type": "agent_stop"
-        },
-        "run": "bash scripts/tokencostscope-agent-hook.sh"
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/tokencostscope-agent-hook.sh"
+          }
+        ]
       }
     ]
   }
