@@ -582,15 +582,15 @@ class TestDocumentContent:
     """Verify required content in documentation files. Fails before implementation."""
 
     def test_skill_md_version_v1_5_0(self):
-        """SKILL.md frontmatter contains 'version: 1.6.0'."""
+        """SKILL.md frontmatter contains 'version: 2.1.0'."""
         assert "version: 2.1.0" in SKILL_MD.read_text()
 
     def test_skill_md_output_template_v1_5_0(self):
-        """SKILL.md output template header contains 'v1.6.0'."""
+        """SKILL.md output template header contains 'v2.1.0'."""
         assert "v2.1.0" in SKILL_MD.read_text()
 
     def test_learn_sh_version_v1_5_0(self):
-        """learn.sh VERSION variable is '1.6.0'."""
+        """learn.sh VERSION variable is '2.1.0'."""
         result = subprocess.run(
             ["bash", str(LEARN_SH), "--version"],
             capture_output=True, text=True,
@@ -704,7 +704,7 @@ class TestDocumentContent:
         assert "PR Review Loop" in content
 
     def test_claude_md_version_v1_5_0(self):
-        """CLAUDE.md contains 'Current version: 1.6.0'."""
+        """CLAUDE.md contains 'Current version: 2.1.0'."""
         assert "Current version: 2.1.0" in CLAUDE_MD.read_text()
 
 

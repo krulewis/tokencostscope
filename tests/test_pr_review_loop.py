@@ -347,7 +347,7 @@ class TestDocumentContent:
         assert "N=1" in content or "1 review cycle" in content
 
     def test_skill_md_version_1_4(self):
-        """SKILL.md frontmatter version must be 1.6.0."""
+        """SKILL.md frontmatter version must be 2.1.0."""
         content = SKILL_MD.read_text()
         assert "version: 2.1.0" in content
 
@@ -362,7 +362,7 @@ class TestDocumentContent:
         assert "review_cycles" in content
 
     def test_skill_md_output_template_v1_4(self):
-        """Output template must show v1.6.0."""
+        """Output template must show v2.1.0."""
         content = SKILL_MD.read_text()
         assert "v2.1.0" in content
 

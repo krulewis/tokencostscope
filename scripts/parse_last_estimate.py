@@ -113,8 +113,10 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
                 pass
             continue
 
-        # Pessimistic — |? handles tight formatting like | Pessimistic| $42.70|
-        m = re.search(r'\|\s*Pessimistic\s*\|?\s*\$?([\d.]+)\s*\|?', line)
+        # Pessimistic — trailing \|? handles tight formatting like | Pessimistic| $42.70|
+        # Interior pipe is required (unlike Optimistic/Expected, tight format omits trailing space
+        # but not the interior pipe after "Pessimistic").
+        m = re.search(r'\|\s*Pessimistic\s*\|\s*\$?([\d.]+)\s*\|?', line)
         if m and pessimistic_cost is None:
             try:
                 pessimistic_cost = float(m.group(1))
