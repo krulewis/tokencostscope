@@ -260,10 +260,10 @@ class TestDocumentContent:
     def test_heuristics_has_parallel_cache_rate_reduction(self):
         assert "parallel_cache_rate_reduction" in HEURISTICS_MD.read_text()
 
-    def test_skill_md_version_v1_5_0(self):
+    def test_skill_md_version_frontmatter(self):
         assert "version: 2.1.0" in SKILL_MD.read_text()
 
-    def test_skill_md_output_template_v1_5_0(self):
+    def test_skill_md_version_output_header(self):
         assert "v2.1.0" in SKILL_MD.read_text()
 
     def test_skill_md_step0_has_parallel_groups_output(self):
@@ -346,7 +346,7 @@ class TestDocumentContent:
 class TestLearnScript:
     """Tests for tokencostscope-learn.sh changes."""
 
-    def test_version_is_1_4_0(self):
+    def test_learn_sh_version(self):
         result = subprocess.run(
             ["bash", str(LEARN_SH), "--version"],
             capture_output=True, text=True,

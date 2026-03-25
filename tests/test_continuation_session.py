@@ -322,7 +322,12 @@ class TestLearnShContinuation(unittest.TestCase):
         return path
 
     def _write_mock_session_jsonl(self, tmp_dir: Path) -> Path:
-        """Write a minimal valid session JSONL with actual_cost > 0.001."""
+        """Write a minimal valid session JSONL with actual_cost > 0.001.
+
+        Token counts: 5000 input + 500 output at Sonnet pricing (~$0.023 gross).
+        Subtract baseline_cost=$0.01 → actual_cost ~$0.013, well above the $0.001
+        guard in learn.sh. Bump input_tokens if pricing changes cause silent skips.
+        """
         entry = {
             "type": "assistant",
             "message": {
@@ -415,8 +420,12 @@ class TestLearnShContinuation(unittest.TestCase):
             self.assertEqual(result.returncode, 0, f"learn.sh failed: {result.stderr}")
 
             history_path = tmp_dir / "history.jsonl"
-            if not history_path.exists():
-                self.skipTest("learn.sh did not write history record (actual_cost too low)")
+            # Assert (not skipTest) so a regression causing actual_cost=0 is caught.
+            # Mock JSONL token counts are sized to exceed the $0.001 guard reliably.
+            self.assertTrue(
+                history_path.exists(),
+                "learn.sh did not write history record — check mock JSONL token counts or learn.sh guard",
+            )
             lines = [l for l in history_path.read_text().splitlines() if l.strip()]
             self.assertGreaterEqual(len(lines), 1)
 
