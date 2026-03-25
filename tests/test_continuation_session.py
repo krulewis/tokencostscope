@@ -280,6 +280,16 @@ Parallel steps detected: 0
         self.assertIsNotNone(result)
         self.assertRegex(result["timestamp"], r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z')
 
+    def test_bold_style_baseline_cost_parsed(self):
+        """Bold metadata style **Baseline Cost:** is parsed as defensive fallback."""
+        content = SAMPLE_MD.replace(
+            "Review cycles estimated: 2",
+            "**Baseline Cost:** $0.07\nReview cycles estimated: 2",
+        )
+        result = parse(content, mtime=None)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["baseline_cost"], 0.07)
+
     # --- __main__ block via subprocess ---
 
     def test_env_var_max_age_zero_in_main_block(self):
@@ -402,7 +412,7 @@ class TestLearnShContinuation(unittest.TestCase):
         history_path = tmp_dir / "history.jsonl"
         if not history_path.exists():
             return None
-        lines = [l for l in history_path.read_text().splitlines() if l.strip()]
+        lines = [line for line in history_path.read_text().splitlines() if line.strip()]
         if not lines:
             return None
         return json.loads(lines[-1])
@@ -426,7 +436,7 @@ class TestLearnShContinuation(unittest.TestCase):
                 history_path.exists(),
                 "learn.sh did not write history record — check mock JSONL token counts or learn.sh guard",
             )
-            lines = [l for l in history_path.read_text().splitlines() if l.strip()]
+            lines = [line for line in history_path.read_text().splitlines() if line.strip()]
             self.assertGreaterEqual(len(lines), 1)
 
     def test_continuation_record_has_continuation_flag(self):
