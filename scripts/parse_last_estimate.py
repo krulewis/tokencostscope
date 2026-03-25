@@ -74,6 +74,7 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
         m = re.search(r'\*\*Steps:\*\*\s*(.+)', line)
         if m and not steps:
             raw = m.group(1).strip()
+            # Split on ", " — step names controlled by SKILL.md template and never contain ", "
             steps = [s.strip() for s in raw.split(", ") if s.strip()]
             continue
 

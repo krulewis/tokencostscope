@@ -39,6 +39,11 @@ if [ ! -f "$ESTIMATE_FILE" ]; then
             rm -f "$ESTIMATE_FILE"
             exit 0
         fi
+        # Backdate the reconstituted file to last-estimate.md's mtime so the
+        # -newer "$ESTIMATE_FILE" JSONL discovery below correctly identifies
+        # this session's JSONL (which was written after last-estimate.md, not
+        # after the reconstituted file which was just written "now").
+        touch -r "$LAST_ESTIMATE_MD" "$ESTIMATE_FILE" 2>/dev/null || true
     else
         exit 0
     fi

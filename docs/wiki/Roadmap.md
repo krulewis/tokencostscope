@@ -69,7 +69,7 @@ Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/token
 - Per-step cost drivers and outlier flagging for manual review
 - JSON output mode (`--json`, `--verbose`)
 
-### v2.1
+### v2.1 (shipped 2026-03-25)
 - **`baseline_cost` in `last-estimate.md`** — new footer line so step 10 can compute accurate actual-vs-estimate delta after compaction
 - **Continuation session calibration gap** — `parse_last_estimate.py` reconstitutes a minimal estimate from `last-estimate.md` when `active-estimate.json` is absent; captures continuation session actuals
 
