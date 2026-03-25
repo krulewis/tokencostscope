@@ -51,6 +51,8 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
     review_cycles_estimated = 0
     parallel_steps_detected = 0
 
+    # Parse loop: each regex block ends with `continue` so earlier patterns shadow later
+    # ones on the same line. Order matters — more specific patterns come first.
     for line in content.splitlines():
         # Compound metadata line: **Size:** M | **Files:** 28 | **Complexity:** medium
         m = re.search(
@@ -79,6 +81,7 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
             continue
 
         # Baseline cost — bold metadata style: **Baseline Cost:** $0.05
+        # (defensive fallback; SKILL.md currently produces only the plain footer style below)
         m = re.search(r'\*\*Baseline Cost:\*\*\s*\$?([\d.]+)', line)
         if m:
             try:
