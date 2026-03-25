@@ -164,6 +164,20 @@ Sums all step costs per band, renders the table, and writes `calibration/active-
 
 ---
 
+## Continuation Session Handling (v2.1+)
+
+When a session compacts, `active-estimate.json` is consumed by the prior session's `learn.sh` run. If the next session ends without a new estimate (e.g., you continued work without re-running `/tokencostscope`), `learn.sh` would normally exit without recording anything.
+
+As of v2.1, `learn.sh` falls back to `last-estimate.md` when `active-estimate.json` is absent:
+
+1. If `calibration/last-estimate.md` exists and is less than 48 hours old, `parse_last_estimate.py` reconstitutes a minimal estimate from it
+2. `learn.sh` uses that reconstituted estimate to capture the continuation session's actuals
+3. History records from reconstituted estimates include `"continuation": true` so calibration can distinguish them
+
+The 48-hour recency window is configurable via `TOKENCOSTSCOPE_CONTINUATION_MAX_AGE_HOURS`. If `last-estimate.md` is absent or stale, `learn.sh` exits cleanly with no record written (same behavior as before v2.1).
+
+---
+
 ## Per-Agent Step Cost Attribution (v1.7+)
 
 A PreToolUse/PostToolUse hook (`tokencostscope-agent-hook.sh`) writes a sidecar timeline JSONL during your session. This captures the start/stop of each agent span with token counts, allowing the learning hook to attribute actual costs to specific pipeline steps.

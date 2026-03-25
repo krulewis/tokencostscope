@@ -440,7 +440,7 @@ class TestLearnShContinuation(unittest.TestCase):
 
             record = self._read_last_history_record(tmp_dir)
             if record is None:
-                self.skipTest("learn.sh did not write history record")
+                self.fail("learn.sh did not write history record — check mock JSONL token counts")
             self.assertTrue(record.get("continuation"), f"continuation flag missing or false: {record}")
 
     def test_continuation_record_fields(self):
@@ -454,7 +454,7 @@ class TestLearnShContinuation(unittest.TestCase):
 
             record = self._read_last_history_record(tmp_dir)
             if record is None:
-                self.skipTest("learn.sh did not write history record")
+                self.fail("learn.sh did not write history record — check mock JSONL token counts")
 
             for field in ("expected_cost", "optimistic_cost", "pessimistic_cost", "size", "complexity"):
                 self.assertIn(field, record, f"Missing field: {field}")
