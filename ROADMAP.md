@@ -109,12 +109,12 @@
 
 ---
 
-## v2.1 — Compaction & Continuation Session Fixes
+## v2.1 — Compaction & Continuation Session Fixes (shipped 2026-03-25)
 
 **Goal:** Close two calibration gaps that surface when sessions compact or continue across multiple sessions.
 
-- [ ] **`baseline_cost` in `last-estimate.md`** — add `baseline_cost` to the compaction-safe summary so step 10 can compute an accurate actual-vs-estimate delta even after compaction or in a continuation session. Currently `last-estimate.md` omits it, inflating the reported ratio.
-- [ ] **Continuation session calibration gap** — when session A ends and `learn.sh` consumes `active-estimate.json`, session B (continuation) has no estimate to calibrate against and its work goes untracked. Fix: if `active-estimate.json` is absent but `last-estimate.md` is recent (< 48h), reconstitute a minimal estimate so `learn.sh` can capture session B's actuals.
+- [x] **`baseline_cost` in `last-estimate.md`** — add `baseline_cost` to the compaction-safe summary so step 10 can compute an accurate actual-vs-estimate delta even after compaction or in a continuation session. Currently `last-estimate.md` omits it, inflating the reported ratio.
+- [x] **Continuation session calibration gap** — when session A ends and `learn.sh` consumes `active-estimate.json`, session B (continuation) has no estimate to calibrate against and its work goes untracked. Fix: if `active-estimate.json` is absent but `last-estimate.md` is recent (< 48h), reconstitute a minimal estimate so `learn.sh` can capture session B's actuals.
 
 ---
 
@@ -186,4 +186,4 @@
 
 ---
 
-*Last updated: 2026-03-23*
+*Last updated: 2026-03-25*

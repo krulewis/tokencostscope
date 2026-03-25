@@ -261,10 +261,10 @@ class TestDocumentContent:
         assert "parallel_cache_rate_reduction" in HEURISTICS_MD.read_text()
 
     def test_skill_md_version_v1_5_0(self):
-        assert "version: 2.0.0" in SKILL_MD.read_text()
+        assert "version: 2.1.0" in SKILL_MD.read_text()
 
     def test_skill_md_output_template_v1_5_0(self):
-        assert "v2.0.0" in SKILL_MD.read_text()
+        assert "v2.1.0" in SKILL_MD.read_text()
 
     def test_skill_md_step0_has_parallel_groups_output(self):
         """Step 0 must produce parallel_groups — check for the specific output variable name."""
@@ -352,7 +352,7 @@ class TestLearnScript:
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "2.0.0" in result.stdout
+        assert "2.1.0" in result.stdout
 
     def test_forwards_parallel_steps_detected(self):
         """learn.sh must extract parallel_steps_detected from active-estimate.json."""

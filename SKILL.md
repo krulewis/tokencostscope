@@ -1,6 +1,6 @@
 ---
 name: tokencostscope
-version: 2.0.0
+version: 2.1.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
   is created. Triggers when: a pipeline plan is finalized, an implementation
@@ -378,13 +378,14 @@ Write calibration/last-estimate.md:
 
 Review cycles estimated: {review_cycles_estimated}
 Parallel steps detected: {parallel_steps_detected}
+Baseline Cost: ${baseline_cost}
 ```
 This file is the compaction-safe reference for pipeline step 10 cost analysis.
 
 ## Output Template
 
 ```
-## costscope estimate (v2.0.0)
+## costscope estimate (v2.1.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Files:** {files} total ({files_measured} measured: {small_count} small, {medium_count} medium, {large_count} large; {files_defaulted} defaulted to {override_bracket or "medium"})

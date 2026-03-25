@@ -453,17 +453,17 @@ class TestDocumentContent:
     def test_skill_md_version_140_frontmatter(self):
         """SKILL.md frontmatter must contain 'version: 1.6.0'."""
         content = SKILL_MD.read_text()
-        assert "version: 2.0.0" in content
+        assert "version: 2.1.0" in content
 
     def test_skill_md_version_140_output_header(self):
         """SKILL.md must contain '## costscope estimate (v1.6.0)' in the output template."""
         content = SKILL_MD.read_text()
-        assert "## costscope estimate (v2.0.0)" in content
+        assert "## costscope estimate (v2.1.0)" in content
 
     def test_learn_sh_version_140(self):
         """scripts/tokencostscope-learn.sh must contain 'VERSION=\"1.6.0\"'."""
         content = LEARN_SH.read_text()
-        assert 'VERSION="2.0.0"' in content
+        assert 'VERSION="2.1.0"' in content
 
 
 if __name__ == "__main__":
