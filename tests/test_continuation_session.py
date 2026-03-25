@@ -339,7 +339,7 @@ class TestLearnShContinuation(unittest.TestCase):
                     "cache_creation_input_tokens": 500,
                 },
             },
-            "costUSD": 0.025,
+            "costUSD": 0.025,  # present in real JSONL but ignored by sum-session-tokens.py (cost computed from token counts)
         }
         path = tmp_dir / "session.jsonl"
         path.write_text(json.dumps(entry) + "\n")

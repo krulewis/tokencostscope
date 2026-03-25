@@ -47,7 +47,7 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
     optimistic_cost = None
     expected_cost = None
     pessimistic_cost = None
-    baseline_cost = 0.0
+    baseline_cost = 0.0  # 0.0 is intentional for pre-v2.1 files lacking the Baseline Cost line
     review_cycles_estimated = 0
     parallel_steps_detected = 0
 
@@ -82,7 +82,8 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
 
         # Baseline cost — bold metadata style: **Baseline Cost:** $0.05
         # (defensive fallback; SKILL.md currently produces only the plain footer style below)
-        m = re.search(r'\*\*Baseline Cost:\*\*\s*\$?([\d.]+)', line)
+        # ^ anchor matches plain-footer pattern for consistency; both patterns anchor at line start.
+        m = re.search(r'^\*\*Baseline Cost:\*\*\s*\$?([\d.]+)', line)
         if m:
             try:
                 baseline_cost = float(m.group(1))
