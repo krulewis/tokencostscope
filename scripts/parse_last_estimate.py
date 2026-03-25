@@ -82,7 +82,9 @@ def parse(content: str, max_age_hours: float = 48.0, mtime: Optional[float] = No
 
         # Baseline cost — bold metadata style: **Baseline Cost:** $0.05
         # (defensive fallback; SKILL.md currently produces only the plain footer style below)
-        # ^ anchor matches plain-footer pattern for consistency; both patterns anchor at line start.
+        # ^ works without re.MULTILINE because `line` is a single string from splitlines().
+        # last-write-wins is intentional: 0.0 is both the pre-v2.1 default and a valid value,
+        # so a None sentinel would complicate the return schema.
         m = re.search(r'^\*\*Baseline Cost:\*\*\s*\$?([\d.]+)', line)
         if m:
             try:
@@ -184,7 +186,10 @@ if __name__ == "__main__":
     md_path = sys.argv[1]
     if not os.path.exists(md_path):
         sys.exit(1)
-    max_age = float(os.environ.get("TOKENCOSTSCOPE_CONTINUATION_MAX_AGE_HOURS", "48"))
+    try:
+        max_age = float(os.environ.get("TOKENCOSTSCOPE_CONTINUATION_MAX_AGE_HOURS", "48"))
+    except ValueError:
+        max_age = 48.0
     try:
         with open(md_path) as f:
             content = f.read()
