@@ -1,6 +1,6 @@
 """ServerConfig dataclass — runtime configuration for the tokencast MCP server."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +16,11 @@ class ServerConfig:
 
     calibration_dir: Path
     project_dir: Optional[Path]
+    no_cta: bool = False
+    # Mutable per-server-session state: True once the CTA has been shown.
+    cta_shown: bool = field(default=False, repr=False)
+    telemetry_enabled: bool = False
+    client_name: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Derived paths (not fields — computed on demand)
@@ -46,12 +51,16 @@ class ServerConfig:
         cls,
         calibration_dir: Optional[str],
         project_dir: Optional[str],
+        no_cta: bool = False,
+        telemetry_enabled: bool = False,
     ) -> "ServerConfig":
         """Build a ServerConfig from raw CLI argument strings.
 
         Args:
             calibration_dir: Raw ``--calibration-dir`` value, or ``None``.
             project_dir: Raw ``--project-dir`` value, or ``None``.
+            no_cta: When ``True``, suppress the team-sharing waitlist CTA.
+            telemetry_enabled: When ``True``, opt in to anonymous telemetry.
 
         Returns:
             A fully resolved :class:`ServerConfig`.
@@ -71,6 +80,8 @@ class ServerConfig:
         return cls(
             calibration_dir=resolved_calibration_dir,
             project_dir=resolved_project_dir,
+            no_cta=no_cta,
+            telemetry_enabled=telemetry_enabled,
         )
 
     def ensure_dirs(self) -> None:

@@ -17,6 +17,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
+from tokencast import telemetry as _telemetry
 from tokencast_mcp import __version__
 from tokencast_mcp.config import ServerConfig
 from tokencast_mcp.tools.estimate_cost import (
@@ -129,6 +130,15 @@ def build_server(config: ServerConfig) -> Server:
                 raise ValueError(f"Unknown tool: {name!r}")
             handler = _DISPATCH[name]
             result = await handler(args, config)
+            # Fire-and-forget telemetry after successful tool calls that
+            # produce calibration data (estimate_cost and report_session).
+            if name in ("estimate_cost", "report_session"):
+                _telemetry.record_event(
+                    name,
+                    telemetry_enabled=config.telemetry_enabled,
+                    calibration_dir=str(config.calibration_dir),
+                    client_name=config.client_name,
+                )
             return [TextContent(type="text", text=json.dumps(result))]
         except ValueError as exc:
             logger.warning("Tool call error (ValueError) for %r: %s", name, exc)
@@ -206,6 +216,26 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="Project root for file measurement resolution",
     )
     parser.add_argument(
+        "--telemetry",
+        action="store_true",
+        default=False,
+        help=(
+            "Enable opt-in anonymous usage telemetry. "
+            "Collects: session count, mean accuracy ratio, calibration depth, "
+            "client name. No PII, project names, file paths, or cost amounts. "
+            "Also enabled via TOKENCAST_TELEMETRY=1 env var."
+        ),
+    )
+    parser.add_argument(
+        "--no-cta",
+        action="store_true",
+        default=False,
+        help=(
+            "Suppress the team-sharing waitlist CTA in report_session responses. "
+            "Also suppressed via TOKENCAST_NO_CTA=1 env var."
+        ),
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -223,6 +253,8 @@ def main(argv=None) -> None:
     config = ServerConfig.from_args(
         calibration_dir=args.calibration_dir,
         project_dir=args.project_dir,
+        telemetry_enabled=args.telemetry,
+        no_cta=args.no_cta,
     )
     try:
         asyncio.run(run_server(config))

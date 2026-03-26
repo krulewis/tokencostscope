@@ -472,7 +472,19 @@ def get_cost_history(
     }
 
 
-def report_session(params: dict, calibration_dir: Optional[str] = None) -> dict:
+_WAITLIST_URL = (
+    "https://github.com/krulewis/tokencast/discussions/new?category=team-sharing"
+)
+_CTA_SESSION_THRESHOLD = 5
+
+
+def report_session(
+    params: dict,
+    calibration_dir: Optional[str] = None,
+    *,
+    session_count: Optional[int] = None,
+    suppress_cta: bool = False,
+) -> dict:
     """Report actual session cost to improve future calibration.
 
     Reads active-estimate.json, merges accumulated step costs with any call-time
@@ -480,16 +492,26 @@ def report_session(params: dict, calibration_dir: Optional[str] = None) -> dict:
     the accumulator and active-estimate.json.
 
     Args:
-        params: Dict with required key ``actual_cost`` (float ≥ 0) and
+        params: Dict with required key ``actual_cost`` (float >= 0) and
             optional keys ``step_actuals`` (dict), ``turn_count`` (int),
             ``review_cycles_actual`` (int).
         calibration_dir: Path to the calibration directory. When None,
             defaults to ~/.tokencast/calibration.
+        session_count: Number of history records already on disk (before this
+            call). When provided and >= _CTA_SESSION_THRESHOLD and
+            suppress_cta is False, a ``team_sharing_cta`` field is added to
+            the successful response. Callers are responsible for showing the
+            CTA at most once per server session (pass suppress_cta=True on
+            subsequent calls).
+        suppress_cta: When True, omit ``team_sharing_cta`` regardless of
+            session_count. Honoured by --no-cta flag and TOKENCAST_NO_CTA env
+            var (enforced at the MCP handler layer).
 
     Returns:
         Protocol-compliant dict with ``attribution_protocol_version``,
         ``record_written``, ``attribution_method``, ``actual_cost``,
-        ``step_actuals``. May include ``warning`` when applicable.
+        ``step_actuals``. May include ``warning`` and/or
+        ``team_sharing_cta`` when applicable.
         On validation failure returns an error dict with ``error`` key.
     """
     from tokencast.session_recorder import build_history_record
@@ -643,6 +665,7 @@ def report_session(params: dict, calibration_dir: Optional[str] = None) -> dict:
     )
 
     # --- 10. Persist record via calibration_store subprocess (matches learn.sh) ---
+    record_write_error: Optional[str] = None
     try:
         calibration_dir.mkdir(parents=True, exist_ok=True)
         history_path = str(calibration_dir / "history.jsonl")
@@ -662,8 +685,8 @@ def report_session(params: dict, calibration_dir: Optional[str] = None) -> dict:
             ],
             check=False,
         )
-    except Exception:
-        pass  # non-fatal — best-effort persistence
+    except Exception as _write_exc:
+        record_write_error = str(_write_exc)
 
     # --- 11. Cleanup ---
     _acc_path_to_delete = _accumulator_file_path
@@ -684,6 +707,21 @@ def report_session(params: dict, calibration_dir: Optional[str] = None) -> dict:
     _accumulator_file_path = None
 
     # --- 12. Build response ---
+    if record_write_error is not None:
+        # Disk write failed — return error response (does not crash server)
+        response = {
+            "attribution_protocol_version": 1,
+            "record_written": False,
+            "attribution_method": record["attribution_method"],
+            "actual_cost": actual_cost,
+            "step_actuals": record["step_actuals"],
+            "error": "write_failed",
+            "message": f"Could not persist calibration record: {record_write_error}",
+        }
+        if warnings_list:
+            response["warning"] = "; ".join(warnings_list)
+        return response
+
     response = {
         "attribution_protocol_version": 1,
         "record_written": True,
@@ -693,6 +731,21 @@ def report_session(params: dict, calibration_dir: Optional[str] = None) -> dict:
     }
     if warnings_list:
         response["warning"] = "; ".join(warnings_list)
+
+    # --- 13. Team-sharing waitlist CTA ---
+    if (
+        not suppress_cta
+        and session_count is not None
+        and session_count >= _CTA_SESSION_THRESHOLD
+    ):
+        response["team_sharing_cta"] = {
+            "message": (
+                "You've completed 5+ calibrated sessions! Interested in sharing"
+                f" calibration with your team? Let us know: {_WAITLIST_URL}"
+            ),
+            "url": _WAITLIST_URL,
+        }
+
     return response
 
 

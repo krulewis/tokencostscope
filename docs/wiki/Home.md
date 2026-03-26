@@ -10,6 +10,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 
 - [[Installation]] — Clone, install hooks, verify setup
 - [[How It Works]] — Estimation algorithm, formulas, confidence bands
+- [[Attribution]] — How cost attribution works in Claude Code vs MCP clients
 - [[Calibration]] — How the skill learns from your sessions over time
 - [[Configuration]] — Manual overrides, parallel agent accounting
 - [[Roadmap]] — Planned features and version history

@@ -184,6 +184,8 @@ A PreToolUse/PostToolUse hook (`tokencast-agent-hook.sh`) writes a sidecar timel
 
 At session end, `tokencast-learn.sh` reads the sidecar timeline and computes per-step actuals via FIFO span matching. History records now include `step_actuals: {step_name: float}` alongside proportional step-level attribution as a fallback.
 
+**MCP clients** (Cursor, VS Code, CI pipelines) use a framework-agnostic attribution protocol based on MCP tool calls — no JSONL or hooks required. See [[Attribution]] for the full comparison of attribution modes and client-specific setup guides. The protocol specification is in `docs/attribution-protocol.md`.
+
 ---
 
 ## Calibration Health Dashboard (v2.0+)
