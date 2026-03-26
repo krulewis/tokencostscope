@@ -4,11 +4,142 @@
 
 # tokencast
 
-A Claude Code skill that estimates Anthropic API cost for planned agent tasks, then **learns from actual usage** to improve estimates over time.
+Pre-execution cost estimation for LLM agent workflows. Get a cost estimate before running any agent task, then let tokencast learn from actuals to improve accuracy over time.
 
-Install once per project. It auto-estimates after plans are created and auto-learns at session end. Zero ongoing friction.
+Available as an **MCP server** (works in Cursor, VS Code + Copilot, Windsurf, Claude Code) or as a **Claude Code skill** (SKILL.md, for Claude Code users who prefer the skill-based workflow).
 
-## Setup (one time per project)
+---
+
+## MCP Installation (Recommended)
+
+### 1. Install the package
+
+```bash
+pip install tokencast
+```
+
+Or with `uvx` (no install required — runs directly from PyPI):
+
+```bash
+uvx tokencast
+```
+
+### 2. Configure your IDE
+
+Replace `/path/to/your/project` with your actual project path in the config snippets below.
+
+#### Claude Code
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+#### Cursor
+
+Create or update `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+#### VS Code + GitHub Copilot
+
+Create or update `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "tokencast": {
+      "type": "stdio",
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+#### Windsurf
+
+Add to your Windsurf MCP config:
+
+```json
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+Full config examples are in [`docs/ide-configs/`](docs/ide-configs/).
+
+### 3. Use the tools
+
+Once configured, tokencast exposes five MCP tools in your IDE:
+
+| Tool | What it does |
+|------|-------------|
+| `estimate_cost` | Estimate API cost for a planned task before running it |
+| `get_calibration_status` | Check whether your estimates are well-calibrated |
+| `get_cost_history` | Browse past estimates vs actuals |
+| `report_session` | Report actual cost at session end to improve calibration |
+| `report_step_cost` | Record the cost of a single pipeline step during a session |
+
+**Example — estimate before starting work:**
+```
+Estimate the cost for: size=M, files=8, complexity=high
+```
+
+**Example — report actuals after finishing:**
+```
+Report session cost: actual_cost=4.20
+```
+
+---
+
+## MCP Server Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--calibration-dir PATH` | `~/.tokencast/calibration` | Where calibration data is stored |
+| `--project-dir PATH` | None | Project root for file measurement |
+| `--version` | | Print version and exit |
+
+---
+
+## Claude Code Skill (Alternative)
+
+If you use Claude Code and prefer the skill-based (SKILL.md) workflow, you can install tokencast as a Claude Code skill instead:
 
 ```bash
 # Clone the repo (anywhere — it doesn't need to live inside your project)
@@ -25,12 +156,23 @@ This does three things:
 2. Adds a `Stop` hook for auto-learning at session end
 3. Adds a `PostToolUse` hook to nudge estimation after planning agents
 
-Every Claude Code session in that project now has tokencast active.
+The SKILL.md workflow is Claude Code-specific. The MCP server works in any MCP-compatible client and is the recommended path for new users.
 
-## What Happens Automatically
+---
 
-### After a plan is created
-tokencast detects the plan in conversation context, infers size, files, complexity, project type, and language, then outputs a cost table:
+## How It Works
+
+1. Infers size, file count, complexity from the plan in conversation
+2. Reads reference files for pricing and token heuristics
+3. Loads learned calibration factors (if any exist)
+4. Computes per-step token estimates using activity decomposition
+5. Applies complexity multiplier, context accumulation `(K+1)/2`, and cache rates
+6. Splits into Optimistic / Expected / Pessimistic bands
+7. If PR Review Loop is in scope, computes loop cost using geometric decay across N review cycles
+8. Applies calibration correction to Expected band
+9. Records the estimate for later comparison with actuals
+
+**Example output:**
 
 ```
 ## tokencast estimate
@@ -46,52 +188,7 @@ Calibration: 1.12x from 8 prior runs
 | TOTAL                 |        | $3.37      | $6.26    | $22.64      |
 ```
 
-### At session end
-The learning hook silently:
-1. Reads the session's JSONL log
-2. Computes actual token cost (including cache write tokens)
-3. Compares to the estimate
-4. Updates calibration factors
-
-### Next session
-Future estimates use learned correction factors. More sessions = better accuracy.
-
-## Manual Invocation
-
-You can also invoke explicitly with overrides:
-
-```
-/tokencast size=L files=12 complexity=high
-/tokencast steps=implement,test,qa
-/tokencast review_cycles=3
-/tokencast review_cycles=0
-```
-
-Use `review_cycles=N` to set the number of expected PR review cycles. Use `review_cycles=0` to suppress the PR Review Loop row.
-
-## How It Works
-
-1. Infers size, file count, complexity from the plan in conversation
-2. Reads reference files for pricing and token heuristics
-3. Loads learned calibration factors (if any exist)
-4. Computes per-step token estimates using activity decomposition
-5. Applies complexity multiplier, context accumulation `(K+1)/2`, and cache rates
-6. Splits into Optimistic / Expected / Pessimistic bands
-7. If PR Review Loop is in scope, computes loop cost using geometric decay across N review cycles (Optimistic=1, Expected=N, Pessimistic=N×2)
-8. Applies calibration correction to Expected band (individual steps re-anchor; PR Review Loop scales each band independently)
-9. Records the estimate for later comparison with actuals
-
-## Overrides
-
-| Override | Effect |
-|----------|--------|
-| `size=M` | Set size class explicitly |
-| `files=5` | Set file count explicitly |
-| `complexity=high` | Set complexity explicitly |
-| `steps=implement,test,qa` | Estimate only those pipeline steps |
-| `project_type=migration` | Set project type explicitly |
-| `language=go` | Set primary language explicitly |
-| `review_cycles=3` | Set PR review cycle count (0 = disable) |
+---
 
 ## Confidence Bands
 
@@ -101,23 +198,62 @@ Use `review_cycles=N` to set the number of expected PR review cycles. Use `revie
 | Expected    | 50%       | 1.0x       | Typical run                            |
 | Pessimistic | 30%       | 3.0x       | With rework loops, debugging, retries  |
 
+---
+
 ## Calibration
 
-Calibration is fully automatic:
+Calibration is fully automatic once you report actuals:
 - **0-2 sessions:** No correction applied. "Collecting data" status.
 - **3-10 sessions:** Global correction factor via trimmed mean of actual/expected ratios (trim_fraction=0.1).
 - **10+ sessions:** EWMA with recency weighting. Per-size-class factors activate when a class has 3+ samples.
-- **Outlier filtering:** Sessions with actual/expected ratio >3.0x or <0.2x are excluded from calibration and logged for inspection.
+- **Outlier filtering:** Sessions with actual/expected ratio >3.0x or <0.2x are excluded from calibration.
 
 Calibration data lives in `calibration/` (gitignored, local to each user).
 
-## Disabling
+---
 
-```bash
-bash /path/to/tokencast/scripts/disable.sh /path/to/your-project
+## Python API
+
+```python
+from tokencast import estimate_cost, report_session, report_step_cost
+from tokencast import get_calibration_status, get_cost_history
+
+# Estimate before running a task
+result = estimate_cost(
+    {"size": "M", "files": 5, "complexity": "medium"},
+    calibration_dir="./calibration",
+)
+
+# Report actuals at session end
+report_session({"actual_cost": 4.20}, calibration_dir="./calibration")
+
+# Check calibration health
+status = get_calibration_status({}, calibration_dir="./calibration")
+
+# Browse history
+history = get_cost_history({"window": "30d"}, calibration_dir="./calibration")
+
+# Report a single step's cost
+report_step_cost(
+    {"step_name": "Research Agent", "cost": 0.85},
+    calibration_dir="./calibration",
+)
 ```
 
-Removes the skill and hooks. Preserves calibration data for reuse.
+---
+
+## Manual Invocation (Skill mode)
+
+In Claude Code with SKILL.md installed, you can invoke explicitly:
+
+```
+/tokencast size=L files=12 complexity=high
+/tokencast steps=implement,test,qa
+/tokencast review_cycles=3
+/tokencast review_cycles=0
+```
+
+---
 
 ## Files
 
@@ -127,13 +263,14 @@ references/pricing.md           — Model prices, cache rates, step→model map
 references/heuristics.md        — Token budgets, pipeline decompositions, multipliers
 references/examples.md          — Worked examples with arithmetic
 references/calibration-algorithm.md — Detailed calibration algorithm reference
-commands/
-  tokencast-version.md     — /tokencast-version slash command
+docs/ide-configs/               — Per-IDE MCP config examples
+src/tokencast/                  — Core estimation engine (Python package)
+src/tokencast_mcp/              — MCP server (Python package)
 scripts/
-  install-hooks.sh              — One-time project setup
-  disable.sh                    — Remove from project
-  tokencast-learn.sh       — Stop hook: auto-captures actuals
-  tokencast-track.sh       — PostToolUse hook: nudges estimation after plans
+  install-hooks.sh              — One-time project setup (skill mode)
+  disable.sh                    — Remove from project (skill mode)
+  tokencast-learn.sh            — Stop hook: auto-captures actuals (skill mode)
+  tokencast-track.sh            — PostToolUse hook: nudges estimation after plans
   sum-session-tokens.py         — Parses session JSONL for actual costs
   update-factors.py             — Computes calibration factors from history
 calibration/                    — Per-user local data (gitignored)
@@ -142,30 +279,17 @@ calibration/                    — Per-user local data (gitignored)
   active-estimate.json          — Transient marker for current estimate
 ```
 
-## v1.1 Changes
-
-- **Trimmed mean** replaces median for faster convergence with small samples
-- **Outlier flagging** — extreme ratios (>3.0x or <0.2x) excluded from calibration, logged for inspection
-- **Richer data** — project type, language, pipeline signature, and step count captured per session
-- **Baseline subtraction** — tokens spent before the estimate are excluded from actuals
-- **Security hardening** — path injection fixes, consolidated parsing, safe handling of paths with spaces
-- **Version markers** — `version: 1.1.0` in SKILL.md, `--version` flag on learn script
-
-## v1.2 Changes
-
-- **PR Review Loop modeling** — geometric-decay cost model for review-fix-re-review cycles
-- **New override** — `review_cycles=N` to set expected cycle count (0 = disable)
-- **Per-band calibration** — PR Review Loop applies calibration independently per band (not re-anchored)
-- **New schema fields** — `review_cycles_estimated` and `review_cycles_actual` in active-estimate.json
+---
 
 ## Limitations
 
 - Pipeline step names reflect a default workflow — map your own steps to the closest defaults. Formulas are pipeline-agnostic (see `references/heuristics.md`)
 - Heuristics assume typical 150-300 line source files
-- Does not model parallel agent execution
 - Calibration requires 3+ completed sessions before corrections activate
 - Pricing data embedded; check `last_updated` in references/pricing.md
 - Multi-session tasks only capture the session containing the estimate
+
+---
 
 ## License
 

@@ -690,18 +690,30 @@ class TestDocumentContent:
         content = CALIBRATION_ALG_MD.read_text()
         assert "stability" in content.lower() or "renaming" in content.lower() or "orphan" in content.lower()
 
-    def test_learn_sh_has_step_costs_estimated_field(self):
-        """learn.sh source code contains 'step_costs_estimated' field name."""
-        assert "step_costs_estimated" in LEARN_SH.read_text()
+    def test_record_logic_has_step_costs_estimated_field(self):
+        """Record-building logic contains 'step_costs_estimated' field name.
 
-    def test_learn_sh_has_step_ratios_field(self):
-        """learn.sh source code contains 'step_ratios' field name."""
-        assert "step_ratios" in LEARN_SH.read_text()
+        After US-1c.03 refactor, this logic lives in session_recorder.py
+        (called by learn.sh), not inline in the shell script.
+        """
+        recorder = REPO_ROOT / "src" / "tokencast" / "session_recorder.py"
+        assert "step_costs_estimated" in recorder.read_text()
 
-    def test_learn_sh_excludes_pr_review_loop(self):
-        """learn.sh source code excludes 'PR Review Loop' from per-step attribution."""
-        content = LEARN_SH.read_text()
-        assert "PR Review Loop" in content
+    def test_record_logic_has_step_ratios_field(self):
+        """Record-building logic contains 'step_ratios' field name.
+
+        After US-1c.03 refactor, this logic lives in session_recorder.py.
+        """
+        recorder = REPO_ROOT / "src" / "tokencast" / "session_recorder.py"
+        assert "step_ratios" in recorder.read_text()
+
+    def test_record_logic_excludes_pr_review_loop(self):
+        """Record-building logic excludes 'PR Review Loop' from per-step attribution.
+
+        After US-1c.03 refactor, this logic lives in session_recorder.py.
+        """
+        recorder = REPO_ROOT / "src" / "tokencast" / "session_recorder.py"
+        assert "PR Review Loop" in recorder.read_text()
 
     def test_claude_md_version(self):
         """CLAUDE.md contains 'Current version: 2.1.0'."""
