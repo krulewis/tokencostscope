@@ -66,6 +66,10 @@ When completing work, the `docs-updater` agent should update:
 - `MEMORY.md` at `/Users/kellyl./.claude/projects/-Volumes-Macintosh-HD2-Cowork-Projects-costscope/memory/MEMORY.md`
 - `ROADMAP.md` if version or milestone status changed
 
+## Project-Specific Estimate Overrides
+
+- **`review_cycles=4`** — use this override when running `/tokencostscope` for tokencostscope changes. The global `heuristics.md` default of 2 is too low for this project; historical data across 5 sessions averages 4–5 passes (v1.3: 5, v1.5: 4, v1.6: 3, v1.7+v2.0: 4, v2.1: 11).
+
 ## Gotchas
 
 - **Paths with spaces** — always quote shell paths; use `-print0 | xargs -0` for `find` pipelines. The repo lives at `/Volumes/Macintosh HD2/Cowork/Projects/costscope` — the space in "Macintosh HD2" will break unquoted shell commands.

@@ -106,6 +106,7 @@
 - [ ] **`/tokencostscope status`** — show calibration health: sample count, factor stability, band accuracy (% of actuals within each band)
 - [ ] **Estimate diff** — when a plan changes mid-session, show delta from previous estimate
 - [ ] **Quiet mode** — option to log estimates without rendering the table
+- [ ] **Project-level heuristics overrides** — allow `calibration/heuristics-overrides.json` (or similar) to shadow specific values from `references/heuristics.md` without modifying the shared file. Primary use case: `review_cycles_default` varies by project (this project averages 4–5; the shared default of 2 is too low). Would replace the manual `review_cycles=4` override documented in `CLAUDE.md`.
 
 ---
 
