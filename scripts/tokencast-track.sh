@@ -42,7 +42,7 @@ if echo "$TOOL_OUTPUT" | grep -qiE "(implementation plan|final plan|plan complet
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "TOKENCOSTSCOPE: A planning agent just returned what appears to be a plan. If tokencast has not yet estimated this plan, invoke the tokencast skill now to produce a cost estimate before proceeding to implementation."
+    "additionalContext": "TOKENCAST: A planning agent just returned what appears to be a plan. If tokencast has not yet estimated this plan, invoke the tokencast skill now to produce a cost estimate before proceeding to implementation."
   }
 }
 EOF
