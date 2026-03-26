@@ -1,4 +1,4 @@
-# Implementation Plan: v1.7 Per-Agent Step Actuals + v2.0 /tokencostscope status (Final)
+# Implementation Plan: v1.7 Per-Agent Step Actuals + v2.0 /tokencast status (Final)
 
 ## Staff Review Findings — Disposition
 
@@ -36,7 +36,7 @@ Three constraints added after staff review. Additive — do not alter core chang
 
 ## Overview
 
-v1.7 adds hook-based per-agent cost attribution via a sidecar timeline file, enabling true per-step actual/expected cost ratios. v2.0 builds a `/tokencostscope status` dashboard on top of v1.7 data. The two versions ship sequentially: v1.7 is implemented and merged first; v2.0 follows.
+v1.7 adds hook-based per-agent cost attribution via a sidecar timeline file, enabling true per-step actual/expected cost ratios. v2.0 builds a `/tokencast status` dashboard on top of v1.7 data. The two versions ship sequentially: v1.7 is implemented and merged first; v2.0 follows.
 
 Within v1.7, Changes 1, 2, 3, 12, and 13 are independent and can run in parallel. learn.sh (Change 4) depends on Changes 1, 2, and 13. settings.json (Change 5) depends on Change 1. Tests can be written in parallel once interfaces are defined.
 
@@ -56,13 +56,13 @@ These three constraints are not user-visible features. They are structural decis
 
 ## v1.7 Changes
 
-### Change 1: scripts/tokencostscope-agent-hook.sh
+### Change 1: scripts/tokencast-agent-hook.sh
 
 **Findings applied: F1, F2, F5, F6**
 **Enterprise constraint: E3 (schema contract note)**
 
 ```
-File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh
+File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh
 Lines: new file
 Parallelism: independent
 Description: New bash hook script handling both PreToolUse and PostToolUse events on the
@@ -488,13 +488,13 @@ Details:
   - Truthiness note: string "true" is truthy — IS excluded. Consistent with F9. Comment added.
 ```
 
-### Change 4: scripts/tokencostscope-learn.sh — sidecar discovery, true step ratios, review_cycles_actual
+### Change 4: scripts/tokencast-learn.sh — sidecar discovery, true step ratios, review_cycles_actual
 
 **Findings applied: F3, F6, F10**
 **Enterprise constraint: E2 (storage writes routed through calibration_store.py)**
 
 ```
-File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh
+File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-learn.sh
 Lines: VERSION bump (line 13), sidecar discovery block (after ~line 74), ACTUAL_JSON call
   (~line 83), eval of ACTUAL_JSON (~lines 88–96), RECORD Python block (~lines 102–160),
   history append and factor recompute (~lines 162–167), cleanup (~lines 169–172).
@@ -642,19 +642,19 @@ Details:
     "hooks": {
       "Stop": [
         { "hooks": [{ "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh'" }] }
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-learn.sh'" }] }
       ],
       "PostToolUse": [
         { "matcher": "Agent", "hooks": [{ "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-track.sh'" }] },
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-track.sh'" }] },
         { "matcher": "Agent", "hooks": [{ "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'" }] }
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'" }] }
       ],
       "PreToolUse": [
         { "hooks": [{ "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-midcheck.sh'" }] },
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-midcheck.sh'" }] },
         { "matcher": "Agent", "hooks": [{ "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'" }] }
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'" }] }
       ]
     }
   }
@@ -728,7 +728,7 @@ Details:
   Design principle (E2): The goal is concentration, not abstraction. Do not add
   abstract base classes, protocols, or dependency injection. A future implementer
   replacing local disk with a remote API will edit this file and only this file.
-  All callers (learn.sh, tokencostscope-status.py) remain unchanged.
+  All callers (learn.sh, tokencast-status.py) remain unchanged.
 
   Module-level:
     import json, os, sys, tempfile
@@ -819,7 +819,7 @@ Details:
             print(f"Unknown command: {cmd}", file=sys.stderr)
             sys.exit(1)
 
-  Note on tokencostscope-status.py (E2):
+  Note on tokencast-status.py (E2):
     Change 9 (status.py) must use calibration_store.read_history() and
     calibration_store.read_factors() instead of inline file reads.
     Import pattern (since calibration_store.py is in scripts/ and status.py is in scripts/):
@@ -962,13 +962,13 @@ Details:
 
 ## v2.0 Changes
 
-### Change 9: scripts/tokencostscope-status.py
+### Change 9: scripts/tokencast-status.py
 
 **Findings applied: F10, F11, F14**
 **Enterprise constraint: E2 (reads via calibration_store), E3 (JSON output schema contract)**
 
 ```
-File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-status.py
+File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-status.py
 Lines: new file (~540–640 lines)
 Parallelism: independent (after v1.7 merged)
 Description: Pure-computation analysis engine. All storage reads via calibration_store (E2).
@@ -1155,7 +1155,7 @@ Details:
 ### v1.7 Execution Order
 
 **Parallel batch 1** (no dependencies, can run concurrently):
-- Change 1: tokencostscope-agent-hook.sh (new file)
+- Change 1: tokencast-agent-hook.sh (new file)
 - Change 2: sum-session-tokens.py (compute_line_cost, _load_agent_map, sum_session_by_agent, _build_spans)
 - Change 3: update-factors.py (excluded field in Pass 1)
 - Change 12: calibration/agent-map.json (documentation only; no file created by implementer)
@@ -1165,7 +1165,7 @@ Details:
 - Change 14: tests/test_calibration_store.py (write in parallel with Change 13)
 
 **Sequential after batch 1**:
-- Change 4: tokencostscope-learn.sh (depends on Changes 1, 2, 13)
+- Change 4: tokencast-learn.sh (depends on Changes 1, 2, 13)
 - Change 5: .claude/settings.json (depends on Change 1)
 
 **Sequential after Changes 4 and 5**:
@@ -1176,7 +1176,7 @@ Details:
 **After v1.7 is merged:**
 
 **Parallel batch 2**:
-- Change 9: tokencostscope-status.py (depends on Change 13 already merged)
+- Change 9: tokencast-status.py (depends on Change 13 already merged)
 - Change 11: tests/test_status_analysis.py (write in parallel — interface fully specified)
 
 **Sequential after batch 2**:
@@ -1190,7 +1190,7 @@ Details:
 - `tests/test_agent_hook.py` — agent-hook.sh + sum_session_by_agent() + configurable mapping
 - `tests/test_update_factors_excluded.py` — excluded field in update-factors.py
 - `tests/test_calibration_store.py` — calibration_store.py storage operations (E2)
-- `tests/test_status_analysis.py` — tokencostscope-status.py analysis and JSON output
+- `tests/test_status_analysis.py` — tokencast-status.py analysis and JSON output
 
 ### Existing tests that may need updating
 - `tests/test_per_step_factors.py`: `TestLearnShIntegrationStepCosts` tests learn.sh step_ratios.
@@ -1232,11 +1232,11 @@ Do NOT use `pytest` or `python3 -m pytest` directly (Homebrew Python 3.14 lacks 
 ## Rollback Notes
 
 ### v1.7 rollback
-- `tokencostscope-agent-hook.sh`: delete. Fail-silent — no existing functionality breaks.
+- `tokencast-agent-hook.sh`: delete. Fail-silent — no existing functionality breaks.
 - `settings.json`: remove new hook entries.
 - `sum-session-tokens.py`: `git checkout`. tokens_by_model removal is the only breaking change
   for callers (none use it; verify before reverting).
-- `tokencostscope-learn.sh`: `git checkout`. storage delegation to calibration_store.py is
+- `tokencast-learn.sh`: `git checkout`. storage delegation to calibration_store.py is
   the only structural change; if calibration_store.py is also reverted, learn.sh reverts to
   inline append + update-factors.py call.
 - `calibration_store.py`: delete. learn.sh reverted above no longer calls it.
@@ -1246,7 +1246,7 @@ Do NOT use `pytest` or `python3 -m pytest` directly (Homebrew Python 3.14 lacks 
 - Data: sidecar files are transient. history.jsonl gains new fields (backward compatible).
 
 ### v2.0 rollback
-- `tokencostscope-status.py`: delete.
+- `tokencast-status.py`: delete.
 - `SKILL.md`: revert status mode section and version bump.
 - `history.jsonl` excluded records: backward compatible; old update-factors.py ignores unknown fields.
 - `calibration_store.py`: retain (it is part of v1.7, not v2.0).

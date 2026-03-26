@@ -1,6 +1,6 @@
 """Tests for mid-session cost tracking hook (v1.6.0).
 
-Tests tokencostscope-midcheck.sh: sampling gate logic, warning threshold,
+Tests tokencast-midcheck.sh: sampling gate logic, warning threshold,
 cooldown mechanism, guard conditions, and JSON output format.
 
 Shell integration tests require bash and python3. They run the script directly
@@ -18,7 +18,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-SCRIPT_PATH = str(SCRIPTS_DIR / "tokencostscope-midcheck.sh")
+SCRIPT_PATH = str(SCRIPTS_DIR / "tokencast-midcheck.sh")
 HEURISTICS_MD = REPO_ROOT / "references" / "heuristics.md"
 SETTINGS_JSON = REPO_ROOT / ".claude" / "settings.json"
 
@@ -451,8 +451,8 @@ class TestDocumentContent:
         assert SETTINGS_JSON.exists(), f"settings.json not found at {SETTINGS_JSON}"
         content = SETTINGS_JSON.read_text()
         assert "PreToolUse" in content, "settings.json should contain PreToolUse hook"
-        assert "tokencostscope-midcheck.sh" in content, (
-            "settings.json PreToolUse hook should reference tokencostscope-midcheck.sh"
+        assert "tokencast-midcheck.sh" in content, (
+            "settings.json PreToolUse hook should reference tokencast-midcheck.sh"
         )
 
     def test_heuristics_has_midcheck_warn_threshold(self):
@@ -490,7 +490,7 @@ class TestDocumentContent:
         # Find the midcheck entry
         midcheck_entries = [
             e for e in pre_tool_use_entries
-            if "tokencostscope-midcheck.sh" in json.dumps(e)
+            if "tokencast-midcheck.sh" in json.dumps(e)
         ]
         assert midcheck_entries, "Should find PreToolUse entry for midcheck.sh"
         for entry in midcheck_entries:

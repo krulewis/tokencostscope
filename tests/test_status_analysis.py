@@ -1,5 +1,5 @@
 # Run with: /usr/bin/python3 -m pytest tests/test_status_analysis.py
-"""Tests for tokencostscope-status.py (v2.0 Change 11).
+"""Tests for tokencast-status.py (v2.0 Change 11).
 
 Covers:
 - get_ratio: stored vs calculated vs zero-division guard
@@ -25,7 +25,7 @@ import sys
 import pytest
 
 REPO_ROOT = pathlib.Path('/Volumes/Macintosh HD2/Cowork/Projects/costscope')
-STATUS_SCRIPT = REPO_ROOT / 'scripts' / 'tokencostscope-status.py'
+STATUS_SCRIPT = REPO_ROOT / 'scripts' / 'tokencast-status.py'
 HEURISTICS_PATH = str(REPO_ROOT / 'references' / 'heuristics.md')
 
 # Constants mirrored from status.py spec
@@ -82,11 +82,11 @@ def make_factors_file(tmp_path, factors=None) -> str:
 
 
 def load_status_module():
-    """Import tokencostscope-status.py via importlib (filename has hyphen)."""
+    """Import tokencast-status.py via importlib (filename has hyphen)."""
     if not STATUS_SCRIPT.exists():
-        pytest.skip(f'tokencostscope-status.py not found: {STATUS_SCRIPT}')
+        pytest.skip(f'tokencast-status.py not found: {STATUS_SCRIPT}')
     spec = importlib.util.spec_from_file_location(
-        'tokencostscope_status', str(STATUS_SCRIPT)
+        'tokencast_status', str(STATUS_SCRIPT)
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

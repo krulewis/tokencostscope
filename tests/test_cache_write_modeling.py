@@ -19,7 +19,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_MD = REPO_ROOT / "SKILL.md"
-LEARN_SH = REPO_ROOT / "scripts" / "tokencostscope-learn.sh"
+LEARN_SH = REPO_ROOT / "scripts" / "tokencast-learn.sh"
 
 # ---------------------------------------------------------------------------
 # Pricing constants (from references/pricing.md)
@@ -456,12 +456,12 @@ class TestDocumentContent:
         assert "version: 2.1.0" in content
 
     def test_skill_md_version_output_header(self):
-        """SKILL.md must contain '## costscope estimate (v2.1.0)' in the output template."""
+        """SKILL.md must contain '## tokencast estimate (v2.1.0)' in the output template."""
         content = SKILL_MD.read_text()
-        assert "## costscope estimate (v2.1.0)" in content
+        assert "## tokencast estimate (v2.1.0)" in content
 
     def test_learn_sh_version(self):
-        """scripts/tokencostscope-learn.sh must contain 'VERSION=\"2.1.0\"'."""
+        """scripts/tokencast-learn.sh must contain 'VERSION=\"2.1.0\"'."""
         content = LEARN_SH.read_text()
         assert 'VERSION="2.1.0"' in content
 

@@ -1,8 +1,8 @@
-# Architecture Decision: v1.7 Per-Agent Step Actuals + v2.0 /tokencostscope status
+# Architecture Decision: v1.7 Per-Agent Step Actuals + v2.0 /tokencast status
 
 ## Decision Summary
 
-v1.7 introduces hook-based per-agent cost attribution via a sidecar timeline file. PreToolUse and PostToolUse hooks on the Agent tool record agent start/stop events with JSONL line numbers (not byte offsets). At session end, `sum-session-tokens.py` uses these line ranges to attribute actual token costs to individual agents. v2.0 builds on this data to provide a `/tokencostscope status` command backed by `tokencostscope-status.py`, which reads history, factors, and heuristics to produce a structured analysis with interactive recommendations.
+v1.7 introduces hook-based per-agent cost attribution via a sidecar timeline file. PreToolUse and PostToolUse hooks on the Agent tool record agent start/stop events with JSONL line numbers (not byte offsets). At session end, `sum-session-tokens.py` uses these line ranges to attribute actual token costs to individual agents. v2.0 builds on this data to provide a `/tokencast status` command backed by `tokencast-status.py`, which reads history, factors, and heuristics to produce a structured analysis with interactive recommendations.
 
 The chosen approach uses **per-session sidecar files** named `{session-id}-timeline.jsonl`, **JSONL line indices** for span attribution, and **impact-then-confidence ordering** for recommendations.
 
@@ -85,7 +85,7 @@ Each line is a JSON object. The schema is intentionally minimal and extensible.
 
 ### Hook Implementation
 
-**New file:** `scripts/tokencostscope-agent-hook.sh`
+**New file:** `scripts/tokencast-agent-hook.sh`
 
 This single script handles both PreToolUse and PostToolUse events on the Agent tool. The hook type is determined from the stdin JSON payload's `hookEventName` field.
 
@@ -102,7 +102,7 @@ This single script handles both PreToolUse and PostToolUse events on the Agent t
 
 **Performance target:** < 5ms per hook invocation. The only I/O is `wc -l` (single syscall) and one append write. No JSONL parsing occurs in the hook.
 
-**Existing hook coexistence:** The current `tokencostscope-track.sh` (PostToolUse on Agent) detects plans and nudges cost estimation. The new agent hook serves a completely different purpose (step timing). Both hooks will fire on PostToolUse/Agent. They must be registered as separate entries in the hooks array. `tokencostscope-track.sh` is unmodified.
+**Existing hook coexistence:** The current `tokencast-track.sh` (PostToolUse on Agent) detects plans and nudges cost estimation. The new agent hook serves a completely different purpose (step timing). Both hooks will fire on PostToolUse/Agent. They must be registered as separate entries in the hooks array. `tokencast-track.sh` is unmodified.
 
 **settings.json update:**
 ```json
@@ -111,13 +111,13 @@ This single script handles both PreToolUse and PostToolUse events on the Agent t
     "PreToolUse": [
       {
         "hooks": [
-          { "type": "command", "command": "bash '...tokencostscope-midcheck.sh'" }
+          { "type": "command", "command": "bash '...tokencast-midcheck.sh'" }
         ]
       },
       {
         "matcher": "Agent",
         "hooks": [
-          { "type": "command", "command": "bash '...tokencostscope-agent-hook.sh'" }
+          { "type": "command", "command": "bash '...tokencast-agent-hook.sh'" }
         ]
       }
     ],
@@ -125,15 +125,15 @@ This single script handles both PreToolUse and PostToolUse events on the Agent t
       {
         "matcher": "Agent",
         "hooks": [
-          { "type": "command", "command": "bash '...tokencostscope-track.sh'" },
-          { "type": "command", "command": "bash '...tokencostscope-agent-hook.sh'" }
+          { "type": "command", "command": "bash '...tokencast-track.sh'" },
+          { "type": "command", "command": "bash '...tokencast-agent-hook.sh'" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash '...tokencostscope-learn.sh'" }
+          { "type": "command", "command": "bash '...tokencast-learn.sh'" }
         ]
       }
     ]
@@ -193,7 +193,7 @@ New function: `sum_session_by_agent(jsonl_path, sidecar_path, baseline_cost)`.
 
 ### Agent Name to Step Name Mapping
 
-The `agent_name` from the hook (e.g., `"researcher"`, `"implementer"`) must map to canonical step names in heuristics.md (e.g., `"Research Agent"`, `"Implementation"`). This mapping is needed in two places: `learn.sh` (matching step_actuals keys to step_costs_estimated keys) and `tokencostscope-status.py` (grouping for display).
+The `agent_name` from the hook (e.g., `"researcher"`, `"implementer"`) must map to canonical step names in heuristics.md (e.g., `"Research Agent"`, `"Implementation"`). This mapping is needed in two places: `learn.sh` (matching step_actuals keys to step_costs_estimated keys) and `tokencast-status.py` (grouping for display).
 
 **Approach:** A mapping table in `sum-session-tokens.py`:
 
@@ -221,10 +221,10 @@ AGENT_TO_STEP = {
 
 ## v2.0 Architecture
 
-### tokencostscope-status.py
+### tokencast-status.py
 
-**Location:** `scripts/tokencostscope-status.py`
-**Invocation:** `python3 scripts/tokencostscope-status.py [options]`
+**Location:** `scripts/tokencast-status.py`
+**Invocation:** `python3 scripts/tokencast-status.py [options]`
 **Runtime:** `/usr/bin/python3` (system Python 3.9, stdlib only)
 
 **Arguments:**
@@ -339,7 +339,7 @@ AGENT_TO_STEP = {
 
 **Schema versioning:** The `schema_version` field enables backward-compatible evolution. Consumers should check `schema_version` and handle unknown fields gracefully. Breaking changes increment the version.
 
-**Framework-agnostic note:** This JSON schema is the stable contract. Any system that can produce `history.jsonl` records (regardless of how they were generated) can feed `tokencostscope-status.py`. The `--json` output can be consumed by non-Claude-Code tooling.
+**Framework-agnostic note:** This JSON schema is the stable contract. Any system that can produce `history.jsonl` records (regardless of how they were generated) can feed `tokencast-status.py`. The `--json` output can be consumed by non-Claude-Code tooling.
 
 ### Recommendation Engine
 
@@ -365,12 +365,12 @@ Each recommendation type is a function that receives the windowed session data a
 
 ### SKILL.md Integration
 
-**New invocation mode:** When the user types `/tokencostscope status [flags]`, SKILL.md detects the `status` keyword and branches into the status flow instead of the estimation flow.
+**New invocation mode:** When the user types `/tokencast status [flags]`, SKILL.md detects the `status` keyword and branches into the status flow instead of the estimation flow.
 
 **Status flow in SKILL.md:**
 
 1. Parse flags from the invocation (`--verbose`, `--json`, `--no-apply`, `window=`).
-2. Run `python3 scripts/tokencostscope-status.py [flags]`. Capture JSON output.
+2. Run `python3 scripts/tokencast-status.py [flags]`. Capture JSON output.
 3. If `--json` flag: output raw JSON and stop.
 4. Otherwise: format JSON into the markdown dashboard (5 sections as specified in requirements).
 5. For each recommendation:
@@ -379,7 +379,7 @@ Each recommendation type is a function that receives the windowed session data a
    c. If destructive: show warning, prompt "Apply? [y/N]", if yes show second confirmation "Are you sure? This will {description}. Proceed? [y/N]".
    d. If non-destructive: prompt "Apply? [y/N]".
    e. If approved: execute the action (edit heuristics.md, exclude session, reset calibration).
-   f. After applying: re-run `tokencostscope-status.py` with `--json` to get updated accuracy metrics. Display before/after diff.
+   f. After applying: re-run `tokencast-status.py` with `--json` to get updated accuracy metrics. Display before/after diff.
 
 **The action execution happens in SKILL.md, not in the Python script.** The Python script computes what should change; SKILL.md (running as Claude with file editing capabilities) applies the change. This keeps the Python script pure computation with no side effects.
 
@@ -425,13 +425,13 @@ Defaults to `false` via `.get('excluded', False)`.
 
 ```
 scripts/
-  tokencostscope-agent-hook.sh    # NEW — PreToolUse + PostToolUse hook for Agent tool
-  tokencostscope-status.py        # NEW — status analysis engine
-  tokencostscope-learn.sh         # MODIFIED — sidecar discovery, true step ratios
+  tokencast-agent-hook.sh    # NEW — PreToolUse + PostToolUse hook for Agent tool
+  tokencast-status.py        # NEW — status analysis engine
+  tokencast-learn.sh         # MODIFIED — sidecar discovery, true step ratios
   sum-session-tokens.py           # MODIFIED — per-agent attribution function
   update-factors.py               # MODIFIED — skip excluded records
-  tokencostscope-midcheck.sh      # UNCHANGED
-  tokencostscope-track.sh         # UNCHANGED
+  tokencast-midcheck.sh      # UNCHANGED
+  tokencast-track.sh         # UNCHANGED
 
 calibration/
   active-estimate.json            # UNCHANGED schema
@@ -458,7 +458,7 @@ references/heuristics.md          # UNCHANGED in v1.7; editable by v2.0 Apply ac
 
 6. **update-factors.py → history.jsonl:** Existing read interface. Now also checks `excluded` field.
 
-7. **SKILL.md → tokencostscope-status.py:** New interface. SKILL.md invokes with flags, reads JSON stdout.
+7. **SKILL.md → tokencast-status.py:** New interface. SKILL.md invokes with flags, reads JSON stdout.
 
 8. **SKILL.md → heuristics.md (Apply action):** Existing file, new edit pattern for recommendation application.
 
@@ -486,7 +486,7 @@ references/heuristics.md          # UNCHANGED in v1.7; editable by v2.0 Apply ac
 
 ### Alt 4: Python-based Hook Instead of Shell
 
-**What it was:** Write `tokencostscope-agent-hook.py` in Python for cleaner JSON handling.
+**What it was:** Write `tokencast-agent-hook.py` in Python for cleaner JSON handling.
 
 **Why rejected:** Claude Code hooks invoke commands via shell. A Python hook adds ~100ms startup overhead (Python interpreter init) vs ~5ms for bash. Since this hook fires on every Agent tool call, the 20x latency difference matters. The bash script is minimal (read stdin JSON via a small python3 -c inline, append one line). Shell is the right tool for this hot path.
 
@@ -508,7 +508,7 @@ references/heuristics.md          # UNCHANGED in v1.7; editable by v2.0 Apply ac
 
 ### Risk 1: Hook Payload Changes
 
-**Risk:** Claude Code's hook payload format may change between versions, breaking field extraction in `tokencostscope-agent-hook.sh`.
+**Risk:** Claude Code's hook payload format may change between versions, breaking field extraction in `tokencast-agent-hook.sh`.
 
 **Mitigation:** The hook script uses `.get()` with defaults for all fields. If `session_id` is absent, fall back to JSONL-path hash. If `tool_input.name` is absent, skip the event (fail-silent, same pattern as midcheck.sh). Pin the expected payload fields in a comment block at the top of the script for easy identification when updating.
 
@@ -591,7 +591,7 @@ The design identifies three interfaces where a non-Claude-Code agent framework w
 
 v1.7 and v2.0 are sequential — v2.0 depends on v1.7 data. Within v1.7:
 
-1. `tokencostscope-agent-hook.sh` (new file, no dependencies)
+1. `tokencast-agent-hook.sh` (new file, no dependencies)
 2. `sum-session-tokens.py` changes (new `sum_session_by_agent` function)
 3. `learn.sh` changes (sidecar discovery, true step ratios, review_cycles_actual)
 4. `update-factors.py` changes (excluded field handling)
@@ -600,6 +600,6 @@ v1.7 and v2.0 are sequential — v2.0 depends on v1.7 data. Within v1.7:
 
 Within v2.0:
 
-1. `tokencostscope-status.py` (new file, reads existing data)
+1. `tokencast-status.py` (new file, reads existing data)
 2. SKILL.md status invocation mode
 3. Tests for status analysis and recommendations

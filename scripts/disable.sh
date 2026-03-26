@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# disable.sh — Remove tokencostscope from a project
+# disable.sh — Remove tokencast from a project
 #
 # Usage: bash disable.sh <project_root>
 #
@@ -18,10 +18,10 @@ fi
 
 PROJECT_ROOT="$(cd "$1" && pwd)"
 CLAUDE_DIR="$PROJECT_ROOT/.claude"
-SKILL_DEST="$CLAUDE_DIR/skills/tokencostscope"
+SKILL_DEST="$CLAUDE_DIR/skills/tokencast"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 
-echo "Disabling tokencostscope in: $PROJECT_ROOT"
+echo "Disabling tokencast in: $PROJECT_ROOT"
 
 # 1. Remove skill symlink
 if [ -e "$SKILL_DEST" ]; then
@@ -33,9 +33,9 @@ fi
 
 # 2. Remove hooks from settings.json
 if [ -f "$SETTINGS_FILE" ]; then
-    LEARN_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-learn.sh"
-    TRACK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-track.sh"
-    MIDCHECK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-midcheck.sh"
+    LEARN_SCRIPT="$SKILL_SOURCE/scripts/tokencast-learn.sh"
+    TRACK_SCRIPT="$SKILL_SOURCE/scripts/tokencast-track.sh"
+    MIDCHECK_SCRIPT="$SKILL_SOURCE/scripts/tokencast-midcheck.sh"
 
     python3 - "$SETTINGS_FILE" "$LEARN_SCRIPT" "$TRACK_SCRIPT" "$MIDCHECK_SCRIPT" <<'PYEOF'
 import json
@@ -81,6 +81,6 @@ PYEOF
 fi
 
 echo ""
-echo "tokencostscope disabled."
+echo "tokencast disabled."
 echo "  Calibration data preserved in: $SKILL_SOURCE/calibration/"
 echo "  To reinstall: bash $SKILL_SOURCE/scripts/install-hooks.sh $PROJECT_ROOT"

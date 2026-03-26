@@ -1,6 +1,6 @@
-# tokencostscope — Roadmap
+# tokencast — Roadmap
 
-> **North star:** Cost-aware agent orchestration — transform tokencostscope from a visibility tool into a cost optimization engine.
+> **North star:** Cost-aware agent orchestration — transform tokencast from a visibility tool into a cost optimization engine.
 >
 > Every milestone below builds toward that goal. Earlier versions produce the data, calibration, and trust needed to make automated cost decisions reliable.
 
@@ -80,7 +80,7 @@
 - [x] **Cold-start guard** — decay only applies when 5+ records exist in a calibration stratum (statistical invariant)
 - [x] **Per-signature correction factors** — after 3+ runs of the same pipeline signature, a `P:x` Cal column factor activates
 - [x] **Per-signature Pass 5** — dedicated calibration phase for signature-based factors in `update-factors.py`
-- [x] **Mid-session cost tracking** — PreToolUse hook `tokencostscope-midcheck.sh` warns when spend approaches 80% of pessimistic estimate
+- [x] **Mid-session cost tracking** — PreToolUse hook `tokencast-midcheck.sh` warns when spend approaches 80% of pessimistic estimate
 - [x] **Sampling & cooldown** — ~50KB sampling gate and ~200KB cooldown to avoid warning spam
 
 ---
@@ -102,8 +102,8 @@
 - [x] **Mid-session cost tracking** — warn if trending toward the pessimistic band (shipped in v1.6)
 - [ ] **Per-agent step actuals breakdown** — capture actuals per agent step (blocked on framework support, see v1.7)
 - [ ] **Cache efficiency score** *(email #7)* — track cache hit rate per session and over time, with tips when efficiency drops
-- [ ] **Cost annotations in responses** *(email #8)* — surface cost info inline after each major agent step: `[tokencostscope: Research Agent — 18,400 tokens, $0.92, 94% cache]`
-- [ ] **`/tokencostscope status`** — show calibration health: sample count, factor stability, band accuracy (% of actuals within each band)
+- [ ] **Cost annotations in responses** *(email #8)* — surface cost info inline after each major agent step: `[tokencast: Research Agent — 18,400 tokens, $0.92, 94% cache]`
+- [ ] **`/tokencast status`** — show calibration health: sample count, factor stability, band accuracy (% of actuals within each band)
 - [ ] **Estimate diff** — when a plan changes mid-session, show delta from previous estimate
 - [ ] **Quiet mode** — option to log estimates without rendering the table
 - [ ] **Project-level heuristics overrides** — allow `calibration/heuristics-overrides.json` (or similar) to shadow specific values from `references/heuristics.md` without modifying the shared file. Primary use case: `review_cycles_default` varies by project (this project averages 4–5; the shared default of 2 is too low). Would replace the manual `review_cycles=4` override documented in `CLAUDE.md`.
@@ -125,7 +125,7 @@
 
 - [ ] **Global calibration layer** — learn factors across all installed projects, fall back to global when project-local data is sparse
 - [ ] **Workflow fingerprinting** — detect the user's actual pipeline shape (skip QA? 2 review rounds?) and auto-adjust step decomposition
-- [ ] **Session comparison & trend dashboard** *(email #2)* — `/tokencostscope report` generated from history.jsonl showing estimate accuracy over time, cost trends, monthly spend
+- [ ] **Session comparison & trend dashboard** *(email #2)* — `/tokencast report` generated from history.jsonl showing estimate accuracy over time, cost trends, monthly spend
 - [ ] **Multi-project rollup** *(email #9)* — global summary across all instrumented projects: total monthly spend, biggest consumer, cross-project calibration sharing
 - [ ] **Multi-session task support** — link multiple sessions to one task via a task ID, aggregate actuals across sessions
 - [ ] **Model price auto-update** — check Anthropic pricing page on install or periodically, update references/pricing.md automatically
@@ -148,7 +148,7 @@
 
 ## v5.0 — Cost-Aware Agent Orchestration
 
-**Goal:** tokencostscope becomes an active participant in pipeline construction and execution. The difference between a fuel gauge and cruise control.
+**Goal:** tokencast becomes an active participant in pipeline construction and execution. The difference between a fuel gauge and cruise control.
 
 **Prerequisites:** v2.0 (per-agent actuals, mid-session tracking), v4.0 (budget gates, model substitution suggestions with acceptance data).
 

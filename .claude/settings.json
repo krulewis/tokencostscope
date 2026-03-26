@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh'"
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-learn.sh'"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-track.sh'"
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-track.sh'"
           }
         ]
       },
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'"
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-midcheck.sh'"
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-midcheck.sh'"
           }
         ]
       },
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'"
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'"
           }
         ]
       }

@@ -15,7 +15,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-LEARN_SH = SCRIPTS_DIR / "tokencostscope-learn.sh"
+LEARN_SH = SCRIPTS_DIR / "tokencast-learn.sh"
 HEURISTICS_MD = REPO_ROOT / "references" / "heuristics.md"
 SKILL_MD = REPO_ROOT / "SKILL.md"
 CALIBRATION_ALGO_MD = REPO_ROOT / "references" / "calibration-algorithm.md"
@@ -227,7 +227,7 @@ class TestWorkedExample:
 # ---------------------------------------------------------------------------
 
 class TestLearnScript:
-    """Tests for tokencostscope-learn.sh changes."""
+    """Tests for tokencast-learn.sh changes."""
 
     def test_learn_sh_version(self):
         """learn.sh --version should output current version."""

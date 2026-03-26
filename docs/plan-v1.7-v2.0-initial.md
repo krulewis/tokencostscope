@@ -1,8 +1,8 @@
-# Implementation Plan: v1.7 Per-Agent Step Actuals + v2.0 /tokencostscope status
+# Implementation Plan: v1.7 Per-Agent Step Actuals + v2.0 /tokencast status
 
 ## Overview
 
-v1.7 adds hook-based per-agent cost attribution via a sidecar timeline file, enabling true per-step actual/expected cost ratios. v2.0 builds a `/tokencostscope status` dashboard on top of v1.7 data. The two versions ship sequentially: v1.7 is implemented and merged first; v2.0 follows.
+v1.7 adds hook-based per-agent cost attribution via a sidecar timeline file, enabling true per-step actual/expected cost ratios. v2.0 builds a `/tokencast status` dashboard on top of v1.7 data. The two versions ship sequentially: v1.7 is implemented and merged first; v2.0 follows.
 
 Within v1.7, three independent changes (agent-hook.sh, sum-session-tokens.py additions, update-factors.py exclusion support) can be implemented in parallel. learn.sh depends on the first two. settings.json depends on agent-hook.sh. Tests can be written in parallel once interfaces are defined.
 
@@ -10,10 +10,10 @@ Within v1.7, three independent changes (agent-hook.sh, sum-session-tokens.py add
 
 ## v1.7 Changes
 
-### Change 1: scripts/tokencostscope-agent-hook.sh
+### Change 1: scripts/tokencast-agent-hook.sh
 
 ```
-File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh
+File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh
 Lines: new file
 Parallelism: independent
 Description: New bash hook script handling both PreToolUse and PostToolUse events on the Agent tool. Writes agent_start / agent_stop events to a per-session sidecar timeline JSONL. Fail-silent via || exit 0.
@@ -139,10 +139,10 @@ Details:
   - All existing tests must continue to pass (excluded field defaults to False via .get())
 ```
 
-### Change 4: scripts/tokencostscope-learn.sh — sidecar discovery, true step ratios, review_cycles_actual
+### Change 4: scripts/tokencast-learn.sh — sidecar discovery, true step ratios, review_cycles_actual
 
 ```
-File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh
+File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-learn.sh
 Lines: multiple sections — VERSION bump (line 13), ACTUAL_JSON computation (~line 83),
   eval of ACTUAL_JSON (~lines 88–96), RECORD Python block (~lines 102–160), cleanup (~lines 162–171)
 Parallelism: depends-on: [Change 1 (agent-hook.sh), Change 2 (sum-session-tokens.py)]
@@ -237,32 +237,32 @@ File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/settings.json
 Lines: all (full file rewrite — small file, 35 lines currently)
 Parallelism: depends-on: [Change 1 (agent-hook.sh)]
 Description: Add PreToolUse Agent matcher hook and PostToolUse Agent second hook entry
-  for tokencostscope-agent-hook.sh. Preserve all existing hooks.
+  for tokencast-agent-hook.sh. Preserve all existing hooks.
 Details:
   - PreToolUse array: add second entry with matcher "Agent" for agent-hook.sh
     (first entry remains the unmatched midcheck.sh)
   - PostToolUse Agent hooks array: add second entry for agent-hook.sh
-    (first entry remains tokencostscope-track.sh)
+    (first entry remains tokencast-track.sh)
   - Result:
     {
       "hooks": {
         "Stop": [
-          { "hooks": [{ "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh'" }] }
+          { "hooks": [{ "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-learn.sh'" }] }
         ],
         "PostToolUse": [
           {
             "matcher": "Agent",
             "hooks": [
-              { "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-track.sh'" },
-              { "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'" }
+              { "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-track.sh'" },
+              { "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'" }
             ]
           }
         ],
         "PreToolUse": [
-          { "hooks": [{ "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-midcheck.sh'" }] },
+          { "hooks": [{ "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-midcheck.sh'" }] },
           {
             "matcher": "Agent",
-            "hooks": [{ "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-agent-hook.sh'" }]
+            "hooks": [{ "type": "command", "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'" }]
           }
         ]
       }
@@ -296,7 +296,7 @@ Details:
 File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/tests/test_agent_hook.py
 Lines: new file (~250 lines)
 Parallelism: independent (can be written in parallel with implementation)
-Description: Unit and integration tests for tokencostscope-agent-hook.sh and
+Description: Unit and integration tests for tokencast-agent-hook.sh and
   the sum_session_by_agent() function.
 Details:
   Test classes:
@@ -375,10 +375,10 @@ Details:
 
 ## v2.0 Changes
 
-### Change 9: scripts/tokencostscope-status.py
+### Change 9: scripts/tokencast-status.py
 
 ```
-File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-status.py
+File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-status.py
 Lines: new file (~500–600 lines)
 Parallelism: independent (after v1.7 is merged; within v2.0 this is the first change)
 Description: Pure-computation analysis script. Reads history.jsonl, factors.json, heuristics.md.
@@ -525,13 +525,13 @@ Parallelism: depends-on: [Change 9]
 Description: Add status invocation detection and the full status flow. Bump version to 2.0.0.
 Details:
   - "When This Skill Activates" — add bullet:
-      - The user types `/tokencostscope status` (any flags), which triggers status mode
+      - The user types `/tokencast status` (any flags), which triggers status mode
         instead of estimation mode
   - "Do NOT activate" — add bullet:
       - The conversation just completed a status invocation (avoid re-triggering)
-  - New section: ## Status Mode (invoked via /tokencostscope status)
+  - New section: ## Status Mode (invoked via /tokencast status)
     Content:
-      When the invocation contains "status" as the first argument after /tokencostscope,
+      When the invocation contains "status" as the first argument after /tokencast,
       enter status mode. Skip all estimation steps (Step 0 through Step 4).
 
       1. Parse flags from invocation text:
@@ -548,7 +548,7 @@ Details:
 
       3. Run analysis:
          ```
-         python3 scripts/tokencostscope-status.py \
+         python3 scripts/tokencast-status.py \
            --history calibration/history.jsonl \
            --factors calibration/factors.json \
            --heuristics references/heuristics.md \
@@ -623,7 +623,7 @@ Details:
 File: /Volumes/Macintosh HD2/Cowork/Projects/costscope/tests/test_status_analysis.py
 Lines: new file (~350–400 lines)
 Parallelism: independent (can be written in parallel with Change 9 since interface is defined)
-Description: Unit tests for tokencostscope-status.py analysis logic and JSON output.
+Description: Unit tests for tokencast-status.py analysis logic and JSON output.
 Details:
   Test classes:
 
@@ -709,14 +709,14 @@ Details:
 ### v1.7 Execution Order
 
 **Parallel batch 1** (no dependencies, can run concurrently):
-- Change 1: tokencostscope-agent-hook.sh (new file)
+- Change 1: tokencast-agent-hook.sh (new file)
 - Change 2: sum-session-tokens.py (new function)
 - Change 3: update-factors.py (excluded field)
 - Change 7: tests/test_agent_hook.py (write tests while implementation is in progress)
 - Change 8: tests/test_update_factors_excluded.py
 
 **Sequential after batch 1**:
-- Change 4: tokencostscope-learn.sh (depends on Changes 1 and 2)
+- Change 4: tokencast-learn.sh (depends on Changes 1 and 2)
 - Change 5: .claude/settings.json (depends on Change 1)
 
 **Sequential after Changes 4 and 5**:
@@ -727,7 +727,7 @@ Details:
 **After v1.7 is merged:**
 
 **Parallel batch 2**:
-- Change 9: tokencostscope-status.py (new file)
+- Change 9: tokencast-status.py (new file)
 - Change 11: tests/test_status_analysis.py (can be written concurrently since interface is specified)
 
 **Sequential after batch 2**:
@@ -740,7 +740,7 @@ Details:
 ### New test files
 - `tests/test_agent_hook.py` — covers agent-hook.sh (shell integration) and sum_session_by_agent()
 - `tests/test_update_factors_excluded.py` — covers excluded field in update-factors.py
-- `tests/test_status_analysis.py` — covers tokencostscope-status.py analysis logic
+- `tests/test_status_analysis.py` — covers tokencast-status.py analysis logic
 
 ### Existing tests that may need updating
 - `tests/test_per_step_factors.py`: The `TestLearnShIntegrationStepCosts` class tests learn.sh's
@@ -770,16 +770,16 @@ Do not use `pytest` or `python3 -m pytest` directly (Homebrew Python 3.14 lacks 
 ## Rollback Notes
 
 ### v1.7 rollback
-- `tokencostscope-agent-hook.sh`: delete the file. Hook is fail-silent — removing it stops event capture but does not break any existing functionality.
+- `tokencast-agent-hook.sh`: delete the file. Hook is fail-silent — removing it stops event capture but does not break any existing functionality.
 - `settings.json`: remove the two new hook entries (PreToolUse Agent matcher, PostToolUse second Agent hook). The file is small and hand-editable.
 - `sum-session-tokens.py`: the new `sum_session_by_agent()` function and AGENT_TO_STEP constant are additive. Revert using `git revert` or `git checkout` the file to prior commit.
-- `tokencostscope-learn.sh`: revert to prior commit. The VERSION string, sidecar discovery block, and RECORD Python block changes are all in one file.
+- `tokencast-learn.sh`: revert to prior commit. The VERSION string, sidecar discovery block, and RECORD Python block changes are all in one file.
 - `update-factors.py`: revert the single `if record.get('excluded', False): continue` addition.
 - `SKILL.md`: revert version string only (two lines).
 - Data: sidecar files in `calibration/` are transient and gitignored. history.jsonl records gain new fields (`step_actuals`, `attribution_method`) but are backward compatible — old code ignores unknown fields via `.get()`.
 
 ### v2.0 rollback
-- `tokencostscope-status.py`: delete the file.
+- `tokencast-status.py`: delete the file.
 - `SKILL.md`: revert status invocation mode section and version bump.
 - `calibration/history.jsonl`: records with `excluded: true` added by the status command can be manually edited to remove the field, or left in place (update-factors.py will skip them — revert that behavior only if rolling back Change 3).
 - No destructive data operations: reset_calibration deletes history.jsonl and factors.json, but that action is user-initiated and confirmed. No automated rollback needed for that action.

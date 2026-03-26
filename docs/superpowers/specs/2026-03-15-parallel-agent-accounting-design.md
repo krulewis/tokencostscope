@@ -8,7 +8,7 @@
 
 ## Problem
 
-The tokencostscope skill models all pipeline steps as sequential. When steps run as parallel
+The tokencast skill models all pipeline steps as sequential. When steps run as parallel
 subagents, two cost differences apply that the current model ignores:
 
 1. **Fresh start effect** — parallel agents don't inherit accumulated context from prior steps,
@@ -198,7 +198,7 @@ This is forward-looking data collection; no calibration logic changes are requir
 |------|--------|
 | `SKILL.md` | Bump version to 1.3.0 in frontmatter and output template header. Step 0: add parallel group detection (step 8). Step 3c (modified): apply `parallel_input_discount`. Step 3d (modified): apply `parallel_cache_rate_reduction` with floor. Step 3.5: clarify C uses un-discounted step costs. Step 4: render bracketed group rows + transparency note; group header rows are display-only and do not appear in `active-estimate.json` `steps` array or increment `step_count`. Limitations: replace sequential-only bullet with "Parallel agent modeling uses fixed discount factors; actual cache and context behavior varies by agent topology." |
 | `references/heuristics.md` | Add "Parallel Agent Accounting" section with two new parameters. |
-| `scripts/tokencostscope-learn.sh` | Bump VERSION to 1.3.0. Propagate `parallel_groups` and `parallel_steps_detected` from `active-estimate.json` into `history.jsonl`. |
+| `scripts/tokencast-learn.sh` | Bump VERSION to 1.3.0. Propagate `parallel_groups` and `parallel_steps_detected` from `active-estimate.json` into `history.jsonl`. |
 | `calibration/active-estimate.json` | Schema extended (written by SKILL.md; no code file changes needed). |
 
 **Not changed:** `references/pricing.md`, `scripts/sum-session-tokens.py`, `scripts/update-factors.py`, PR Review Loop logic.

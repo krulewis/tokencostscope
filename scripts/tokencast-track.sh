@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# tokencostscope-track.sh — PostToolUse hook for Agent tool
+# tokencast-track.sh — PostToolUse hook for Agent tool
 #
 # Fires after the Agent tool returns. Checks if the output looks like
 # a plan (keyword matching). If so, injects context nudging Claude
-# to run the tokencostscope skill for a cost estimate.
+# to run the tokencast skill for a cost estimate.
 #
 # This is a belt-and-suspenders supplement to the skill's auto-triggering.
 # The primary mechanism is Claude's own judgment via the skill description.
@@ -42,7 +42,7 @@ if echo "$TOOL_OUTPUT" | grep -qiE "(implementation plan|final plan|plan complet
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "TOKENCOSTSCOPE: A planning agent just returned what appears to be a plan. If tokencostscope has not yet estimated this plan, invoke the tokencostscope skill now to produce a cost estimate before proceeding to implementation."
+    "additionalContext": "TOKENCAST: A planning agent just returned what appears to be a plan. If tokencast has not yet estimated this plan, invoke the tokencast skill now to produce a cost estimate before proceeding to implementation."
   }
 }
 EOF

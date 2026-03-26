@@ -1,6 +1,6 @@
 # Calibration
 
-tokencostscope learns from your sessions over time. No manual tuning needed — the more sessions it observes, the more accurate its estimates become.
+tokencast learns from your sessions over time. No manual tuning needed — the more sessions it observes, the more accurate its estimates become.
 
 ---
 
@@ -125,7 +125,7 @@ python3 scripts/update-factors.py calibration/history.jsonl calibration/factors.
 View a live analysis of your calibration health, cost attribution patterns, and recommendations:
 
 ```bash
-/tokencostscope status
+/tokencast status
 ```
 
 The dashboard reports:
@@ -141,4 +141,4 @@ Window parameters: `--window 30` (days), `--window 10` (session count), `--windo
 
 ## Stale Pricing Warning
 
-If `references/pricing.md` hasn't been updated in 90+ days, tokencostscope prepends a warning to the output. Check `last_updated` in that file and update prices as needed.
+If `references/pricing.md` hasn't been updated in 90+ days, tokencast prepends a warning to the output. Check `last_updated` in that file and update prices as needed.

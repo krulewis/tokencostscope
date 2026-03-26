@@ -1,6 +1,6 @@
 # Configuration
 
-tokencostscope works automatically with no configuration. This page documents manual overrides and tunable parameters.
+tokencast works automatically with no configuration. This page documents manual overrides and tunable parameters.
 
 ---
 
@@ -9,24 +9,24 @@ tokencostscope works automatically with no configuration. This page documents ma
 Invoke explicitly at any time:
 
 ```
-/tokencostscope
+/tokencast
 ```
 
 With overrides:
 
 ```
-/tokencostscope size=L files=12 complexity=high
-/tokencostscope steps=implement,test,qa
-/tokencostscope review_cycles=3
-/tokencostscope review_cycles=0
+/tokencast size=L files=12 complexity=high
+/tokencast steps=implement,test,qa
+/tokencast review_cycles=3
+/tokencast review_cycles=0
 ```
 
 View calibration health and cost attribution:
 
 ```
-/tokencostscope status
-/tokencostscope status --window 30
-/tokencostscope status --verbose --json
+/tokencast status
+/tokencast status --window 30
+/tokencast status --verbose --json
 ```
 
 ---
@@ -102,7 +102,7 @@ After 3+ runs of the same pipeline signature (e.g., the same ordered sequence of
 
 ## Mid-Session Cost Tracking
 
-During your session, tokencostscope periodically checks spend against the pessimistic estimate and warns if you're approaching the upper band. Warnings are sampled to avoid spam.
+During your session, tokencast periodically checks spend against the pessimistic estimate and warns if you're approaching the upper band. Warnings are sampled to avoid spam.
 
 **Tunable parameters** (in `references/heuristics.md`):
 
@@ -116,7 +116,7 @@ During your session, tokencostscope periodically checks spend against the pessim
 
 ## File Size Awareness
 
-tokencostscope auto-measures file sizes when paths are present in the plan:
+tokencast auto-measures file sizes when paths are present in the plan:
 
 1. **Auto-stat (Layer 1):** Runs `wc -l` on extractable file paths. Files existing on disk
    are assigned a size bracket based on line count. Cap: 30 files per estimate.
@@ -205,7 +205,7 @@ Per-agent step cost attribution requires registration of the agent-hook in `.cla
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/tokencostscope-agent-hook.sh"
+            "command": "bash scripts/tokencast-agent-hook.sh"
           }
         ]
       }
@@ -216,7 +216,7 @@ Per-agent step cost attribution requires registration of the agent-hook in `.cla
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/tokencostscope-agent-hook.sh"
+            "command": "bash scripts/tokencast-agent-hook.sh"
           }
         ]
       }

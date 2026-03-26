@@ -42,7 +42,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-LEARN_SH = SCRIPTS_DIR / "tokencostscope-learn.sh"
+LEARN_SH = SCRIPTS_DIR / "tokencast-learn.sh"
 HEURISTICS_MD = REPO_ROOT / "references" / "heuristics.md"
 SKILL_MD = REPO_ROOT / "SKILL.md"
 
@@ -283,7 +283,7 @@ class TestDocumentContent:
 # ---------------------------------------------------------------------------
 
 class TestLearnScript:
-    """Tests for tokencostscope-learn.sh changes."""
+    """Tests for tokencast-learn.sh changes."""
 
     def test_version_is_1_3_0(self):
         result = subprocess.run(
@@ -709,10 +709,10 @@ git commit -m "test: update test_pr_review_loop.py version assertions to 1.3.0"
 
 ## Chunk 7: learn.sh
 
-### Task 7: Update tokencostscope-learn.sh
+### Task 7: Update tokencast-learn.sh
 
 **Files:**
-- Modify: `scripts/tokencostscope-learn.sh`
+- Modify: `scripts/tokencast-learn.sh`
 
 The key challenge: `parallel_groups` is a JSON array containing strings with spaces and double quotes (e.g., `[["Research Agent"]]`). Passing this through shell variables via double-quoting will break. **Solution:** pass the estimate file path (`$ESTIMATE_FILE`) to the RECORD-building Python block so it can read `parallel_groups` directly from the file — avoiding shell variable escaping issues entirely.
 
@@ -779,7 +779,7 @@ Expected: All 5 PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/tokencostscope-learn.sh
+git add scripts/tokencast-learn.sh
 git commit -m "feat: forward parallel_groups and parallel_steps_detected in learn.sh, bump to 1.3.0"
 ```
 
@@ -803,7 +803,7 @@ Run:
 ```bash
 grep "version:" "/Volumes/Macintosh HD2/Cowork/Projects/costscope/SKILL.md" | head -3
 grep "costscope estimate" "/Volumes/Macintosh HD2/Cowork/Projects/costscope/SKILL.md"
-grep "VERSION=" "/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencostscope-learn.sh"
+grep "VERSION=" "/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-learn.sh"
 ```
 
 Expected: All three show `1.3.0`.

@@ -1,4 +1,4 @@
-"""calibration_store.py — Thin storage helper for tokencostscope calibration data.
+"""calibration_store.py — Thin storage helper for tokencast calibration data.
 
 Design principle (E2): Concentration, not abstraction. All calibration reads and writes
 flow through this module so a future enterprise adapter replaces one file, not many.

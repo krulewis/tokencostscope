@@ -1,6 +1,6 @@
 """parse_last_estimate.py — Parse last-estimate.md into a minimal active-estimate.json structure.
 
-Called by tokencostscope-learn.sh in the continuation reconstitution path when
+Called by tokencast-learn.sh in the continuation reconstitution path when
 active-estimate.json is absent but a recent last-estimate.md exists.
 
 Public API:

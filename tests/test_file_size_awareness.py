@@ -16,7 +16,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-LEARN_SH = SCRIPTS_DIR / "tokencostscope-learn.sh"
+LEARN_SH = SCRIPTS_DIR / "tokencast-learn.sh"
 HEURISTICS_MD = REPO_ROOT / "references" / "heuristics.md"
 SKILL_MD = REPO_ROOT / "SKILL.md"
 
@@ -461,7 +461,7 @@ class TestIntegrationArithmetic:
 
     def test_wc_l_failure_falls_back_to_default(self):
         """A path that doesn't exist on disk is unmeasurable; bracket falls back to medium (or override)."""
-        nonexistent_path = "/tmp/this_file_does_not_exist_tokencostscope_test_xyz.py"
+        nonexistent_path = "/tmp/this_file_does_not_exist_tokencast_test_xyz.py"
         # Simulate: wc -l fails or file is missing → line_count is None → fallback
         subprocess.run(
             ["wc", "-l", nonexistent_path],
@@ -488,7 +488,7 @@ class TestLearnShIntegration(unittest.TestCase):
     These tests FAIL before learn.sh is updated to forward file_brackets and files_measured.
     """
 
-    LEARN_SH = Path(__file__).parent.parent / "scripts" / "tokencostscope-learn.sh"
+    LEARN_SH = Path(__file__).parent.parent / "scripts" / "tokencast-learn.sh"
 
     def _write_mock_estimate(self, tmp_dir: str, include_file_brackets: bool = True) -> str:
         """Write a minimal active-estimate.json for testing."""

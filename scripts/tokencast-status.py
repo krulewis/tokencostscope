@@ -1,10 +1,10 @@
-"""tokencostscope-status.py — Calibration health dashboard for tokencostscope.
+"""tokencast-status.py — Calibration health dashboard for tokencast.
 
 Reads calibration history and factors to produce a structured JSON report on
 estimation accuracy, cost attribution, outliers, and actionable recommendations.
 
 Usage:
-    /usr/bin/python3 scripts/tokencostscope-status.py [options]
+    /usr/bin/python3 scripts/tokencast-status.py [options]
 
 Options:
     --history PATH      Path to history.jsonl (default: calibration/history.jsonl)
@@ -56,7 +56,7 @@ STEP_DOMINANCE_MIN_SESSIONS = 3
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='tokencostscope calibration health dashboard'
+        description='tokencast calibration health dashboard'
     )
     parser.add_argument(
         '--history',

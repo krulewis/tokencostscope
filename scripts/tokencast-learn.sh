@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tokencostscope-learn.sh — Stop hook for automatic learning
+# tokencast-learn.sh — Stop hook for automatic learning
 #
 # Fires when a Claude Code session ends. Reads the session's JSONL log,
 # computes actual token cost, compares to the active estimate (if any),
@@ -13,7 +13,7 @@ set -euo pipefail
 VERSION="2.1.0"
 
 if [ "${1:-}" = "--version" ]; then
-    echo "tokencostscope $VERSION"
+    echo "tokencast $VERSION"
     exit 0
 fi
 

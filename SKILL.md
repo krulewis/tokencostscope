@@ -1,5 +1,5 @@
 ---
-name: tokencostscope
+name: tokencast
 version: 2.1.0
 description: >
   Automatically estimates token usage and dollar cost when a development plan
@@ -12,7 +12,7 @@ disable-model-invocation: false
 allowed-tools: Read, Write, Bash
 ---
 
-# tokencostscope
+# tokencast
 
 Estimate the Claude API cost of a planned software change before execution. Auto-triggers after plans are created. Learns from actual usage to improve over time.
 
@@ -21,14 +21,14 @@ Estimate the Claude API cost of a planned software change before execution. Auto
 This skill activates automatically when:
 - A planning agent returns an implementation plan, architecture decision, or final plan
 - The conversation contains a plan with steps, file lists, or size classification
-- The user explicitly invokes `/tokencostscope`
-- The user invokes `/tokencostscope status` → run the **Status Dashboard** mode (see below)
+- The user explicitly invokes `/tokencast`
+- The user invokes `/tokencast status` → run the **Status Dashboard** mode (see below)
 
 Do NOT activate when:
 - No plan exists in the conversation yet
 - The conversation is mid-implementation (code is being written, not planned)
 - An estimate was already produced for the current plan in this session
-- The conversation is about tokencostscope itself (avoid recursive triggering)
+- The conversation is about tokencast itself (avoid recursive triggering)
 
 ## Step 0 — Infer Inputs from Context
 
@@ -114,7 +114,7 @@ If invoked without explicit parameters, infer from the plan in conversation:
    and auto-measured files are present, auto-measured files use their measured bracket; only
    unmeasured files use the override bracket.
 
-If invoked with explicit parameters (`/tokencostscope size=M files=5 complexity=medium`), use those instead.
+If invoked with explicit parameters (`/tokencast size=M files=5 complexity=medium`), use those instead.
 
 ## Step 1 — Load References and Calibration
 
@@ -220,7 +220,7 @@ Derive the pipeline_signature for the current estimate inline from the `steps` a
 ```
 pipeline_signature = '+'.join(sorted(s.lower().replace(' ', '_') for s in steps))
 ```
-This is the same formula used by `tokencostscope-learn.sh` line 38 to produce the
+This is the same formula used by `tokencast-learn.sh` line 38 to produce the
 `pipeline_signature` field in history records. Note: `pipeline_signature` is NOT
 stored in `active-estimate.json` (learn.sh recomputes it). Compute it inline here.
 
@@ -360,7 +360,7 @@ Write calibration/active-estimate.json:
 Then write a human-readable summary for compaction survival:
 ```
 Write calibration/last-estimate.md:
-# Last tokencostscope Estimate
+# Last tokencast Estimate
 
 **Feature:** {infer from plan context — e.g., "v1.3.0 parallel agent accounting"}
 **Recorded:** {ISO 8601 timestamp}
@@ -385,7 +385,7 @@ This file is the compaction-safe reference for pipeline step 10 cost analysis.
 ## Output Template
 
 ```
-## costscope estimate (v2.1.0)
+## tokencast estimate (v2.1.0)
 
 **Change:** size={size}, files={N}, complexity={complexity}, type={project_type}, lang={language}
 **Files:** {files} total ({files_measured} measured: {small_count} small, {medium_count} medium, {large_count} large; {files_defaulted} defaulted to {override_bracket or "medium"})
@@ -439,15 +439,15 @@ row spans two models (Staff Review on Opus, Engineer Final Plan on Sonnet). The 
 Loop row is omitted when review_cycles=0. When the PR Review Loop row is absent, the Bands
 line reverts to: `Optimistic (best case) · Expected (typical) · Pessimistic (with rework)`
 
-## Status Dashboard Mode (`/tokencostscope status`)
+## Status Dashboard Mode (`/tokencast status`)
 
-When the user invokes `/tokencostscope status`, run the status analysis script and render
+When the user invokes `/tokencast status`, run the status analysis script and render
 the results as a human-readable dashboard. This mode does **not** produce a cost estimate —
 it analyzes historical calibration data and reports on accuracy health.
 
 **Invocation:**
 ```bash
-/usr/bin/python3 scripts/tokencostscope-status.py \
+/usr/bin/python3 scripts/tokencast-status.py \
     [--history calibration/history.jsonl] \
     [--factors calibration/factors.json] \
     [--heuristics references/heuristics.md] \
