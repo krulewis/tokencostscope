@@ -489,6 +489,26 @@ class TestLearnShContinuation(unittest.TestCase):
                 "active-estimate.json should be cleaned up after learn.sh exits",
             )
 
+    def test_malformed_last_estimate_no_history(self):
+        """Malformed last-estimate.md (missing cost table) causes learn.sh to exit cleanly."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            # Write a last-estimate.md that is missing the cost table rows
+            malformed = (
+                "# Last tokencostscope Estimate\n\n"
+                "**Size:** M | **Files:** 5 | **Complexity:** medium\n"
+                "**Type:** greenfield | **Language:** python\n"
+                # No | Optimistic | ... | / | Expected | ... | / | Pessimistic | ... | rows
+            )
+            (tmp_dir / "last-estimate.md").write_text(malformed)
+            session_file = self._write_mock_session_jsonl(tmp_dir)
+
+            result = self._run_learn_sh(session_file, tmp_dir)
+
+            self.assertEqual(result.returncode, 0, "learn.sh should exit 0 on malformed last-estimate.md")
+            record = self._read_last_history_record(tmp_dir)
+            self.assertIsNone(record, "No history record should be written for malformed last-estimate.md")
+
     # --- normal path takes priority ---
 
     def test_normal_path_not_overridden(self):
@@ -503,7 +523,7 @@ class TestLearnShContinuation(unittest.TestCase):
 
             record = self._read_last_history_record(tmp_dir)
             if record is None:
-                self.skipTest("learn.sh did not write history record")
+                self.fail("learn.sh did not write history record — check mock JSONL token counts")
 
             # active-estimate.json has size=L and continuation=False
             # last-estimate.md has size=M and continuation=True
