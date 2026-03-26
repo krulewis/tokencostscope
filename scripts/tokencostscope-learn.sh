@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-VERSION="2.0.0"
+VERSION="2.1.0"
 
 if [ "${1:-}" = "--version" ]; then
     echo "tokencostscope $VERSION"
@@ -24,9 +24,33 @@ ESTIMATE_FILE="${TOKENCOSTSCOPE_ESTIMATE_FILE:-$CALIBRATION_DIR/active-estimate.
 HISTORY_FILE="${TOKENCOSTSCOPE_HISTORY_FILE:-$CALIBRATION_DIR/history.jsonl}"
 FACTORS_FILE="$CALIBRATION_DIR/factors.json"
 
-# Exit early if no active estimate was recorded this session
+# Exit early if no active estimate was recorded this session.
+# Reconstitution fallback: if last-estimate.md is recent (< 48h), rebuild the
+# estimate from it so continuation sessions produce calibration records.
 if [ ! -f "$ESTIMATE_FILE" ]; then
-    exit 0
+    LAST_ESTIMATE_MD="$(dirname "$ESTIMATE_FILE")/last-estimate.md"
+    if [ -f "$LAST_ESTIMATE_MD" ]; then
+        # TOKENCOSTSCOPE_CONTINUATION_MAX_AGE_HOURS (if set) is inherited by
+        # parse_last_estimate.py from the environment — no explicit forwarding needed.
+        python3 "$SCRIPT_DIR/parse_last_estimate.py" "$LAST_ESTIMATE_MD" > "$ESTIMATE_FILE" 2>/dev/null || {
+            rm -f "$ESTIMATE_FILE"
+            exit 0
+        }
+        # Guard against empty output (parse_last_estimate.py exited 0 but wrote nothing)
+        if [ ! -s "$ESTIMATE_FILE" ]; then
+            rm -f "$ESTIMATE_FILE"
+            exit 0
+        fi
+        # Backdate the reconstituted file to last-estimate.md's mtime so the
+        # -newer "$ESTIMATE_FILE" JSONL discovery below correctly identifies
+        # this session's JSONL (which was written after last-estimate.md, not
+        # after the reconstituted file which was just written "now").
+        # Assumption: last-estimate.md was written during the original estimate
+        # session — not modified by any intermediate session between then and now.
+        touch -r "$LAST_ESTIMATE_MD" "$ESTIMATE_FILE" 2>/dev/null || true
+    else
+        exit 0
+    fi
 fi
 
 # Read and parse the active estimate in a single Python call
@@ -211,6 +235,7 @@ print(json.dumps({
     'step_ratios': step_ratios,
     'step_actuals': step_actuals if step_actuals else None,
     'attribution_method': attribution_method,
+    'continuation': _est.get('continuation', False),
 }))
 ")
 

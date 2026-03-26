@@ -8,7 +8,7 @@ tokencostscope learns from your sessions over time. No manual tuning needed — 
 
 At the end of every Claude Code session, the `Stop` hook automatically:
 
-1. Reads `calibration/active-estimate.json` (written when the estimate was produced)
+1. Reads `calibration/active-estimate.json` (written when the estimate was produced). If absent, falls back to reconstituting from `last-estimate.md` when it is recent (< 48h) — captures continuation sessions after compaction (v2.1+).
 2. Finds the session's JSONL log (`~/.claude/projects/.../session.jsonl`)
 3. Finds the sidecar timeline (v1.7+, if agent-hook was enabled) for per-step cost attribution
 4. Parses actual token usage (minus baseline tokens spent before the estimate)
@@ -73,7 +73,7 @@ All calibration data lives in `calibration/` (gitignored — local to each user)
 |------|---------|
 | `history.jsonl` | One record per completed session. Each record includes estimate, actual, ratio, size class, pipeline steps, project type, language, parallel groups, step costs, and per-step actuals (v1.7+). |
 | `factors.json` | Learned correction factors: global, size-class (`M`, `L`, etc.), per-step (`step_factors`), and per-signature (`signature_factors`). |
-| `active-estimate.json` | Transient marker written when an estimate is produced; read by learn.sh at session end, then deleted. |
+| `active-estimate.json` | Transient marker written when an estimate is produced; read by learn.sh at session end, then deleted. If absent when learn.sh runs (e.g., after compaction), learn.sh falls back to `last-estimate.md` for reconstitution (v2.1+). |
 | `.midcheck-state` | Ephemeral state file written by the PreToolUse hook during a session. Tracks last checked byte size and cooldown sentinel. Not part of calibration history. |
 | `{hash}-timeline.jsonl` (v1.7+) | Sidecar file written by agent-hook.sh during the session. Records agent span start/stop with token counts. Cleaned up after learning completes. |
 

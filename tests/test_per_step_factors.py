@@ -581,22 +581,22 @@ class TestLearnShStepCosts:
 class TestDocumentContent:
     """Verify required content in documentation files. Fails before implementation."""
 
-    def test_skill_md_version_v1_5_0(self):
-        """SKILL.md frontmatter contains 'version: 1.6.0'."""
-        assert "version: 2.0.0" in SKILL_MD.read_text()
+    def test_skill_md_version_frontmatter(self):
+        """SKILL.md frontmatter contains 'version: 2.1.0'."""
+        assert "version: 2.1.0" in SKILL_MD.read_text()
 
-    def test_skill_md_output_template_v1_5_0(self):
-        """SKILL.md output template header contains 'v1.6.0'."""
-        assert "v2.0.0" in SKILL_MD.read_text()
+    def test_skill_md_version_output_header(self):
+        """SKILL.md output template header contains 'v2.1.0'."""
+        assert "v2.1.0" in SKILL_MD.read_text()
 
-    def test_learn_sh_version_v1_5_0(self):
-        """learn.sh VERSION variable is '1.6.0'."""
+    def test_learn_sh_version(self):
+        """learn.sh VERSION variable is '2.1.0'."""
         result = subprocess.run(
             ["bash", str(LEARN_SH), "--version"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "2.0.0" in result.stdout
+        assert "2.1.0" in result.stdout
 
     def test_skill_md_step3e_documents_per_step_factor(self):
         """SKILL.md Step 3e documents 'step_factors' lookup."""
@@ -703,9 +703,9 @@ class TestDocumentContent:
         content = LEARN_SH.read_text()
         assert "PR Review Loop" in content
 
-    def test_claude_md_version_v1_5_0(self):
-        """CLAUDE.md contains 'Current version: 1.6.0'."""
-        assert "Current version: 2.0.0" in CLAUDE_MD.read_text()
+    def test_claude_md_version(self):
+        """CLAUDE.md contains 'Current version: 2.1.0'."""
+        assert "Current version: 2.1.0" in CLAUDE_MD.read_text()
 
 
 # ---------------------------------------------------------------------------
