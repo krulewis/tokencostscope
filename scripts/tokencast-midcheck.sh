@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tokencostscope-midcheck.sh — PreToolUse hook for mid-session cost tracking
+# tokencast-midcheck.sh — PreToolUse hook for mid-session cost tracking
 #
 # Fires before every tool call. Uses a file-size sampling gate so the
 # expensive JSONL parse runs at most once per ~50KB of JSONL growth.
@@ -38,7 +38,7 @@ STATE_FILE="${TOKENCOSTSCOPE_MIDCHECK_STATE_FILE:-$CALIBRATION_DIR/.midcheck-sta
 
 # ---- Read pessimistic and baseline cost from estimate ----
 # bare python3 is acceptable here — only stdlib (json, os, sys) is used.
-# This is the same convention as tokencostscope-learn.sh.
+# This is the same convention as tokencast-learn.sh.
 # (finding 5: explicit comment documenting bare python3 is acceptable)
 PESSIMISTIC=$(EST_FILE="$ESTIMATE_FILE" python3 -c "
 import json, os, sys

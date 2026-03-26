@@ -154,7 +154,7 @@ update-factors.py Pass 4, consistent with the existing size-class threshold in P
 
 ## File Size Brackets
 
-When file paths are extractable from the plan and files exist on disk, tokencostscope
+When file paths are extractable from the plan and files exist on disk, tokencast
 measures each file's line count and assigns one of three size brackets. The bracket
 determines the input token budget for file read and file edit activities.
 
@@ -249,7 +249,7 @@ Pipeline signature example: `architect_agent+engineer_final_plan+implementation+
 
 ## Mid-Session Cost Tracking
 
-`tokencostscope-midcheck.sh` fires as a PreToolUse hook and warns when session
+`tokencast-midcheck.sh` fires as a PreToolUse hook and warns when session
 spend approaches the pessimistic estimate band.
 
 | Parameter                 | Value  | Notes                                            |

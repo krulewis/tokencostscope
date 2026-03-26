@@ -1,8 +1,8 @@
-# Requirements: v1.7 Per-Agent Step Actuals + v2.0 /tokencostscope status
+# Requirements: v1.7 Per-Agent Step Actuals + v2.0 /tokencast status
 
 ## Clarified Intent
 
-The user wants a cost management dashboard (`/tokencostscope status`) that answers two questions:
+The user wants a cost management dashboard (`/tokencast status`) that answers two questions:
 
 1. **Are my estimates accurate?** Is accuracy improving or worsening over time?
 2. **Where is my money going?** Which pipeline steps are the biggest cost drivers, and what can be done about it?
@@ -50,26 +50,26 @@ Captures actual token cost per named agent (pipeline step) during a session, ena
 
 ---
 
-## v2.0 — /tokencostscope status
+## v2.0 — /tokencast status
 
 ### What It Does
 
-A cost management dashboard invoked as `/tokencostscope status`. Analyzes calibration history, surfaces accuracy trends, attributes cost to pipeline steps, and makes actionable recommendations the user can apply interactively.
+A cost management dashboard invoked as `/tokencast status`. Analyzes calibration history, surfaces accuracy trends, attributes cost to pipeline steps, and makes actionable recommendations the user can apply interactively.
 
 ### Architecture
 
-- **Python analysis script:** `scripts/tokencostscope-status.py` reads `history.jsonl`, `factors.json`, and `heuristics.md`. Outputs structured JSON.
+- **Python analysis script:** `scripts/tokencast-status.py` reads `history.jsonl`, `factors.json`, and `heuristics.md`. Outputs structured JSON.
 - **SKILL.md integration:** SKILL.md handles formatting the JSON output into the markdown dashboard and managing the interactive "Apply?" conversation flow.
 
 ### Invocation
 
 ```
-/tokencostscope status                    # default: adaptive window, interactive
-/tokencostscope status window=30d         # override: last 30 days
-/tokencostscope status window=10          # override: last 10 sessions
-/tokencostscope status --verbose          # show partial data even when sparse
-/tokencostscope status --json             # structured JSON output, no formatting
-/tokencostscope status --no-apply         # show recommendations but skip prompts
+/tokencast status                    # default: adaptive window, interactive
+/tokencast status window=30d         # override: last 30 days
+/tokencast status window=10          # override: last 10 sessions
+/tokencast status --verbose          # show partial data even when sparse
+/tokencast status --json             # structured JSON output, no formatting
+/tokencast status --no-apply         # show recommendations but skip prompts
 ```
 
 ### Output Sections (in order)
@@ -166,7 +166,7 @@ Recommendations must be:
 
 ## Success Criteria (v2.0)
 
-- SC-7: `/tokencostscope status` with 5+ clean sessions displays all 5 sections (health, accuracy, cost attribution, outliers, recommendations) with accurate data.
+- SC-7: `/tokencast status` with 5+ clean sessions displays all 5 sections (health, accuracy, cost attribution, outliers, recommendations) with accurate data.
 - SC-8: Recommendations are triggered only when data supports them (no false positives on < 3 data points).
 - SC-9: "Apply?" on a heuristics.md edit modifies the correct parameter value and shows a before/after accuracy diff.
 - SC-10: Destructive "Apply?" actions require two-step confirmation before executing.
@@ -243,8 +243,8 @@ Recommendations must be:
 - `update-factors.py` uses true per-step ratios instead of proportional attribution
 - Backward compatible with pre-v1.7 sessions
 
-### v2.0 — /tokencostscope status
-- `scripts/tokencostscope-status.py` analysis script (reads history, factors, heuristics)
+### v2.0 — /tokencast status
+- `scripts/tokencast-status.py` analysis script (reads history, factors, heuristics)
 - SKILL.md integration for formatting and interactive Apply flow
 - 5 output sections: health, accuracy trend, cost attribution, outlier report, recommendations
 - Interactive "Apply? [y/N]" with two-step confirmation for destructive actions

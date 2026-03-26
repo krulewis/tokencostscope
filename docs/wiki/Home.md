@@ -1,4 +1,4 @@
-# tokencostscope
+# tokencast
 
 A Claude Code skill that estimates Anthropic API cost for planned agent tasks, then **learns from actual usage** to improve estimates over time.
 
@@ -18,10 +18,10 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 
 ## Quick Look
 
-After a plan is created, tokencostscope automatically outputs a cost table:
+After a plan is created, tokencast automatically outputs a cost table:
 
 ```
-## costscope estimate (v2.1.0)
+## tokencast estimate (v2.1.0)
 
 Change: size=M, files=5, complexity=medium, type=greenfield, lang=python
 Steps: all (8 steps)
@@ -50,6 +50,6 @@ Every session end, the learning hook reads the JSONL log, computes actual cost, 
 
 Additionally, older calibration records are time-decay weighted (30-day halflife) to give recent sessions more influence. Mid-session cost tracking warns you if actual spend approaches the pessimistic estimate, sampled at ~50KB intervals.
 
-Per-agent step cost attribution (v1.7) tracks actual cost per pipeline step via a sidecar timeline. A live dashboard (`/tokencostscope status`) analyzes your calibration health, cost attribution, and outliers.
+Per-agent step cost attribution (v1.7) tracks actual cost per pipeline step via a sidecar timeline. A live dashboard (`/tokencast status`) analyzes your calibration health, cost attribution, and outliers.
 
 No configuration required — it just learns.

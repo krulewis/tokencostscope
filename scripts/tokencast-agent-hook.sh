@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tokencostscope-agent-hook.sh — PreToolUse / PostToolUse hook for Agent tool
+# tokencast-agent-hook.sh — PreToolUse / PostToolUse hook for Agent tool
 #
 # Expected hook payload fields (update this comment if Claude Code payload format changes):
 #   hookEventName: "PreToolUse" | "PostToolUse"

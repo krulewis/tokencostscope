@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/tokencostscope-logo.svg" alt="tokencostscope logo" width="150">
+  <img src="assets/tokencast-logo.svg" alt="tokencast logo" width="150">
 </p>
 
-# tokencostscope
+# tokencast
 
 A Claude Code skill that estimates Anthropic API cost for planned agent tasks, then **learns from actual usage** to improve estimates over time.
 
@@ -12,28 +12,28 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 
 ```bash
 # Clone the repo (anywhere — it doesn't need to live inside your project)
-git clone https://github.com/krulewis/tokencostscope.git
+git clone https://github.com/krulewis/tokencast.git
 
 # Install into your project (quote paths with spaces)
-bash tokencostscope/scripts/install-hooks.sh "/path/to/your-project"
+bash tokencast/scripts/install-hooks.sh "/path/to/your-project"
 ```
 
 > **Paths with spaces:** Always wrap the project path in quotes. Without them the install script will fail on paths like `/Volumes/Macintosh HD2/...`.
 
 This does three things:
-1. Symlinks the skill into `<project>/.claude/skills/tokencostscope/`
+1. Symlinks the skill into `<project>/.claude/skills/tokencast/`
 2. Adds a `Stop` hook for auto-learning at session end
 3. Adds a `PostToolUse` hook to nudge estimation after planning agents
 
-Every Claude Code session in that project now has tokencostscope active.
+Every Claude Code session in that project now has tokencast active.
 
 ## What Happens Automatically
 
 ### After a plan is created
-tokencostscope detects the plan in conversation context, infers size, files, complexity, project type, and language, then outputs a cost table:
+tokencast detects the plan in conversation context, infers size, files, complexity, project type, and language, then outputs a cost table:
 
 ```
-## tokencostscope estimate
+## tokencast estimate
 
 Change: size=M, files=5, complexity=medium
 Calibration: 1.12x from 8 prior runs
@@ -61,10 +61,10 @@ Future estimates use learned correction factors. More sessions = better accuracy
 You can also invoke explicitly with overrides:
 
 ```
-/tokencostscope size=L files=12 complexity=high
-/tokencostscope steps=implement,test,qa
-/tokencostscope review_cycles=3
-/tokencostscope review_cycles=0
+/tokencast size=L files=12 complexity=high
+/tokencast steps=implement,test,qa
+/tokencast review_cycles=3
+/tokencast review_cycles=0
 ```
 
 Use `review_cycles=N` to set the number of expected PR review cycles. Use `review_cycles=0` to suppress the PR Review Loop row.
@@ -114,7 +114,7 @@ Calibration data lives in `calibration/` (gitignored, local to each user).
 ## Disabling
 
 ```bash
-bash /path/to/tokencostscope/scripts/disable.sh /path/to/your-project
+bash /path/to/tokencast/scripts/disable.sh /path/to/your-project
 ```
 
 Removes the skill and hooks. Preserves calibration data for reuse.
@@ -128,12 +128,12 @@ references/heuristics.md        — Token budgets, pipeline decompositions, mult
 references/examples.md          — Worked examples with arithmetic
 references/calibration-algorithm.md — Detailed calibration algorithm reference
 commands/
-  tokencostscope-version.md     — /tokencostscope-version slash command
+  tokencast-version.md     — /tokencast-version slash command
 scripts/
   install-hooks.sh              — One-time project setup
   disable.sh                    — Remove from project
-  tokencostscope-learn.sh       — Stop hook: auto-captures actuals
-  tokencostscope-track.sh       — PostToolUse hook: nudges estimation after plans
+  tokencast-learn.sh       — Stop hook: auto-captures actuals
+  tokencast-track.sh       — PostToolUse hook: nudges estimation after plans
   sum-session-tokens.py         — Parses session JSONL for actual costs
   update-factors.py             — Computes calibration factors from history
 calibration/                    — Per-user local data (gitignored)

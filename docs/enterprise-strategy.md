@@ -1,4 +1,4 @@
-# tokencostscope — Enterprise Strategy
+# tokencast — Enterprise Strategy
 
 *Written: 2026-03-22. This is a strategic planning document, not a product spec. Decisions about priorities, timing, and distribution model should be revisited as the market develops.*
 
@@ -13,7 +13,7 @@ The closest things:
 - **Budget caps** (Anthropic's max_tokens, LiteLLM spending limits): stop runaway costs, don't predict them
 - **Spreadsheet models**: manual, not integrated, don't learn
 
-tokencostscope closes a gap that will only widen as agentic workloads become the norm. The question is whether to stay a personal tool or build toward the infrastructure that makes this valuable at enterprise scale.
+tokencast closes a gap that will only widen as agentic workloads become the norm. The question is whether to stay a personal tool or build toward the infrastructure that makes this valuable at enterprise scale.
 
 The window is real but not permanent. Framework vendors (LangChain, CrewAI, AutoGen, Vercel AI SDK) will eventually build something like this natively. First movers who establish calibration data and user trust will be hard to displace — but only if the network effects materialize before the window closes.
 
@@ -48,11 +48,11 @@ The architecture decisions already made point toward enterprise — schema versi
 
 Ship what's been planned:
 - v1.7: True per-agent step actual cost attribution via hook-based sidecar timeline
-- v2.0: `/tokencostscope status` dashboard — accuracy trends, cost attribution by step, actionable recommendations
+- v2.0: `/tokencast status` dashboard — accuracy trends, cost attribution by step, actionable recommendations
 
-Why this comes first: these features make tokencostscope a complete product for individual engineers. You can't sell a team product until the single-user product is excellent. v2.0 is also the feature that surfaces value explicitly (the dashboard), which is what converts users from "interesting experiment" to "this is part of my workflow."
+Why this comes first: these features make tokencast a complete product for individual engineers. You can't sell a team product until the single-user product is excellent. v2.0 is also the feature that surfaces value explicitly (the dashboard), which is what converts users from "interesting experiment" to "this is part of my workflow."
 
-At the end of Phase 1, tokencostscope is a complete tool for a sophisticated individual user who builds on Claude Code.
+At the end of Phase 1, tokencast is a complete tool for a sophisticated individual user who builds on Claude Code.
 
 ### Phase 2: Shared Calibration (v2.5 or v3.0)
 *~2–4 months after Phase 1*
@@ -74,7 +74,7 @@ What this unlocks:
 ### Phase 3: Multi-Framework Support
 *~1–2 months after Phase 2*
 
-Claude Code is the wedge but not the limit. Enterprise engineering teams use multiple orchestration frameworks simultaneously. A team might run some workflows in Claude Code, some in LangChain, some in custom Python. To be the cost management layer across an enterprise's LLM spend, tokencostscope needs adapters for:
+Claude Code is the wedge but not the limit. Enterprise engineering teams use multiple orchestration frameworks simultaneously. A team might run some workflows in Claude Code, some in LangChain, some in custom Python. To be the cost management layer across an enterprise's LLM spend, tokencast needs adapters for:
 
 1. **LangChain / LangGraph** — callback handlers to emit sidecar events
 2. **CrewAI** — agent lifecycle hooks
@@ -181,7 +181,7 @@ The bootstrap problem is real but solvable with a community-first launch strateg
 
 The reasoning:
 
-tokencostscope already exists as a Claude Code skill. The user base is real. Phase 1 (v1.7 + v2.0) completes the product without requiring any infrastructure decisions. This is the lowest-risk path to having a finished, excellent product.
+tokencast already exists as a Claude Code skill. The user base is real. Phase 1 (v1.7 + v2.0) completes the product without requiring any infrastructure decisions. This is the lowest-risk path to having a finished, excellent product.
 
 When Phase 2 begins (shared calibration), open-source the client and introduce a hosted backend. This gives the project Option A's community dynamics — open source client builds trust and adoption, hosted backend is the revenue model — without abandoning the Claude Code install base.
 
@@ -210,7 +210,7 @@ Several design decisions in v1.7 were made with enterprise in mind. For referenc
 | Sidecar schema_version=1 as API contract | Downstream consumers (dashboards, CI systems) can parse stably |
 | JSON output schema_version=1 in status.py | Same — stable API for enterprise integrations |
 | Framework-agnostic sidecar format | Any framework can write sidecar events |
-| `--json` flag in /tokencostscope status | Agents and CI pipelines can consume structured output |
+| `--json` flag in /tokencast status | Agents and CI pipelines can consume structured output |
 
 None of these add complexity today. They're the minimum viable future-proofing — present in the code, invisible to current users, load-bearing if the enterprise path materializes.
 

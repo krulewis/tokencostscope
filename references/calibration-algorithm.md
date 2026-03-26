@@ -2,7 +2,7 @@
 
 ## Overview
 
-tokencostscope learns from actual session costs to improve future estimates.
+tokencast learns from actual session costs to improve future estimates.
 The learning loop is fully automatic: estimates are recorded during planning,
 actuals are captured at session end via the Stop hook, and correction factors
 are recomputed after each session.
@@ -13,7 +13,7 @@ are recomputed after each session.
 Plan created → SKILL.md auto-triggers → estimate produced
                                        → active-estimate.json written
 
-Session ends → tokencostscope-learn.sh fires (Stop hook)
+Session ends → tokencast-learn.sh fires (Stop hook)
              → sum-session-tokens.py reads JSONL log
              → actual cost computed
              → record appended to history.jsonl

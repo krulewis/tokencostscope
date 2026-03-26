@@ -17,7 +17,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-LEARN_SH = SCRIPTS_DIR / "tokencostscope-learn.sh"
+LEARN_SH = SCRIPTS_DIR / "tokencast-learn.sh"
 HEURISTICS_MD = REPO_ROOT / "references" / "heuristics.md"
 SKILL_MD = REPO_ROOT / "SKILL.md"
 
@@ -344,7 +344,7 @@ class TestDocumentContent:
 # ---------------------------------------------------------------------------
 
 class TestLearnScript:
-    """Tests for tokencostscope-learn.sh changes."""
+    """Tests for tokencast-learn.sh changes."""
 
     def test_learn_sh_version(self):
         result = subprocess.run(
@@ -442,7 +442,7 @@ print(f'PSD={psd}')
 class TestLearnShellIntegration(unittest.TestCase):
     """Integration tests: invoke learn.sh end-to-end with mock data."""
 
-    LEARN_SH = Path(__file__).parent.parent / "scripts" / "tokencostscope-learn.sh"
+    LEARN_SH = Path(__file__).parent.parent / "scripts" / "tokencast-learn.sh"
     CALIBRATION_DIR = Path(__file__).parent.parent / "calibration"
 
     def _write_mock_estimate(self, tmp_dir, parallel_groups=None, parallel_steps_detected=0):

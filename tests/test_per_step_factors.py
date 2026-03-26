@@ -22,7 +22,7 @@ from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-LEARN_SH = SCRIPTS_DIR / "tokencostscope-learn.sh"
+LEARN_SH = SCRIPTS_DIR / "tokencast-learn.sh"
 UPDATE_FACTORS_PY = SCRIPTS_DIR / "update-factors.py"
 SKILL_MD = REPO_ROOT / "SKILL.md"
 HEURISTICS_MD = REPO_ROOT / "references" / "heuristics.md"
@@ -716,7 +716,7 @@ class TestDocumentContent:
 class TestLearnShIntegrationStepCosts(unittest.TestCase):
     """Integration tests: invoke learn.sh end-to-end with step_costs in estimate."""
 
-    LEARN_SH = Path(__file__).parent.parent / "scripts" / "tokencostscope-learn.sh"
+    LEARN_SH = Path(__file__).parent.parent / "scripts" / "tokencast-learn.sh"
     UPDATE_FACTORS_PY = Path(__file__).parent.parent / "scripts" / "update-factors.py"
 
     def _write_mock_estimate(

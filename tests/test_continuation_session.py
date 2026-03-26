@@ -39,12 +39,12 @@ parse = _mod.parse
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-LEARN_SH = REPO_ROOT / "scripts" / "tokencostscope-learn.sh"
+LEARN_SH = REPO_ROOT / "scripts" / "tokencast-learn.sh"
 
 # SAMPLE_MD — valid last-estimate.md content WITHOUT a Baseline Cost line.
 # Uses the exact format written by SKILL.md (Pessimistic row tight: no space before pipe).
 SAMPLE_MD = """\
-# Last tokencostscope Estimate
+# Last tokencast Estimate
 
 **Feature:** v2.1 test fixture
 **Recorded:** 2026-03-24T00:00:00Z
@@ -124,7 +124,7 @@ class TestParseLastEstimate(unittest.TestCase):
     def test_missing_cost_table(self):
         """Content with no cost table rows returns None."""
         content = """\
-# Last tokencostscope Estimate
+# Last tokencast Estimate
 
 **Size:** M | **Files:** 5 | **Complexity:** medium
 
@@ -144,7 +144,7 @@ Review cycles estimated: 0
     def test_whitespace_variation_in_table(self):
         """Extra spaces in cost table rows are handled correctly."""
         content = """\
-# Last tokencostscope Estimate
+# Last tokencast Estimate
 
 **Size:** M | **Files:** 5 | **Complexity:** medium
 
@@ -183,7 +183,7 @@ Parallel steps detected: 0
     def test_missing_type_language(self):
         """Content without **Type:** line returns dict with defaults."""
         content = """\
-# Last tokencostscope Estimate
+# Last tokencast Estimate
 
 **Size:** S | **Files:** 3 | **Complexity:** low
 
@@ -204,7 +204,7 @@ Parallel steps detected: 0
     def test_missing_steps(self):
         """Content without **Steps:** line returns dict with steps=[] and step_count=0."""
         content = """\
-# Last tokencostscope Estimate
+# Last tokencast Estimate
 
 **Size:** S | **Files:** 3 | **Complexity:** low
 
@@ -314,7 +314,7 @@ Parallel steps detected: 0
 class TestLearnShContinuation(unittest.TestCase):
     """Integration tests for learn.sh continuation reconstitution path."""
 
-    LEARN_SH = REPO_ROOT / "scripts" / "tokencostscope-learn.sh"
+    LEARN_SH = REPO_ROOT / "scripts" / "tokencast-learn.sh"
 
     def _write_mock_last_estimate(
         self,
@@ -495,7 +495,7 @@ class TestLearnShContinuation(unittest.TestCase):
             tmp_dir = Path(tmp)
             # Write a last-estimate.md that is missing the cost table rows
             malformed = (
-                "# Last tokencostscope Estimate\n\n"
+                "# Last tokencast Estimate\n\n"
                 "**Size:** M | **Files:** 5 | **Complexity:** medium\n"
                 "**Type:** greenfield | **Language:** python\n"
                 # No | Optimistic | ... | / | Expected | ... | / | Pessimistic | ... | rows

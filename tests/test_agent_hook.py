@@ -1,4 +1,4 @@
-"""Tests for tokencostscope-agent-hook.sh and sum_session_by_agent() (v1.7.0).
+"""Tests for tokencast-agent-hook.sh and sum_session_by_agent() (v1.7.0).
 
 Covers:
 - Sidecar event schema: required fields, no parent_agent (F1), span_id (F2)
@@ -24,8 +24,8 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-AGENT_HOOK_SH = SCRIPTS_DIR / "tokencostscope-agent-hook.sh"
-LEARN_SH = SCRIPTS_DIR / "tokencostscope-learn.sh"
+AGENT_HOOK_SH = SCRIPTS_DIR / "tokencast-agent-hook.sh"
+LEARN_SH = SCRIPTS_DIR / "tokencast-learn.sh"
 SUM_SESSION_PY = SCRIPTS_DIR / "sum-session-tokens.py"
 CALIBRATION_DIR = REPO_ROOT / "calibration"
 
@@ -1039,7 +1039,7 @@ class TestLearnShAgentHookIntegration:
 def agent_hook_exists():
     """Skip tests if agent-hook.sh does not exist yet."""
     if not AGENT_HOOK_SH.exists():
-        pytest.skip(f"tokencostscope-agent-hook.sh not yet implemented: {AGENT_HOOK_SH}")
+        pytest.skip(f"tokencast-agent-hook.sh not yet implemented: {AGENT_HOOK_SH}")
 
 
 def run_agent_hook(hook_payload, extra_env=None):
@@ -1059,7 +1059,7 @@ def run_agent_hook(hook_payload, extra_env=None):
 
 
 class TestAgentHookShellScript:
-    """Shell-level integration tests for tokencostscope-agent-hook.sh."""
+    """Shell-level integration tests for tokencast-agent-hook.sh."""
 
     def test_non_agent_tool_exits_early(self, tmp_path, agent_hook_exists):
         """Non-Agent toolName causes script to exit 0 without writing sidecar."""

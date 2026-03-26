@@ -1,6 +1,6 @@
 # How It Works
 
-tokencostscope estimates Claude API cost by decomposing a plan into pipeline steps, computing token counts per step, and applying pricing — before any code is written.
+tokencast estimates Claude API cost by decomposing a plan into pipeline steps, computing token counts per step, and applying pricing — before any code is written.
 
 ---
 
@@ -166,7 +166,7 @@ Sums all step costs per band, renders the table, and writes `calibration/active-
 
 ## Continuation Session Handling (v2.1+)
 
-When a session compacts, `active-estimate.json` is consumed by the prior session's `learn.sh` run. If the next session ends without a new estimate (e.g., you continued work without re-running `/tokencostscope`), `learn.sh` would normally exit without recording anything.
+When a session compacts, `active-estimate.json` is consumed by the prior session's `learn.sh` run. If the next session ends without a new estimate (e.g., you continued work without re-running `/tokencast`), `learn.sh` would normally exit without recording anything.
 
 As of v2.1, `learn.sh` falls back to `last-estimate.md` when `active-estimate.json` is absent:
 
@@ -180,21 +180,21 @@ The 48-hour recency window is configurable via `TOKENCOSTSCOPE_CONTINUATION_MAX_
 
 ## Per-Agent Step Cost Attribution (v1.7+)
 
-A PreToolUse/PostToolUse hook (`tokencostscope-agent-hook.sh`) writes a sidecar timeline JSONL during your session. This captures the start/stop of each agent span with token counts, allowing the learning hook to attribute actual costs to specific pipeline steps.
+A PreToolUse/PostToolUse hook (`tokencast-agent-hook.sh`) writes a sidecar timeline JSONL during your session. This captures the start/stop of each agent span with token counts, allowing the learning hook to attribute actual costs to specific pipeline steps.
 
-At session end, `tokencostscope-learn.sh` reads the sidecar timeline and computes per-step actuals via FIFO span matching. History records now include `step_actuals: {step_name: float}` alongside proportional step-level attribution as a fallback.
+At session end, `tokencast-learn.sh` reads the sidecar timeline and computes per-step actuals via FIFO span matching. History records now include `step_actuals: {step_name: float}` alongside proportional step-level attribution as a fallback.
 
 ---
 
 ## Calibration Health Dashboard (v2.0+)
 
-Invoke `/tokencostscope status` at any time to analyze your calibration health:
+Invoke `/tokencast status` at any time to analyze your calibration health:
 
 ```
-/tokencostscope status
-/tokencostscope status --window 30
-/tokencostscope status --window adaptive
-/tokencostscope status --verbose --json
+/tokencast status
+/tokencast status --window 30
+/tokencast status --window adaptive
+/tokencast status --verbose --json
 ```
 
 The dashboard outputs five sections:
@@ -236,7 +236,7 @@ Records are never deleted — the skill preserves your full history for long-ter
 
 ## Mid-Session Cost Tracking
 
-As your session progresses, tokencostscope periodically checks actual spend against the pessimistic estimate via a PreToolUse hook. If spend approaches 80% of the pessimistic band, a warning is issued. Warnings are sampled at ~50KB intervals to avoid verbosity.
+As your session progresses, tokencast periodically checks actual spend against the pessimistic estimate via a PreToolUse hook. If spend approaches 80% of the pessimistic band, a warning is issued. Warnings are sampled at ~50KB intervals to avoid verbosity.
 
 Example output:
 ```

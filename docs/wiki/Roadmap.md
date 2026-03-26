@@ -1,8 +1,8 @@
 # Roadmap
 
-> **North star:** Cost-aware agent orchestration — transform tokencostscope from a visibility tool into a cost optimization engine.
+> **North star:** Cost-aware agent orchestration — transform tokencast from a visibility tool into a cost optimization engine.
 
-Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/tokencostscope/blob/main/ROADMAP.md) in the repo root.
+Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/tokencast/blob/main/ROADMAP.md) in the repo root.
 
 ---
 
@@ -63,7 +63,7 @@ Full roadmap with all versions: [`ROADMAP.md`](https://github.com/krulewis/token
 - `sum_session_tokens.py` enhanced with per-step attribution logic
 
 ### v2.0 — Observability
-- **Calibration health dashboard** — `/tokencostscope status` command
+- **Calibration health dashboard** — `/tokencast status` command
 - Five sections: health, accuracy, cost attribution, outliers, recommendations
 - Window modes: 30-day, 10-session, all-time, adaptive auto-select
 - Per-step cost drivers and outlier flagging for manual review

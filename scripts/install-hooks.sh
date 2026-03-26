@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install-hooks.sh — One-time setup for tokencostscope
+# install-hooks.sh — One-time setup for tokencast
 #
 # Installs the skill into a project's .claude/skills/ directory and
 # merges the required hooks into the project's .claude/settings.json.
@@ -8,7 +8,7 @@
 #   bash install-hooks.sh <project_root>
 #   bash install-hooks.sh .                # current directory
 #
-# After running, tokencostscope will:
+# After running, tokencast will:
 # - Auto-estimate after plans are created (via skill auto-trigger)
 # - Auto-learn at session end (via Stop hook)
 # - Nudge Claude after Agent tool returns a plan (via PostToolUse hook)
@@ -31,11 +31,11 @@ CLAUDE_DIR="$PROJECT_ROOT/.claude"
 SKILLS_DIR="$CLAUDE_DIR/skills"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 
-echo "Installing tokencostscope into: $PROJECT_ROOT"
+echo "Installing tokencast into: $PROJECT_ROOT"
 
-# 1. Create .claude/skills/tokencostscope/ and symlink the skill
+# 1. Create .claude/skills/tokencast/ and symlink the skill
 mkdir -p "$SKILLS_DIR"
-SKILL_DEST="$SKILLS_DIR/tokencostscope"
+SKILL_DEST="$SKILLS_DIR/tokencast"
 
 if [ -e "$SKILL_DEST" ]; then
     echo "  Skill directory already exists at $SKILL_DEST"
@@ -72,9 +72,9 @@ if [ ! -f "$SETTINGS_FILE" ]; then
     echo '{}' > "$SETTINGS_FILE"
 fi
 
-LEARN_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-learn.sh"
-TRACK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-track.sh"
-MIDCHECK_SCRIPT="$SKILL_SOURCE/scripts/tokencostscope-midcheck.sh"
+LEARN_SCRIPT="$SKILL_SOURCE/scripts/tokencast-learn.sh"
+TRACK_SCRIPT="$SKILL_SOURCE/scripts/tokencast-track.sh"
+MIDCHECK_SCRIPT="$SKILL_SOURCE/scripts/tokencast-midcheck.sh"
 
 # Use python3 for reliable JSON merging (jq may not be installed)
 python3 - "$SETTINGS_FILE" "$LEARN_SCRIPT" "$TRACK_SCRIPT" "$MIDCHECK_SCRIPT" <<'PYEOF'
@@ -121,7 +121,7 @@ PYEOF
 chmod +x "$LEARN_SCRIPT" "$TRACK_SCRIPT" "$MIDCHECK_SCRIPT"
 
 echo ""
-echo "tokencostscope installed successfully."
+echo "tokencast installed successfully."
 echo ""
 echo "What happens now:"
 echo "  - Every session in this project will auto-estimate plans"
