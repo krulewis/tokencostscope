@@ -389,7 +389,12 @@ class TestLearnShContinuation(unittest.TestCase):
         tmp_dir: Path,
         env_extra: Optional[dict] = None,
     ) -> subprocess.CompletedProcess:
-        """Run learn.sh with TOKENCOSTSCOPE_ESTIMATE_FILE and HISTORY_FILE overrides."""
+        """Run learn.sh with TOKENCOSTSCOPE_ESTIMATE_FILE and HISTORY_FILE overrides.
+
+        The second positional arg ("0") is the baseline_cost override for learn.sh —
+        it tells the script to treat $0 of session cost as pre-estimate baseline,
+        so the full session cost is attributed to the actual cost for this test.
+        """
         env = {
             **os.environ,
             "TOKENCOSTSCOPE_ESTIMATE_FILE": str(tmp_dir / "active-estimate.json"),

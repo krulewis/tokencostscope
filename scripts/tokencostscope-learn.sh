@@ -30,6 +30,8 @@ FACTORS_FILE="$CALIBRATION_DIR/factors.json"
 if [ ! -f "$ESTIMATE_FILE" ]; then
     LAST_ESTIMATE_MD="$(dirname "$ESTIMATE_FILE")/last-estimate.md"
     if [ -f "$LAST_ESTIMATE_MD" ]; then
+        # TOKENCOSTSCOPE_CONTINUATION_MAX_AGE_HOURS (if set) is inherited by
+        # parse_last_estimate.py from the environment — no explicit forwarding needed.
         python3 "$SCRIPT_DIR/parse_last_estimate.py" "$LAST_ESTIMATE_MD" > "$ESTIMATE_FILE" 2>/dev/null || {
             rm -f "$ESTIMATE_FILE"
             exit 0
@@ -43,6 +45,8 @@ if [ ! -f "$ESTIMATE_FILE" ]; then
         # -newer "$ESTIMATE_FILE" JSONL discovery below correctly identifies
         # this session's JSONL (which was written after last-estimate.md, not
         # after the reconstituted file which was just written "now").
+        # Assumption: last-estimate.md was written during the original estimate
+        # session — not modified by any intermediate session between then and now.
         touch -r "$LAST_ESTIMATE_MD" "$ESTIMATE_FILE" 2>/dev/null || true
     else
         exit 0
