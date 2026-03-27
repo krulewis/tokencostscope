@@ -89,6 +89,9 @@ else
     # Search all project directories under ~/.claude/projects/
     # Use find -exec ls instead of find|xargs — GNU xargs (Linux) runs `ls`
     # with no arguments on empty stdin, listing cwd (cross-platform bug).
+    # Note: -exec ... + may batch if file count exceeds ARG_MAX, so head -1
+    # is not guaranteed globally newest in extreme cases. Acceptable for
+    # typical session counts (< 100 JSONL files).
     if [ -d "$HOME/.claude/projects/" ]; then
         LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" \
             -exec ls -t {} + 2>/dev/null | head -1)
@@ -129,8 +132,8 @@ if [ -z "$SIDECAR_PATH" ]; then
         SIDECAR_PATH="$CANDIDATE"
     else
         # Fallback: find most recently modified timeline newer than the estimate.
-        # Pipe through awk to sort by mtime instead of xargs+ls — GNU xargs runs
-        # `ls` with no arguments on empty stdin, listing cwd (cross-platform bug).
+        # Use find -exec ls instead of find|xargs — GNU xargs runs `ls` with no
+        # arguments on empty stdin, listing cwd (cross-platform bug).
         if [ -d "$CALIBRATION_DIR" ]; then
             SIDECAR_PATH=$(find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -newer "$ESTIMATE_FILE" \
                 -exec ls -t {} + 2>/dev/null | head -1 || echo "")
