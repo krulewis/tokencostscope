@@ -19,11 +19,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
-# Add src/ to sys.path so tokencast.pricing is importable when script is run directly.
-_SRC = Path(__file__).resolve().parent.parent / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-from tokencast.pricing import compute_cost_from_usage as _compute_cost_from_usage
+# Import compute_cost_from_usage directly via importlib to avoid triggering
+# tokencast/__init__.py which has heavy transitive imports (api.py, mcp, etc.)
+# that may not be available when this script runs as a subprocess.
+import importlib.util as _ilu
+_pricing_path = str(Path(__file__).resolve().parent.parent / "src" / "tokencast" / "pricing.py")
+_pricing_spec = _ilu.spec_from_file_location("tokencast_pricing", _pricing_path)
+_pricing_mod = _ilu.module_from_spec(_pricing_spec)
+_pricing_spec.loader.exec_module(_pricing_mod)
+_compute_cost_from_usage = _pricing_mod.compute_cost_from_usage
 
 # DEPRECATED: This dict is retained for backward compatibility with external scripts
 # that may import it. Use tokencast.pricing.MODEL_PRICES instead. Values may be stale.
