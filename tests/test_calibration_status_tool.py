@@ -21,7 +21,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Import the public API directly (no MCP dependency needed for unit tests)
 # ---------------------------------------------------------------------------
-REPO_ROOT = pathlib.Path('/Volumes/Macintosh HD2/Cowork/Projects/costscope')
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'src'))
 
 from tokencast.api import get_calibration_status  # noqa: E402

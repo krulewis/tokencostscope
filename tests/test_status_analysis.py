@@ -24,7 +24,7 @@ import sys
 
 import pytest
 
-REPO_ROOT = pathlib.Path('/Volumes/Macintosh HD2/Cowork/Projects/costscope')
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 STATUS_SCRIPT = REPO_ROOT / 'scripts' / 'tokencast-status.py'
 HEURISTICS_PATH = str(REPO_ROOT / 'references' / 'heuristics.md')
 
@@ -96,7 +96,7 @@ def load_status_module():
 def run_status_script(*args) -> tuple:
     """Run the status script as a subprocess. Returns (returncode, stdout, stderr)."""
     cmd = [
-        '/usr/bin/python3',
+        sys.executable,
         str(STATUS_SCRIPT),
     ]
     cmd.extend(args)

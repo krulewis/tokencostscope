@@ -29,7 +29,7 @@ import pytest
 # sys.path setup — ensure src/ is importable
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = pathlib.Path("/Volumes/Macintosh HD2/Cowork/Projects/costscope")
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "src"
 
 if str(SRC_DIR) not in sys.path:

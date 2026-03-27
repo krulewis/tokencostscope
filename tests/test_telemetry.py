@@ -641,9 +641,6 @@ class TestServerTelemetryIntegration(unittest.TestCase):
                 )
                 server = build_server(config)
 
-                # Use the internal call_tool handler via the registered handlers
-                handler = server._tool_handlers.get("call_tool") or server._tool_call_handler
-                # Build a minimal estimate_cost call using the tool handler
                 async def _run():
                     from tokencast_mcp.tools.estimate_cost import handle_estimate_cost
                     result = await handle_estimate_cost(
@@ -664,7 +661,6 @@ class TestServerTelemetryIntegration(unittest.TestCase):
         """build_server's call_tool dispatcher calls record_event for estimate_cost."""
         try:
             import asyncio
-            import json as _json
             import mcp  # noqa: F401
         except ImportError:
             self.skipTest("mcp not available")
@@ -687,30 +683,18 @@ class TestServerTelemetryIntegration(unittest.TestCase):
                 server = build_server(config)
 
                 async def _call_tool():
-                    # Access the registered call_tool handler
-                    # The server stores handlers — invoke via server's call_tool
-                    call_handler = None
-                    for attr in dir(server):
-                        if attr.startswith("_") and "call" in attr.lower():
-                            pass
-                    # Direct invocation of the registered handler
-                    # In mcp SDK, registered handlers are callable
-                    handler = getattr(server, "_tool_call_handler", None)
-                    if handler is None:
-                        # Fallback: run the full handler chain directly
-                        from tokencast_mcp.tools.estimate_cost import handle_estimate_cost
-                        result = await handle_estimate_cost(
-                            {"size": "XS", "files": 1, "complexity": "low"}, config
+                    from mcp.types import CallToolRequest, CallToolRequestParams
+                    handler = server.request_handlers[CallToolRequest]
+                    result = await handler(
+                        CallToolRequest(
+                            method="tools/call",
+                            params=CallToolRequestParams(
+                                name="estimate_cost",
+                                arguments={"size": "XS", "files": 1, "complexity": "low"},
+                            ),
                         )
-                        # Simulate what build_server's call_tool would do after
-                        telemetry.record_event(
-                            "estimate_cost",
-                            telemetry_enabled=config.telemetry_enabled,
-                            calibration_dir=str(config.calibration_dir),
-                            client_name=config.client_name,
-                        )
-                        return result
-                    return await handler("estimate_cost", {"size": "XS", "files": 1, "complexity": "low"})
+                    )
+                    return result
 
                 asyncio.run(_call_tool())
 

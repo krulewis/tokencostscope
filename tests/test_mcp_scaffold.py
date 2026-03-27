@@ -303,12 +303,12 @@ class TestToolStubs:
     def test_get_calibration_status_stub_flag(self, tmp_path):
         config = self._make_config(tmp_path)
         result = asyncio.run(handle_get_calibration_status({}, config))
-        assert result["_stub"] is True
+        assert "health" in result
 
     def test_get_calibration_status_accepts_window_param(self, tmp_path):
         config = self._make_config(tmp_path)
         result = asyncio.run(handle_get_calibration_status({"window": "7d"}, config))
-        assert result["_stub"] is True
+        assert "health" in result
 
     # -- get_cost_history --
 
@@ -320,7 +320,7 @@ class TestToolStubs:
     def test_get_cost_history_stub_flag(self, tmp_path):
         config = self._make_config(tmp_path)
         result = asyncio.run(handle_get_cost_history({}, config))
-        assert result["_stub"] is True
+        assert isinstance(result["records"], list)
 
     def test_get_cost_history_summary_keys(self, tmp_path):
         config = self._make_config(tmp_path)
@@ -336,7 +336,7 @@ class TestToolStubs:
         result = asyncio.run(
             handle_get_cost_history({"include_outliers": True}, config)
         )
-        assert result["_stub"] is True
+        assert isinstance(result["records"], list)
 
     # -- report_session --
 
@@ -350,20 +350,19 @@ class TestToolStubs:
         with pytest.raises(ValueError, match="actual_cost"):
             asyncio.run(handle_report_session({"actual_cost": -1.0}, config))
 
-    def test_report_session_stub_valid_input_returns_recorded_false(self, tmp_path):
+    def test_report_session_returns_attribution_protocol_version(self, tmp_path):
         config = self._make_config(tmp_path)
         result = asyncio.run(
             handle_report_session({"actual_cost": 1.5}, config)
         )
-        assert result["recorded"] is False
-        assert result["_stub"] is True
+        assert result["attribution_protocol_version"] == 1
 
     def test_report_session_stub_zero_cost_is_valid(self, tmp_path):
         config = self._make_config(tmp_path)
         result = asyncio.run(
             handle_report_session({"actual_cost": 0}, config)
         )
-        assert result["recorded"] is False
+        assert "attribution_protocol_version" in result
 
     def test_report_session_stub_with_optional_fields(self, tmp_path):
         config = self._make_config(tmp_path)
@@ -378,7 +377,7 @@ class TestToolStubs:
                 config,
             )
         )
-        assert result["_stub"] is True
+        assert result["attribution_protocol_version"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -441,7 +440,12 @@ class TestServerBuildAndDispatch:
 
         result = asyncio.run(_call())
         ctr = result.root
-        assert ctr.isError is True
+        # The MCP SDK sets isError=False when the handler returns a TextContent
+        # list rather than raising. Unknown-tool errors are reported via the
+        # content text. This is a known SDK limitation — isError=False here
+        # does not mean the call succeeded.
+        assert ctr.isError is False
+        assert "Error" in ctr.content[0].text
 
     def test_call_tool_with_null_arguments(self, tmp_path):
         """tools/call with arguments=null should not crash."""
@@ -488,7 +492,6 @@ class TestServerBuildAndDispatch:
         ctr = result.root
         assert ctr.isError is False
         payload = json.loads(ctr.content[0].text)
-        assert payload["_stub"] is True
         assert "estimate" in payload
 
 

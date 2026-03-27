@@ -326,10 +326,10 @@ class TestEstimateCostEdgeCases:
         assert est["expected"] >= 0
         assert est["pessimistic"] >= 0
 
-    def test_l_size_includes_more_steps_than_xs(self, tmp_path):
+    def test_l_size_costs_more_than_xs(self, tmp_path):
         result_l, _ = _call({"size": "L", "files": 5, "complexity": "medium"}, tmp_path)
         result_xs, _ = _call({"size": "XS", "files": 5, "complexity": "medium"}, tmp_path)
-        assert len(result_l["steps"]) > len(result_xs["steps"])
+        assert result_l["estimate"]["expected"] > result_xs["estimate"]["expected"]
 
     def test_review_cycles_zero_excludes_pr_review_loop(self, tmp_path):
         result, _ = _call(
