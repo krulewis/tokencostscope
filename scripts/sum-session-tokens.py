@@ -19,8 +19,14 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
-# Prices per million tokens — update when pricing changes.
-# Must match references/pricing.md.
+# Add src/ to sys.path so tokencast.pricing is importable when script is run directly.
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+from tokencast.pricing import compute_cost_from_usage as _compute_cost_from_usage
+
+# DEPRECATED: This dict is retained for backward compatibility with external scripts
+# that may import it. Use tokencast.pricing.MODEL_PRICES instead. Values may be stale.
 PRICES = {
     "claude-sonnet-4-6": {
         "input": 3.00,
@@ -29,16 +35,16 @@ PRICES = {
         "output": 15.00,
     },
     "claude-opus-4-6": {
-        "input": 15.00,
-        "cache_read": 1.50,
-        "cache_write": 18.75,
-        "output": 75.00,
+        "input": 5.00,
+        "cache_read": 0.50,
+        "cache_write": 6.25,
+        "output": 25.00,
     },
     "claude-haiku-4-5": {
-        "input": 0.80,
-        "cache_read": 0.08,
-        "cache_write": 1.00,
-        "output": 4.00,
+        "input": 1.00,
+        "cache_read": 0.10,
+        "cache_write": 1.25,
+        "output": 5.00,
     },
 }
 
@@ -77,29 +83,20 @@ def compute_line_cost(obj: dict) -> float:
     if obj.get("type") != "assistant":
         return 0.0
     msg = obj.get("message", {})
-    usage = msg.get("usage")
-    if not usage:
+    usage_raw = msg.get("usage")
+    if not usage_raw:
         return 0.0
     model = msg.get("model", "")
     if not model or model == "<synthetic>":
         return 0.0
-    model_key = model
-    for known in PRICES:
-        if known in model:
-            model_key = known
-            break
-    prices = PRICES.get(model_key, PRICES[DEFAULT_MODEL])
-    inp = usage.get("input_tokens", 0)
-    cr = usage.get("cache_read_input_tokens", 0)
-    cw = usage.get("cache_creation_input_tokens", 0)
-    out = usage.get("output_tokens", 0)
-    cost = (
-        inp * prices["input"]
-        + cr * prices["cache_read"]
-        + cw * prices["cache_write"]
-        + out * prices["output"]
-    ) / 1_000_000
-    return cost
+    # Map JSONL field names to protocol field names for compute_cost_from_usage
+    usage = {
+        "tokens_in": usage_raw.get("input_tokens", 0),
+        "tokens_cache_read": usage_raw.get("cache_read_input_tokens", 0),
+        "tokens_cache_write": usage_raw.get("cache_creation_input_tokens", 0),
+        "tokens_out": usage_raw.get("output_tokens", 0),
+    }
+    return _compute_cost_from_usage(usage, model)
 
 
 def sum_session(jsonl_path: str, baseline_cost: float = 0.0) -> dict:

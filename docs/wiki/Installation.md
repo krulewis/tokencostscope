@@ -1,13 +1,127 @@
 # Installation
 
-## Prerequisites
-
-- Claude Code CLI installed and configured
-- A project you want to instrument
+tokencast is available as an **MCP server** (works in any MCP-compatible IDE) or as a **Claude Code skill** (SKILL.md-based workflow). The MCP server is recommended for new users.
 
 ---
 
-## One-Time Setup
+## MCP Server (Recommended)
+
+### 1. Install the package
+
+```bash
+pip install tokencast
+```
+
+Or with `uvx` (no install required — runs directly from PyPI):
+
+```bash
+uvx tokencast
+```
+
+### 2. Configure your IDE
+
+Replace `/path/to/your/project` with your actual project path in the config snippets below.
+
+#### Claude Code
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+#### Cursor
+
+Create or update `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+#### VS Code + GitHub Copilot
+
+Create or update `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "tokencast": {
+      "type": "stdio",
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+#### Windsurf
+
+Add to your Windsurf MCP config:
+
+```json
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+Full config examples are in [`docs/ide-configs/`](https://github.com/krulewis/tokencast/tree/main/docs/ide-configs).
+
+### 3. Use the tools
+
+Once configured, tokencast exposes five MCP tools in your IDE:
+
+| Tool | What it does |
+|------|-------------|
+| `estimate_cost` | Estimate API cost for a planned task before running it |
+| `get_calibration_status` | Check whether your estimates are well-calibrated |
+| `get_cost_history` | Browse past estimates vs actuals |
+| `report_session` | Report actual cost at session end to improve calibration |
+| `report_step_cost` | Record the cost of a single pipeline step during a session |
+
+### MCP Server Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--calibration-dir PATH` | `~/.tokencast/calibration` | Where calibration data is stored |
+| `--project-dir PATH` | None | Project root for file measurement |
+| `--version` | | Print version and exit |
+
+---
+
+## Claude Code Skill (Alternative)
+
+If you use Claude Code and prefer the SKILL.md workflow:
 
 ```bash
 # 1. Clone tokencast (anywhere — it doesn't need to live inside your project)
@@ -28,9 +142,7 @@ The install script does three things:
 
 Every Claude Code session in that project now has tokencast active.
 
----
-
-## Verify Installation
+### Verify Installation
 
 Start a Claude Code session in your project. Create or describe a plan. tokencast should activate automatically and output a cost table.
 
@@ -46,19 +158,7 @@ Or with explicit parameters:
 /tokencast size=M files=5 complexity=medium
 ```
 
----
-
-## Uninstalling
-
-```bash
-bash /path/to/tokencast/scripts/disable.sh "/path/to/your-project"
-```
-
-Removes the skill symlink and hooks. Calibration data in `calibration/` is preserved.
-
----
-
-## File Layout After Install
+### File Layout After Install
 
 ```
 your-project/
@@ -69,3 +169,15 @@ your-project/
 ```
 
 The tokencast repo itself can live anywhere on your filesystem — the symlink keeps your project directory clean.
+
+---
+
+## Uninstalling (Skill Mode)
+
+```bash
+bash /path/to/tokencast/scripts/disable.sh "/path/to/your-project"
+```
+
+Removes the skill symlink and hooks. Calibration data in `calibration/` is preserved.
+
+For the MCP server, remove the `tokencast` entry from your IDE's MCP config file.

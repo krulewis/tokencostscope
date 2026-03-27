@@ -148,96 +148,58 @@ print(f'STEP_ACTUALS_JSON={shlex.quote(json.dumps(d.get(\"step_actuals\") or {})
 
 # Skip if actual cost is zero or negative (session had no real work)
 if python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.001 else 1)" "$ACTUAL_COST" 2>/dev/null; then
-    # Create history record — all values passed via env vars to avoid injection
-    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    RECORD=$(TS_ENV="$TIMESTAMP" SZ_ENV="$SIZE" FL_ENV="$FILES" CX_ENV="$COMPLEXITY" \
-      EC_ENV="$EXPECTED_COST" AC_ENV="$ACTUAL_COST" TC_ENV="$TURN_COUNT" \
-      ST_ENV="$STEPS_JSON" PIP_ENV="$PIPELINE_SIGNATURE" \
-      PT_ENV="$PROJECT_TYPE" LG_ENV="$LANGUAGE" SC_ENV="$STEP_COUNT" \
-      RC_ENV="$REVIEW_CYCLES" \
-      PSD_ENV="$PARALLEL_STEPS_DETECTED" EST_FILE="$ESTIMATE_FILE" \
-      SA_ENV="$STEP_ACTUALS_JSON" SIDECAR_PATH_ENV="${SIDECAR_PATH:-}" \
-      python3 -c "
+    # Count review cycles from sidecar before building the record
+    REVIEW_CYCLES_ACTUAL=""
+    if [ -n "${SIDECAR_PATH:-}" ] && [ -f "$SIDECAR_PATH" ]; then
+        REVIEW_CYCLES_ACTUAL=$(SIDECAR_PATH_ENV="$SIDECAR_PATH" python3 -c "
 import json, os
+sidecar_path = os.environ['SIDECAR_PATH_ENV']
+events = []
+with open(sidecar_path) as sf:
+    for line in sf:
+        try: events.append(json.loads(line))
+        except (json.JSONDecodeError, ValueError): pass
+rc = len([e for e in events
+    if e.get('type') == 'agent_stop'
+    and 'staff' in e.get('agent_name', '').lower()
+    and 'review' in e.get('agent_name', '').lower()])
+print(rc if rc > 0 else '')
+" 2>/dev/null || echo "")
+    fi
+
+    # Create history record via build_history_record() — all values passed via env vars
+    RECORD=$(
+      SCRIPT_DIR_ENV="$SCRIPT_DIR" \
+      AC_ENV="$ACTUAL_COST" TC_ENV="$TURN_COUNT" \
+      SA_ENV="$STEP_ACTUALS_JSON" \
+      RC_ACT_ENV="${REVIEW_CYCLES_ACTUAL:-}" \
+      EST_FILE="$ESTIMATE_FILE" \
+      python3 -c "
+import json, os, sys
+script_dir = os.environ['SCRIPT_DIR_ENV']
+src_dir = os.path.join(os.path.dirname(script_dir), 'src')
+sys.path.insert(0, src_dir)
+from tokencast.session_recorder import build_history_record
+
+# open() is intentionally bare here — this is short-lived inline Python in a shell script; the process exits immediately after print().
 _est = json.load(open(os.environ['EST_FILE'])) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
-parallel_groups = _est.get('parallel_groups', [])
-# Read step_costs from estimate; exclude PR Review Loop from per-step attribution.
-# 'PR Review Loop' is matched by exact string (case-sensitive) — must match the
-# exact key written by SKILL.md. Do not use prefix matching or case-folding.
-step_costs_raw = _est.get('step_costs', {})
-PR_REVIEW_LOOP_KEY = 'PR Review Loop'
-step_costs_estimated = {k: v for k, v in step_costs_raw.items()
-                        if k != PR_REVIEW_LOOP_KEY}
 
-step_actuals = json.loads(os.environ.get('SA_ENV', '{}')) or {}
-attribution_method = 'sidecar' if step_actuals else 'proportional'
+step_actuals_raw = json.loads(os.environ.get('SA_ENV', '{}')) or {}
+step_actuals_sidecar = step_actuals_raw if step_actuals_raw else None
 
-actual = float(os.environ['AC_ENV'])
+rc_raw = os.environ.get('RC_ACT_ENV', '')
+review_cycles_actual = int(rc_raw) if rc_raw.strip().isdigit() else None
 
-# F3: explicit name — session-level total, not per-step
-session_expected = max(float(os.environ['EC_ENV']), 0.001)
-
-if step_actuals and step_costs_estimated:
-    step_ratios = {}
-    for step_name, estimated in step_costs_estimated.items():
-        actual_step = step_actuals.get(step_name, 0)
-        if estimated > 0 and actual_step > 0:
-            step_ratios[step_name] = round(actual_step / estimated, 4)
-else:
-    # Proportional fallback: session_expected is session-level (F3)
-    session_ratio = round(actual / session_expected, 4)
-    step_ratios = {step: session_ratio for step in step_costs_estimated}
-
-# F10: read optimistic/pessimistic from estimate file
-optimistic_cost = _est.get('optimistic_cost', 0)
-pessimistic_cost = _est.get('pessimistic_cost', 0)
-
-ratio = round(actual / session_expected, 4)
-
-# review_cycles_actual: count staff-reviewer agent_stop events in sidecar
-review_cycles_actual = None
-sidecar_path_env = os.environ.get('SIDECAR_PATH_ENV', '')
-if sidecar_path_env and os.path.exists(sidecar_path_env):
-    sidecar_events = []
-    with open(sidecar_path_env) as sf:
-        for sline in sf:
-            try: sidecar_events.append(json.loads(sline))
-            except (json.JSONDecodeError, ValueError): pass
-    rc_count = len([e for e in sidecar_events
-        if e.get('type') == 'agent_stop'
-        and 'staff' in e.get('agent_name', '').lower()
-        and 'review' in e.get('agent_name', '').lower()])
-    review_cycles_actual = rc_count if rc_count > 0 else None
-
-print(json.dumps({
-    'timestamp': os.environ['TS_ENV'],
-    'size': os.environ['SZ_ENV'],
-    'files': int(os.environ['FL_ENV']),
-    'complexity': os.environ['CX_ENV'],
-    'expected_cost': float(os.environ['EC_ENV']),
-    'optimistic_cost': optimistic_cost,
-    'pessimistic_cost': pessimistic_cost,
-    'actual_cost': actual,
-    'ratio': ratio,
-    'turn_count': int(os.environ['TC_ENV']),
-    'steps': json.loads(os.environ['ST_ENV']),
-    'pipeline_signature': os.environ['PIP_ENV'],
-    'project_type': os.environ['PT_ENV'],
-    'language': os.environ['LG_ENV'],
-    'step_count': int(os.environ['SC_ENV']),
-    'review_cycles_estimated': int(os.environ['RC_ENV']),
-    'review_cycles_actual': review_cycles_actual,
-    'parallel_groups': parallel_groups,
-    'parallel_steps_detected': (lambda v: int(v) if v.lstrip('-').isdigit() else (1 if v.lower() in ('true', 'yes', '1') else 0))(os.environ.get('PSD_ENV', '0')),
-    'file_brackets': _est.get('file_brackets'),
-    'files_measured': _est.get('files_measured', 0),
-    'step_costs_estimated': step_costs_estimated,
-    'step_ratios': step_ratios,
-    'step_actuals': step_actuals if step_actuals else None,
-    'attribution_method': attribution_method,
-    'continuation': _est.get('continuation', False),
-}))
-")
+record = build_history_record(
+    estimate=_est,
+    actual_cost=float(os.environ['AC_ENV']),
+    turn_count=int(os.environ.get('TC_ENV', 0) or 0),
+    review_cycles_actual=review_cycles_actual,
+    step_actuals_sidecar=step_actuals_sidecar,
+)
+print(json.dumps(record))
+"
+    )
 
     # E2: route storage through calibration_store.py — future enterprise adapter replaces this module
     mkdir -p "$CALIBRATION_DIR"

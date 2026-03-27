@@ -1,6 +1,11 @@
 # tokencast
 
-A Claude Code skill that estimates Anthropic API cost for planned agent tasks, then **learns from actual usage** to improve estimates over time.
+[![CI](https://github.com/krulewis/tokencast/actions/workflows/ci.yml/badge.svg)](https://github.com/krulewis/tokencast/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/tokencast)](https://pypi.org/project/tokencast/)
+
+Pre-execution cost estimation for LLM agent workflows. Get a cost estimate before running any agent task, then let tokencast learn from actuals to improve accuracy over time.
+
+Available as an **MCP server** (works in Cursor, VS Code + Copilot, Windsurf, Claude Code) or as a **Claude Code skill** (SKILL.md, for Claude Code users who prefer the skill-based workflow).
 
 Install once per project. It auto-estimates after plans are created and auto-learns at session end. Zero ongoing friction.
 
@@ -10,6 +15,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 
 - [[Installation]] — Clone, install hooks, verify setup
 - [[How It Works]] — Estimation algorithm, formulas, confidence bands
+- [[Attribution]] — How cost attribution works in Claude Code vs MCP clients
 - [[Calibration]] — How the skill learns from your sessions over time
 - [[Configuration]] — Manual overrides, parallel agent accounting
 - [[Roadmap]] — Planned features and version history

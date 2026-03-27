@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tokencast"
+version = "0.1.0"
+description = "Pre-execution cost estimation for LLM agent workflows with calibration learning"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Kelly Lewis", email = "krulewis@users.noreply.github.com" },
+]
+keywords = ["llm", "cost-estimation", "mcp", "agent", "calibration", "token-cost"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+dependencies = ["mcp>=1.0,<2.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/krulewis/tokencast"
+Documentation = "https://github.com/krulewis/tokencast/wiki"
+Repository = "https://github.com/krulewis/tokencast"
+Issues = "https://github.com/krulewis/tokencast/issues"
+
+[project.scripts]
+tokencast-mcp = "tokencast_mcp.server:main"
+tokencast = "tokencast_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tokencast", "src/tokencast_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

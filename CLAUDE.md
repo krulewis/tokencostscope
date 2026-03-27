@@ -24,7 +24,10 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 | `tests/test_pr_review_loop.py` | Tests for PR Review Loop cost modeling |
 | `tests/test_parallel_agent_accounting.py` | Tests for parallel agent cost discounting |
 | `tests/test_file_size_awareness.py` | Tests for file size bracket computation and auto-measurement |
-| `docs/wiki/` | GitHub wiki source — Home, How-It-Works, Installation, Configuration, Calibration, Roadmap |
+| `docs/wiki/` | GitHub wiki source — Home, How-It-Works, Installation, Configuration, Calibration, Roadmap, Attribution |
+| `docs/attribution-protocol.md` | Framework-agnostic attribution protocol spec (version 1) — `report_step_cost` and `report_session` tool schemas, Tier 1/Tier 2 lifecycle, error handling, worked examples |
+| `src/tokencast/` | Python package — estimation core, pricing module, session recorder |
+| `src/tokencast_mcp/` | MCP server — thin wrappers around `tokencast` package functions; exposes `estimate_cost`, `report_step_cost`, `report_session` tools |
 | `README.md` | Repo root README (not inside `.claude/skills/tokencast/`) |
 
 ## Test Commands
@@ -58,6 +61,12 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 - **PR Review Loop calibration** applies the factor independently to each band (not re-anchored as fixed ratios of calibrated Expected) — this preserves the decay model's per-band cycle counts.
 - **Step 3.5 runs post-step-loop** — the PR Review Loop row computation happens after all individual pipeline steps complete Steps 3a–3e, not inline. Cache each constituent step's pre-discount cost during the per-step loop.
 - **Parallel discount does NOT apply to PR Review Loop C value** — `C` uses undiscounted step costs even when constituent steps were modeled as parallel.
+- **Attribution protocol (v3.x+)** — `docs/attribution-protocol.md` is the source of truth for the MCP attribution wire format. Version field is `attribution_protocol_version: 1`. Minor additions (new optional fields) do not require a version bump. Removing or renaming required fields does.
+- **MCP tools are thin wrappers** — `src/tokencast_mcp/` exposes `estimate_cost`, `report_step_cost`, and `report_session` as MCP tools. Each delegates to the corresponding function in `src/tokencast/`. No business logic lives in the MCP layer.
+- **Session recorder API is dict-based** — `build_history_record()` accepts an `attribution` parameter with source-specific fields (`step_actuals_mcp`, `step_actuals_sidecar`). All three attribution paths (`"mcp"`, `"sidecar"`, `"proportional"`) produce records with identical schema. The `attribution_method` field in history records distinguishes them.
+- **Step-cost accumulator** — accumulated `report_step_cost` data is persisted to `calibration/{hash}-step-accumulator.json` after each call (atomic rename pattern). Cleared when `report_session` completes or when a new `estimate_cost` call is made. Hash is the first 12 chars of MD5 of the `active-estimate.json` absolute path — same hash used by `agent-hook.sh`.
+- **`src/tokencast/` package exports** — `estimate_cost` and `report_session` must be importable from `tokencast/__init__.py` to support CI/CD usage without the MCP layer (`from tokencast import estimate_cost, report_session`).
+- **Pricing module** — `src/tokencast/pricing.py` exposes `compute_cost_from_usage(usage: dict, model: str) -> float`. This is the framework-agnostic cost function. `compute_line_cost()` in `sum-session-tokens.py` extracts usage from Claude Code JSONL format and delegates to `compute_cost_from_usage()`.
 
 ## Memory / Docs Update Paths
 

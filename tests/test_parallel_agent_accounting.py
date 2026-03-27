@@ -424,8 +424,13 @@ print(f'PSD={psd}')
             assert "PSD=0" in result.stdout
 
     def test_parallel_groups_in_history_record(self):
-        """learn.sh source must include parallel_groups in the record-building Python."""
-        content = LEARN_SH.read_text()
+        """Record-building logic must include parallel_groups field.
+
+        After US-1c.03 refactor, record logic lives in session_recorder.py
+        (called by learn.sh), not inline in the shell script.
+        """
+        recorder = REPO_ROOT / "src" / "tokencast" / "session_recorder.py"
+        content = recorder.read_text()
         assert "parallel_groups" in content
         assert "parallel_steps_detected" in content
 

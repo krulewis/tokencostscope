@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "tokencast": {
+      "command": "tokencast-mcp",
+      "args": [
+        "--calibration-dir", "/path/to/your/project/calibration",
+        "--project-dir", "/path/to/your/project"
+      ]
+    }
+  }
+}
