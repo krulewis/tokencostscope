@@ -1,0 +1,25 @@
+name: tokencast
+description: >-
+  Pre-execution cost estimation for LLM agent workflows.
+  Estimate before you run. Learn from actuals. Get more accurate over time.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      calibrationDir:
+        type: string
+        description: "Path to calibration directory (default: ~/.tokencast/calibration)"
+      projectDir:
+        type: string
+        description: Project root for file measurement resolution
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: "uvx",
+      args: [
+        "tokencast",
+        ...(config.calibrationDir ? ["--calibration-dir", config.calibrationDir] : []),
+        ...(config.projectDir ? ["--project-dir", config.projectDir] : [])
+      ]
+    })
