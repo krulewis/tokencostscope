@@ -507,12 +507,12 @@ class TestRecordEvent(unittest.TestCase):
 
 class TestFirstRunMessage(unittest.TestCase):
     def setUp(self):
-        # Reset module-level flag before each test
-        telemetry._first_run_message_shown = False
+        # Reset module-level Event before each test
+        telemetry._first_run_message_shown.clear()
 
     def tearDown(self):
-        # Clean up flag after each test
-        telemetry._first_run_message_shown = False
+        # Clean up Event after each test
+        telemetry._first_run_message_shown.clear()
 
     def test_message_shown_on_first_call(self):
         import io
@@ -540,7 +540,7 @@ class TestFirstRunMessage(unittest.TestCase):
         fake_stderr = io.StringIO()
         with patch("sys.stderr", fake_stderr):
             telemetry._show_first_run_message_once()
-        self.assertTrue(telemetry._first_run_message_shown)
+        self.assertTrue(telemetry._first_run_message_shown.is_set())
 
 
 # ---------------------------------------------------------------------------

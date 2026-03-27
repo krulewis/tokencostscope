@@ -86,7 +86,7 @@ Tier 1 and Tier 2 both produce valid calibration data. Tier 2 matches the per-st
 
 ### Cursor
 
-Cursor's agent mode exposes token usage per message via its extension API. A tokencast Cursor extension can read per-step token counts and call `report_step_cost` automatically, enabling Tier 2 attribution.
+Cursor's agent mode may expose token usage per message via its extension API (verify with current Cursor documentation — this API surface changes between releases). If available, a tokencast Cursor extension can read per-step token counts and call `report_step_cost` automatically, enabling Tier 2 attribution.
 
 **Cursor configuration example:**
 
@@ -106,11 +106,11 @@ In your Cursor settings (`.cursor/mcp.json` or workspace settings), register the
 
 Once registered, call `estimate_cost` at the start of a planning session and `report_session` at the end. For Tier 2, call `report_step_cost` after each agent step using Cursor's token usage data.
 
-**Tier 2 step reporting in a Cursor workflow:**
+**Tier 2 step reporting in a Cursor workflow (illustrative — verify with current Cursor documentation):**
 
 ```python
 # After each agent step completes, report its cost.
-# Cursor exposes usage data in the AgentStep completion event.
+# The exact API for accessing usage data depends on your Cursor version.
 mcp.call("report_step_cost", {
     "step_name": "Research Agent",
     "tokens_in": step.usage.input_tokens,

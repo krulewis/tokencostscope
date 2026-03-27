@@ -55,8 +55,8 @@ async def handle_report_session(params: dict, config: ServerConfig) -> dict:
     reaches the threshold the response includes a ``team_sharing_cta`` field.
     The CTA is shown at most once per server process (tracked via
     ``config.cta_shown``). It is suppressed when ``config.no_cta`` is True
-    or the ``TOKENCAST_NO_CTA`` environment variable is set to a non-empty /
-    non-zero value.
+    or the ``TOKENCAST_NO_CTA`` environment variable is set to exactly ``"1"``
+    (consistent with the ``TOKENCAST_TELEMETRY`` opt-in convention).
 
     Args:
         params: Tool arguments from the MCP client. Required key:
@@ -75,8 +75,8 @@ async def handle_report_session(params: dict, config: ServerConfig) -> dict:
             negative ``step_actuals`` values, etc.).
     """
     # Determine suppression: --no-cta flag or TOKENCAST_NO_CTA env var.
-    env_no_cta_raw = os.environ.get("TOKENCAST_NO_CTA", "")
-    env_no_cta = env_no_cta_raw not in ("", "0")
+    # Requires exactly "1" to match TOKENCAST_TELEMETRY convention.
+    env_no_cta = os.environ.get("TOKENCAST_NO_CTA") == "1"
     suppress_cta = config.no_cta or env_no_cta or config.cta_shown
 
     # Count sessions before appending this one.

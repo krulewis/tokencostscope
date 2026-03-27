@@ -40,17 +40,18 @@ NOT collected: project names, file paths, cost amounts, or any personal data.
 To opt out: remove the --telemetry flag or unset TOKENCAST_TELEMETRY=1.
 """
 
-# Module-level flag so the first-run message is only printed once per process.
-_first_run_message_shown = False
+# Module-level event so the first-run message is only printed once per process.
+# threading.Event.set() is atomic — safe to call from multiple threads without
+# an explicit lock.
+_first_run_message_shown = threading.Event()
 
 
 def _show_first_run_message_once() -> None:
     """Print the first-run consent notice to stderr exactly once per process."""
-    global _first_run_message_shown
-    if not _first_run_message_shown:
+    if not _first_run_message_shown.is_set():
+        _first_run_message_shown.set()
         import sys
         print(FIRST_RUN_MESSAGE, file=sys.stderr, end="")
-        _first_run_message_shown = True
 
 
 # ---------------------------------------------------------------------------
@@ -190,8 +191,10 @@ def collect_metrics(
 # HTTP sender (background thread, fire-and-forget)
 # ---------------------------------------------------------------------------
 
+TELEMETRY_TIMEOUT_SECONDS = 2.0
 
-def _send_payload(url: str, payload: dict, timeout: float = 2.0) -> None:
+
+def _send_payload(url: str, payload: dict, timeout: float = TELEMETRY_TIMEOUT_SECONDS) -> None:
     """POST a JSON payload to *url* with a *timeout*-second deadline.
 
     Called exclusively on a background daemon thread. All exceptions are

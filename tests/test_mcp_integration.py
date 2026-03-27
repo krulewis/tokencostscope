@@ -9,9 +9,20 @@ through the same code path a real MCP client uses:
                     → _DISPATCH[name](args, config)
                     → TextContent(json.dumps(result))
 
+SDK-internal access note
+------------------------
+The helpers ``_list_tools`` and ``_call_tool`` below access the SDK-internal
+``server.request_handlers`` dict directly rather than using a public client
+API.  This is intentional for in-process testing — the dict is the SDK's
+internal dispatch table, not part of its public interface, so these helpers
+may need updating if the MCP SDK refactors its internals.  A true public-API
+test would require a subprocess stdio round-trip (see the initialize protocol
+note in TestProtocol for why we do not attempt that here).
+
 Sections
 --------
-1. Protocol tests  — initialize, tools/list, unknown tool, malformed input
+1. Protocol tests  — tools/list, unknown tool, malformed input
+   (initialize is handled at the SDK transport layer — see TestProtocol)
 2. Tool integration — real (non-stub) results for each of the 5 tools
 3. End-to-end workflow — estimate → report_step_cost × 2 → report_session → history
 4. Drift detection note — test_data_modules_drift.py covers pricing/heuristics drift
@@ -74,14 +85,24 @@ def _config_with_project(tmp_path: Path) -> ServerConfig:
 
 
 async def _list_tools(server):
-    """Call tools/list and return the tool list."""
+    """Call tools/list and return the tool list.
+
+    Accesses ``server.request_handlers`` — an SDK-internal dict, not the
+    public client API.  A subprocess stdio test would be needed to exercise
+    the full public transport layer.
+    """
     handler = server.request_handlers[ListToolsRequest]
     result = await handler(ListToolsRequest(method="tools/list"))
     return result.root.tools
 
 
 async def _call_tool(server, name: str, arguments: dict):
-    """Call a tool by name and return the parsed JSON payload."""
+    """Call a tool by name and return the parsed JSON payload.
+
+    Accesses ``server.request_handlers`` — an SDK-internal dict, not the
+    public client API.  A subprocess stdio test would be needed to exercise
+    the full public transport layer.
+    """
     handler = server.request_handlers[CallToolRequest]
     result = await handler(
         CallToolRequest(
@@ -149,7 +170,17 @@ def _read_history(cal_dir: Path) -> list:
 
 
 class TestProtocol:
-    """Verify the MCP JSON-RPC protocol layer works correctly."""
+    """Verify the MCP JSON-RPC protocol layer works correctly.
+
+    Note on ``initialize``: the MCP ``initialize`` handshake is handled
+    entirely at the SDK transport layer (stdio/SSE framing) before any
+    request_handlers dispatch occurs.  It cannot be tested via in-process
+    handler dispatch as used in this file — a subprocess stdio test that
+    spawns the server and speaks raw JSON-RPC over stdin/stdout would be
+    required.  The scaffold tests in test_mcp_scaffold.py cover basic server
+    construction; full initialize round-trip testing is left as a future
+    subprocess integration test.
+    """
 
     def test_tools_list_returns_five_tools(self, tmp_path):
         """tools/list must return exactly 5 registered tools."""
