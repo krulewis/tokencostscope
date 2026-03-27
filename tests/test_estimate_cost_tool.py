@@ -366,9 +366,14 @@ class TestEstimateCostEdgeCases:
             {"size": "M", "files": 5, "complexity": "medium", "avg_file_lines": 100},
             tmp_path,
         )
-        # avg_file_lines=100 is medium bracket (50-500); file_brackets should be None
-        # (no file_paths provided, so measurement is skipped and brackets are None)
-        assert result["metadata"]["file_brackets"] is None
+        # avg_file_lines=100 falls in the medium bracket (50-500).
+        # The engine populates file_brackets from the override even without file_paths,
+        # so file_brackets is a dict (not None). All 5 files go into medium.
+        fb = result["metadata"]["file_brackets"]
+        assert fb is not None
+        assert fb["medium"] == 5
+        assert fb["small"] == 0
+        assert fb["large"] == 0
 
     def test_parallel_groups_accepted(self, tmp_path):
         result, _ = _call(

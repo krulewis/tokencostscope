@@ -650,12 +650,19 @@ class TestProtocolSmoke:
             f"No call response (id=3) in messages: {messages}\n"
             f"stderr: {stderr.decode(errors='replace')}"
         )
-        # Either a JSON-RPC error OR a result with isError=true is acceptable
-        is_error_result = (
+        # The MCP SDK returns isError=False with error text in content rather than
+        # raising a JSON-RPC error for unknown tool calls. Accept either:
+        #   (a) a result whose content text contains "Error" (SDK behaviour), or
+        #   (b) a JSON-RPC error object
+        is_content_error = (
             "result" in call_resp
-            and call_resp["result"].get("isError") is True
+            and isinstance(call_resp["result"].get("content"), list)
+            and any(
+                "Error" in (item.get("text") or "")
+                for item in call_resp["result"]["content"]
+            )
         )
         is_jsonrpc_error = "error" in call_resp
-        assert is_error_result or is_jsonrpc_error, (
+        assert is_content_error or is_jsonrpc_error, (
             f"Expected error response for bogus tool, got: {call_resp}"
         )
