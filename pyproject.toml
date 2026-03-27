@@ -27,6 +27,9 @@ classifiers = [
 
 dependencies = ["mcp>=1.0,<2.0"]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [project.urls]
 Homepage = "https://github.com/krulewis/tokencast"
 Documentation = "https://github.com/krulewis/tokencast/wiki"
@@ -39,3 +42,6 @@ tokencast = "tokencast_mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tokencast", "src/tokencast_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

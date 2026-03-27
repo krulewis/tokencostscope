@@ -2,3 +2,20 @@
 calibration/history.jsonl
 calibration/factors.json
 calibration/active-estimate.json
+calibration/.midcheck-state
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Build artifacts
+dist/
+build/
+
+# Test cache
+.pytest_cache/
+
+# macOS
+.DS_Store
