@@ -40,7 +40,9 @@
 
 - **Attribution protocol (v1)**: `docs/attribution-protocol.md` is the source of truth for the MCP attribution wire format. Version field is `attribution_protocol_version: 1`. Minor additions (new optional fields) do not require a version bump. Removing or renaming required fields does.
 - **MCP tools are thin wrappers**: `src/tokencast_mcp/` exposes `estimate_cost`, `report_step_cost`, and `report_session` as MCP tools. Each delegates to the corresponding function in `src/tokencast/`. No business logic lives in the MCP layer.
-- **Backward compatibility**: New fields in `active-estimate.json`, `factors.json`, and history records use `.get()` defaults so old files don't break. Attribution protocol v1 allows new optional fields without version bump (only rename/removal of required fields increments version). PyPI package versions independently of SKILL.md (v2.1.0) — prevents coupling release cadences.
+- **Schema backward compatibility**: New fields in `active-estimate.json`, `factors.json`, and history records use `.get()` defaults so old files don't break.
+- **Attribution protocol versioning**: v1 allows new optional fields without version bump. Only removing or renaming required fields increments the version.
+- **Independent PyPI versioning**: PyPI package versions independently of SKILL.md (v2.1.0) — prevents coupling release cadences.
 
 ## File Size Awareness
 

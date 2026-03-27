@@ -86,8 +86,8 @@ python3.11 -m pytest tests/test_mcp_scaffold.py -v
 
 ## Architecture & Conventions
 
-See [docs/architecture.md](docs/architecture.md) for architecture decisions and coding conventions.
-See [docs/gotchas.md](docs/gotchas.md) for known pitfalls and workarounds.
+- [docs/architecture.md](docs/architecture.md) — architecture decisions and coding conventions
+- [docs/gotchas.md](docs/gotchas.md) — known pitfalls and workarounds
 
 ## Memory / Docs Update Paths
 

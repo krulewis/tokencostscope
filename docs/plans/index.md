@@ -23,15 +23,15 @@ Update this index when adding new plan files to `docs/plans/`.
 | us-1c02-plan.md | report_step_cost MCP Tool | plan | completed | 2026-03-26 |
 | us-1c03-plan.md | Refactor Session Recorder for Multiple Attribution Sources | plan | completed | 2026-03-26 |
 
-## CI Fix (active)
+## CI Fix (planned — files not yet committed)
 
 | Plan File | Feature/Epic | Type | Status | Date |
 |-----------|-------------|------|--------|------|
-| ci-fix-requirements.md | CI Fix: lazy __init__.py + error logging | requirements | active | 2026-03-27 |
-| ci-fix-research.md | CI Fix | research | active | 2026-03-27 |
-| ci-fix-architecture.md | CI Fix | architecture | active | 2026-03-27 |
-| ci-fix-plan.md | CI Fix | plan | active | 2026-03-27 |
-| ci-fix-plan-final.md | CI Fix | plan-final | active | 2026-03-27 |
+| ci-fix-requirements.md | CI Fix: lazy __init__.py + error logging | requirements | planned | 2026-03-27 |
+| ci-fix-research.md | CI Fix | research | planned | 2026-03-27 |
+| ci-fix-architecture.md | CI Fix | architecture | planned | 2026-03-27 |
+| ci-fix-plan.md | CI Fix | plan | planned | 2026-03-27 |
+| ci-fix-plan-final.md | CI Fix | plan-final | planned | 2026-03-27 |
 
 ## Pipeline Enforcement Hooks (completed)
 
