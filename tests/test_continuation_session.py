@@ -404,8 +404,10 @@ class TestLearnShContinuation(unittest.TestCase):
         }
         if env_extra:
             env.update(env_extra)
+        # Use bash -x to trace execution on CI — stderr is captured and
+        # included in assertion messages so failures are diagnosable.
         return subprocess.run(
-            ["bash", str(self.LEARN_SH), str(session_file), "0"],
+            ["bash", "-x", str(self.LEARN_SH), str(session_file), "0"],
             capture_output=True,
             text=True,
             env=env,
@@ -439,7 +441,7 @@ class TestLearnShContinuation(unittest.TestCase):
             # Mock JSONL token counts are sized to exceed the $0.001 guard reliably.
             self.assertTrue(
                 history_path.exists(),
-                "learn.sh did not write history record — check mock JSONL token counts or learn.sh guard",
+                f"learn.sh did not write history record — bash -x trace:\n{result.stderr[-2000:]}",
             )
             lines = [line for line in history_path.read_text().splitlines() if line.strip()]
             self.assertGreaterEqual(len(lines), 1)
@@ -451,11 +453,11 @@ class TestLearnShContinuation(unittest.TestCase):
             self._write_mock_last_estimate(tmp_dir)
             session_file = self._write_mock_session_jsonl(tmp_dir)
 
-            self._run_learn_sh(session_file, tmp_dir)
+            result = self._run_learn_sh(session_file, tmp_dir)
 
             record = self._read_last_history_record(tmp_dir)
             if record is None:
-                self.fail("learn.sh did not write history record — check mock JSONL token counts")
+                self.fail(f"learn.sh did not write history record — bash -x trace:\n{result.stderr[-2000:]}")
             self.assertTrue(record.get("continuation"), f"continuation flag missing or false: {record}")
 
     def test_continuation_record_fields(self):
@@ -465,11 +467,11 @@ class TestLearnShContinuation(unittest.TestCase):
             self._write_mock_last_estimate(tmp_dir)
             session_file = self._write_mock_session_jsonl(tmp_dir)
 
-            self._run_learn_sh(session_file, tmp_dir)
+            result = self._run_learn_sh(session_file, tmp_dir)
 
             record = self._read_last_history_record(tmp_dir)
             if record is None:
-                self.fail("learn.sh did not write history record — check mock JSONL token counts")
+                self.fail(f"learn.sh did not write history record — bash -x trace:\n{result.stderr[-2000:]}")
 
             for field in ("expected_cost", "optimistic_cost", "pessimistic_cost", "size", "complexity"):
                 self.assertIn(field, record, f"Missing field: {field}")
@@ -519,11 +521,11 @@ class TestLearnShContinuation(unittest.TestCase):
             self._write_mock_last_estimate(tmp_dir)
             session_file = self._write_mock_session_jsonl(tmp_dir)
 
-            self._run_learn_sh(session_file, tmp_dir)
+            result = self._run_learn_sh(session_file, tmp_dir)
 
             record = self._read_last_history_record(tmp_dir)
             if record is None:
-                self.fail("learn.sh did not write history record — check mock JSONL token counts")
+                self.fail(f"learn.sh did not write history record — bash -x trace:\n{result.stderr[-2000:]}")
 
             # active-estimate.json has size=L and continuation=False
             # last-estimate.md has size=M and continuation=True

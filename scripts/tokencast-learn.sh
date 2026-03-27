@@ -87,13 +87,20 @@ if [ -n "${1:-}" ] && [ -f "$1" ]; then
     LATEST_JSONL="$1"
 else
     # Search all project directories under ~/.claude/projects/
-    LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
-        xargs -0 ls -t 2>/dev/null | head -1)
+    # Use find -exec ls instead of find|xargs — GNU xargs (Linux) runs `ls`
+    # with no arguments on empty stdin, listing cwd (cross-platform bug).
+    # Note: -exec ... + may batch if file count exceeds ARG_MAX, so head -1
+    # is not guaranteed globally newest in extreme cases. Acceptable for
+    # typical session counts (< 100 JSONL files).
+    if [ -d "$HOME/.claude/projects/" ]; then
+        LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" \
+            -exec ls -t {} + 2>/dev/null | head -1)
 
-    if [ -z "$LATEST_JSONL" ]; then
-        # Fallback: find the most recently modified JSONL anywhere
-        LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -print0 2>/dev/null | \
-            xargs -0 ls -t 2>/dev/null | head -1)
+        if [ -z "$LATEST_JSONL" ]; then
+            # Fallback: find the most recently modified JSONL anywhere
+            LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
+                -exec ls -t {} + 2>/dev/null | head -1)
+        fi
     fi
 fi
 
@@ -104,7 +111,9 @@ if [ -z "$LATEST_JSONL" ] || [ ! -f "$LATEST_JSONL" ]; then
 fi
 
 # Sweep stale sidecar files (older than 7 days) before discovering current one
-find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -mtime +7 -delete 2>/dev/null || true
+if [ -d "$CALIBRATION_DIR" ]; then
+    find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -mtime +7 -delete 2>/dev/null || true
+fi
 
 # Sidecar discovery — match the session_id hash used by agent-hook.sh (F6: cross-platform)
 # TOKENCOSTSCOPE_SIDECAR_PATH env var allows tests (and future callers) to inject a path directly.
@@ -122,9 +131,13 @@ if [ -z "$SIDECAR_PATH" ]; then
     if [ -n "$SESSION_ID_HASH" ] && [ -f "$CANDIDATE" ]; then
         SIDECAR_PATH="$CANDIDATE"
     else
-        # Fallback: find most recently modified timeline newer than the estimate
-        SIDECAR_PATH=$(find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -newer "$ESTIMATE_FILE" \
-            -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+        # Fallback: find most recently modified timeline newer than the estimate.
+        # Use find -exec ls instead of find|xargs — GNU xargs runs `ls` with no
+        # arguments on empty stdin, listing cwd (cross-platform bug).
+        if [ -d "$CALIBRATION_DIR" ]; then
+            SIDECAR_PATH=$(find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -newer "$ESTIMATE_FILE" \
+                -exec ls -t {} + 2>/dev/null | head -1 || echo "")
+        fi
     fi
 fi
 
