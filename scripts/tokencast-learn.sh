@@ -87,17 +87,16 @@ if [ -n "${1:-}" ] && [ -f "$1" ]; then
     LATEST_JSONL="$1"
 else
     # Search all project directories under ~/.claude/projects/
-    # Guard: only run find if the directory exists. GNU xargs (Linux) runs the
-    # command even with empty stdin, causing `ls -t` to list cwd — a subtle
-    # cross-platform bug that produces garbage sidecar/JSONL paths on CI.
+    # Use find -exec ls instead of find|xargs — GNU xargs (Linux) runs `ls`
+    # with no arguments on empty stdin, listing cwd (cross-platform bug).
     if [ -d "$HOME/.claude/projects/" ]; then
-        LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
-            xargs -0 ls -t 2>/dev/null | head -1)
+        LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -newer "$ESTIMATE_FILE" \
+            -exec ls -t {} + 2>/dev/null | head -1)
 
         if [ -z "$LATEST_JSONL" ]; then
             # Fallback: find the most recently modified JSONL anywhere
-            LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -print0 2>/dev/null | \
-                xargs -0 ls -t 2>/dev/null | head -1)
+            LATEST_JSONL=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
+                -exec ls -t {} + 2>/dev/null | head -1)
         fi
     fi
 fi
@@ -128,12 +127,14 @@ if [ -z "$SIDECAR_PATH" ]; then
     CANDIDATE="$CALIBRATION_DIR/${SESSION_ID_HASH}-timeline.jsonl"
     if [ -n "$SESSION_ID_HASH" ] && [ -f "$CANDIDATE" ]; then
         SIDECAR_PATH="$CANDIDATE"
-    elif [ -d "$CALIBRATION_DIR" ]; then
-        # Fallback: find most recently modified timeline newer than the estimate
-        # Guard: only run if dir exists — GNU xargs runs `ls -t` on empty stdin,
-        # which lists cwd and produces garbage paths (CI cross-platform bug).
-        SIDECAR_PATH=$(find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -newer "$ESTIMATE_FILE" \
-            -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+    else
+        # Fallback: find most recently modified timeline newer than the estimate.
+        # Pipe through awk to sort by mtime instead of xargs+ls — GNU xargs runs
+        # `ls` with no arguments on empty stdin, listing cwd (cross-platform bug).
+        if [ -d "$CALIBRATION_DIR" ]; then
+            SIDECAR_PATH=$(find "$CALIBRATION_DIR" -name "*-timeline.jsonl" -newer "$ESTIMATE_FILE" \
+                -exec ls -t {} + 2>/dev/null | head -1 || echo "")
+        fi
     fi
 fi
 
