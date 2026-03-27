@@ -175,11 +175,15 @@ print(rc if rc > 0 else '')
       RC_ACT_ENV="${REVIEW_CYCLES_ACTUAL:-}" \
       EST_FILE="$ESTIMATE_FILE" \
       python3 -c "
-import json, os, sys
+import json, os, sys, importlib.util
 script_dir = os.environ['SCRIPT_DIR_ENV']
-src_dir = os.path.join(os.path.dirname(script_dir), 'src')
-sys.path.insert(0, src_dir)
-from tokencast.session_recorder import build_history_record
+# Import session_recorder directly via importlib to avoid triggering
+# tokencast/__init__.py which has heavy transitive imports (api.py, mcp, etc.)
+_sr_path = os.path.join(os.path.dirname(script_dir), 'src', 'tokencast', 'session_recorder.py')
+_spec = importlib.util.spec_from_file_location('session_recorder', _sr_path)
+_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+build_history_record = _mod.build_history_record
 
 # open() is intentionally bare here — this is short-lived inline Python in a shell script; the process exits immediately after print().
 _est = json.load(open(os.environ['EST_FILE'])) if os.path.exists(os.environ.get('EST_FILE', '')) else {}
