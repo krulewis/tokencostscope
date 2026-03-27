@@ -2,9 +2,6 @@
 
 Update this index when adding new plan files to `docs/plans/`.
 
-| Plan File | Feature/Epic | Type | Status | Date |
-|-----------|-------------|------|--------|------|
-
 ## Phase 1b — MCP Server (completed)
 
 | Plan File | Feature/Epic | Type | Status | Date |
