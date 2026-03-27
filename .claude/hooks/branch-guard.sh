@@ -28,7 +28,7 @@ MARKER_FILE="${TMPDIR:-/tmp}/tokencast-push-reviewed-${PPID}"
 COMMAND=$(echo "$INPUT" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
-tool_input = data.get('tool_input', data)
+tool_input = data.get('tool_input', {})
 print(tool_input.get('command', ''))
 " 2>/dev/null || true)
 COMMAND="${COMMAND:-}"
@@ -40,6 +40,8 @@ fi
 # Strip $(...) subexpressions and -m "..." / -m '...' args.
 # This prevents commit messages containing "git push" or "git commit" from
 # triggering the gate (the message text is not a command invocation).
+# Note: backtick subshells (`...`) are NOT stripped (accepted limitation;
+# Claude Code uses $(...) syntax exclusively).
 STRIPPED=$(python3 - "$COMMAND" <<'PYEOF'
 import sys, re
 

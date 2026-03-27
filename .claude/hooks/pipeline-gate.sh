@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # pipeline-gate.sh — UserPromptSubmit hook
 #
 # Fires on every user prompt. Two responsibilities:

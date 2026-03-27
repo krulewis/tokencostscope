@@ -43,11 +43,11 @@ if [ -z "$AGENT_TYPE" ]; then
   exit 0
 fi
 
-# Whitelist: custom agents defined in .claude/agents/
-# Note: sr-pm is intentionally excluded — no agent definition file exists
+# Whitelist: custom agents from .claude/agents/ (project or global)
 ALLOWED=(
   "pm"
   "researcher"
+  "sr-pm"
   "architect"
   "engineer"
   "implementer"

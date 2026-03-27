@@ -55,10 +55,13 @@ class TestEstimateGate(unittest.TestCase):
         }
 
     def test_missing_estimate_blocks_implementer(self):
-        """T1: No active-estimate.json -> exit 2."""
-        result = _run_hook("estimate-gate.sh", self._payload(), self.env, self.tmp_dir)
-        self.assertEqual(result.returncode, 2)
-        self.assertIn(b"BLOCKED", result.stderr)
+        """T1: No active-estimate.json -> exit 2 for all impl agents."""
+        for agent in ["implementer", "qa", "debugger"]:
+            result = _run_hook(
+                "estimate-gate.sh", self._payload(agent), self.env, self.tmp_dir
+            )
+            self.assertEqual(result.returncode, 2, f"{agent} should be blocked")
+            self.assertIn(b"BLOCKED", result.stderr)
 
     def test_fresh_estimate_allows_implementer(self):
         """T2: Fresh active-estimate.json -> exit 0."""
@@ -111,6 +114,28 @@ class TestEstimateGate(unittest.TestCase):
         env = {**self.env, "TOKENCAST_SIZE_MARKER": marker}
         result = _run_hook("estimate-gate.sh", self._payload(), env, self.tmp_dir)
         self.assertEqual(result.returncode, 0)
+
+    def test_path_derivation_without_calibration_dir(self):
+        """Verify hook derives calibration path from its own directory."""
+        # Do NOT set CALIBRATION_DIR — let the hook use dirname-based derivation
+        # The hook is at .claude/hooks/ — two levels up is project root
+        # So it will look for <project_root>/calibration/active-estimate.json
+        calib_dir = str(REPO_ROOT / "calibration")
+        est_file = os.path.join(calib_dir, "active-estimate.json")
+        had_file = os.path.exists(est_file)
+        try:
+            os.makedirs(calib_dir, exist_ok=True)
+            with open(est_file, "w") as f:
+                json.dump({"version": "path-test"}, f)
+            # Run WITHOUT CALIBRATION_DIR override
+            result = _run_hook(
+                "estimate-gate.sh", self._payload(), tmp_dir=self.tmp_dir
+            )
+            self.assertEqual(result.returncode, 0)
+        finally:
+            # Clean up only if we created the file
+            if not had_file and os.path.exists(est_file):
+                os.remove(est_file)
 
     def test_m_size_marker_does_not_bypass(self):
         """T6c: M size marker -> gate still applies (exit 2 without estimate)."""
@@ -194,12 +219,12 @@ class TestValidateAgentType(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0)
 
-    def test_sr_pm_is_blocked(self):
-        """sr-pm is intentionally not in the whitelist."""
+    def test_sr_pm_is_allowed(self):
+        """sr-pm is in the whitelist (defined in global agents)."""
         result = _run_hook(
             "validate-agent-type.sh", self._payload("sr-pm"), tmp_dir=self.tmp_dir
         )
-        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.returncode, 0)
 
     def test_empty_agent_type_fails_open(self):
         """Empty subagent_type -> fail-open (exit 0)."""
