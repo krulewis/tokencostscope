@@ -10,6 +10,52 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-midcheck.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/hooks/estimate-gate.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/hooks/validate-agent-type.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/hooks/branch-guard.sh'"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Agent",
@@ -28,23 +74,33 @@
             "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'"
           }
         ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-midcheck.sh'"
-          }
-        ]
       },
       {
-        "matcher": "Agent",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/scripts/tokencast-agent-hook.sh'"
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/hooks/inline-edit-guard.sh'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/hooks/pre-compact-reminder.sh'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Volumes/Macintosh HD2/Cowork/Projects/costscope/.claude/hooks/pipeline-gate.sh'"
           }
         ]
       }
