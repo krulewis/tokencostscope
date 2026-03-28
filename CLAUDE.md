@@ -44,66 +44,37 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 | `README.md` | Repo root README (PyPI package docs) |
 | `pyproject.toml` | Package metadata; entry point `tokencast-mcp = "tokencast_mcp.server:main"` |
 
-## Hook Enforcement
+## Hooks
 
-Six enforcement hooks in `.claude/hooks/` hard-block the two highest-frequency pipeline violations and inject advisory guardrails for others. All hooks are committed to git (they are project config, not runtime data).
-
-| Hook | Event | Type | Purpose |
-|------|-------|------|---------|
-| `estimate-gate.sh` | PreToolUse (Agent) | HARD BLOCK | Blocks implementer/qa/debugger dispatch without fresh active-estimate.json |
-| `validate-agent-type.sh` | PreToolUse (Agent) | HARD BLOCK | Blocks unknown agent types not in .claude/agents/ |
-| `branch-guard.sh` | PreToolUse (Bash) | HARD BLOCK | Blocks git commit on main; blocks git push without review marker |
-| `inline-edit-guard.sh` | PostToolUse (Edit/Write) | Advisory | Warns at 3+ unique code files edited directly by orchestrator |
-| `pre-compact-reminder.sh` | PreCompact | Advisory | Injects pipeline state reminder before compaction |
-| `pipeline-gate.sh` | UserPromptSubmit | Advisory | Injects classification reminder; resets edit counter |
-
-**Emergency bypass:** Set `TOKENCAST_SKIP_GATE=1` to bypass all gates. Use only for genuine emergencies.
-
-**Push review gate:** After the PR review loop is complete (staff-reviewer: no remaining comments), allow the push by running:
-```bash
-touch "${TMPDIR:-/tmp}/tokencast-push-reviewed-${PPID}"
-```
-(The exact path is shown in the block message when the push is blocked.)
+Six workflow enforcement hooks live in `.claude/hooks/`. They enforce estimation gates, branch protection, and agent dispatch validation. Set `TOKENCAST_SKIP_GATE=1` to bypass all gates in emergencies.
 
 ## Test Commands
 
 ```bash
-# Run all tests — use system Python 3.9 which has pytest
-/usr/bin/python3 -m pytest tests/
-
-# Run a specific test file
-/usr/bin/python3 -m pytest tests/test_pr_review_loop.py
-
-# Run with verbose output
-/usr/bin/python3 -m pytest tests/ -v
+# Run all tests (requires Python 3.9+)
+python3 -m pytest tests/
 
 # Run MCP-dependent tests (requires Python >= 3.10)
-python3.11 -m pytest tests/test_mcp_scaffold.py -v
+python3 -m pytest tests/test_mcp_scaffold.py -v
 ```
 
-**Do NOT use `pytest` or `python3 -m pytest` directly.** Homebrew `python3` resolves to 3.14 which does NOT have pytest. Always use `/usr/bin/python3` (3.9.6, has pytest) for the main test suite. Use `python3.11 -m pytest` for MCP-specific protocol tests.
+**Python version notes:** The main test suite requires Python 3.9+. MCP-dependent tests require Python 3.10+ and skip cleanly on older versions via `pytest.importorskip("mcp")`.
 
-**Test count**: 981 passing, 92 skipped under 3.9; 1209 passing, 4 skipped under 3.11 (MCP-dependent tests skip cleanly under 3.9 via `pytest.importorskip("mcp")`).
+**Test count**: 981 passing, 92 skipped under 3.9; 1209 passing, 4 skipped under 3.11.
 
-**CI status**: All green — 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest (fixed in PRs #13 + #14).
+**CI status**: All green — 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest.
 
 ## Architecture & Conventions
 
 - [docs/architecture.md](docs/architecture.md) — architecture decisions and coding conventions
 - [docs/gotchas.md](docs/gotchas.md) — known pitfalls and workarounds
 
-## Memory / Docs Update Paths
+## Docs Update Paths
 
-When completing work, the `docs-updater` agent should update:
+When completing work, update:
 - `docs/architecture.md` — if architecture decisions or coding conventions changed
 - `docs/gotchas.md` — if new gotchas discovered or existing ones resolved
 - `docs/plans/index.md` — if new plan files added to docs/plans/
 - `docs/wiki/` — whichever wiki pages cover the changed functionality
-- `MEMORY.md` at `/Users/kellyl./.claude/projects/-Volumes-Macintosh-HD2-Cowork-Projects-costscope/memory/MEMORY.md`
 - `ROADMAP.md` if version or milestone status changed
-
-## Project-Specific Estimate Overrides
-
-- **`review_cycles=4`** — use this override when running `estimate_cost` for tokencast changes. The global `heuristics.md` default of 2 is too low for this project; historical data across 5 sessions averages 4–5 passes (v1.3: 5, v1.5: 4, v1.6: 3, v1.7+v2.0: 4, v2.1: 11).
-- **MCP tools available**: `estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_step_cost`, `report_session` — use these instead of the former `/tokencast` slash command.
 

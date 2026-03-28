@@ -1,8 +1,20 @@
 # Calibration data is per-user and should not be committed
-calibration/history.jsonl
-calibration/factors.json
-calibration/active-estimate.json
-calibration/.midcheck-state
+calibration/
+
+# Claude Code user-specific files
+.claude/commands/
+.claude/CLAUDE.local.md
+
+# Internal development artifacts (not needed by end users)
+docs/plans/
+docs/superpowers/
+docs/plan-*.md
+docs/marketing/
+docs/phase-1-*.md
+docs/phase-1b-*.md
+docs/phase-1c-*.md
+docs/requirements-*.md
+docs/architecture-v*.md
 
 # Python
 __pycache__/
