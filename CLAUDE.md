@@ -5,14 +5,15 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 ## Repo
 
 - GitHub: `krulewis/tokencast`
-- **SKILL.md version**: 2.1.0 (Claude Code skill)
-- **PyPI package version**: 0.1.0 (independent versioning; Phase 1 implementation)
+- **PyPI package version**: 0.1.2
+- **Distribution**: MCP server via `uvx tokencast` (registered in MCP Registry as `io.github.krulewis/tokencast`)
+- **SKILL.md**: Retained as algorithm reference doc, but no longer installed as a Claude Code skill. MCP server is the primary interface.
 
 ## Key Files
 
 | Path | Purpose |
 |------|---------|
-| `SKILL.md` | Skill definition — activation rules, calculation algorithm, output template (v2.1.0) |
+| `SKILL.md` | Algorithm reference doc — estimation formulas, output template (v2.1.0, no longer installed as skill) |
 | `references/heuristics.md` | Token budgets, pipeline step decompositions, complexity multipliers, parallel discount parameters — all tunable parameters live here |
 | `references/pricing.md` | Model pricing per million tokens, cache rates, step→model mapping |
 | `references/calibration-algorithm.md` | Calibration algorithm documentation |
@@ -103,5 +104,6 @@ When completing work, the `docs-updater` agent should update:
 
 ## Project-Specific Estimate Overrides
 
-- **`review_cycles=4`** — use this override when running `/tokencast` for tokencast changes. The global `heuristics.md` default of 2 is too low for this project; historical data across 5 sessions averages 4–5 passes (v1.3: 5, v1.5: 4, v1.6: 3, v1.7+v2.0: 4, v2.1: 11).
+- **`review_cycles=4`** — use this override when running `estimate_cost` for tokencast changes. The global `heuristics.md` default of 2 is too low for this project; historical data across 5 sessions averages 4–5 passes (v1.3: 5, v1.5: 4, v1.6: 3, v1.7+v2.0: 4, v2.1: 11).
+- **MCP tools available**: `estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_step_cost`, `report_session` — use these instead of the former `/tokencast` slash command.
 
