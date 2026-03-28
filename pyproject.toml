@@ -40,6 +40,9 @@ Issues = "https://github.com/krulewis/tokencast/issues"
 tokencast-mcp = "tokencast_mcp.server:main"
 tokencast = "tokencast_mcp.server:main"
 
+[tool.hatch.build.targets.sdist]
+exclude = [".claude/", "calibration/", "docs/plans/"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/tokencast", "src/tokencast_mcp"]
 
