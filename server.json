@@ -1,49 +1,21 @@
 {
-  "name": "tokencast",
-  "display_name": "tokencast",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.krulewis/tokencast",
+  "title": "tokencast",
   "description": "Pre-execution cost estimation for LLM agent workflows. Estimate before you run. Learn from actuals. Get more accurate over time.",
   "repository": {
     "url": "https://github.com/krulewis/tokencast",
     "source": "github"
   },
-  "version_detail": {
-    "version": "0.1.0",
-    "release_date": "2026-03-26"
-  },
+  "version": "0.1.1",
   "packages": [
     {
-      "registry_name": "pypi",
-      "name": "tokencast",
-      "version": "0.1.0"
-    }
-  ],
-  "remotes": [
-    {
-      "transport_type": "stdio",
-      "command": "uvx",
-      "args": ["tokencast"]
-    }
-  ],
-  "tools": [
-    {
-      "name": "estimate_cost",
-      "description": "Estimate Anthropic API token costs for a development plan before execution"
-    },
-    {
-      "name": "get_calibration_status",
-      "description": "Get calibration health and accuracy metrics for cost estimates"
-    },
-    {
-      "name": "get_cost_history",
-      "description": "Query historical cost estimation records and actuals"
-    },
-    {
-      "name": "report_session",
-      "description": "Report actual session cost to improve future calibration"
-    },
-    {
-      "name": "report_step_cost",
-      "description": "Record the cost of a completed pipeline step. Costs accumulate per step and are flushed when report_session is called."
+      "registryType": "pypi",
+      "identifier": "tokencast",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      }
     }
   ]
 }

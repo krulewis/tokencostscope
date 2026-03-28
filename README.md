@@ -5,6 +5,8 @@
 [![CI](https://github.com/krulewis/tokencast/actions/workflows/ci.yml/badge.svg)](https://github.com/krulewis/tokencast/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/tokencast)](https://pypi.org/project/tokencast/)
 
+<!-- mcp-name: io.github.krulewis/tokencast -->
+
 # tokencast
 
 Pre-execution cost estimation for LLM agent workflows. Get a cost estimate before running any agent task, then let tokencast learn from actuals to improve accuracy over time.

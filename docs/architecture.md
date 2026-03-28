@@ -3,7 +3,7 @@
 ## Python Package Design
 
 - **Dict-based routing layer**: Public API functions (`estimate_cost`, `report_session`, `report_step_cost`, `get_calibration_status`, `get_cost_history`) accept and return dicts matching MCP tool schemas. MCP tools are thin wrappers that call these functions. CI/CD users import the same functions, ensuring no API drift.
-- **Lazy `__init__.py`**: Uses `__getattr__` to prevent cascading imports. Scripts that need only one submodule (e.g., learn.sh importing `session_recorder`) don't pull in the entire dependency tree. See Coding Conventions for details.
+- **Eager `__init__.py` with importlib bypass**: `__init__.py` uses eager imports (fine for normal package usage). Scripts like `learn.sh` and `sum-session-tokens.py` use importlib to load individual modules (`session_recorder.py`, `pricing.py`) directly, bypassing `__init__.py` to avoid pulling the full dependency tree in subprocess contexts.
 - **No business logic in MCP layer**: `src/tokencast_mcp/tools/` handlers are thin wrappers — they call `api.py` functions, format results, and raise `ValueError` on errors for the server to return `CallToolResult(isError=True)`.
 - **Error handling pattern**: API functions return `{"error": "...", "message": "..."}` dicts on failure. MCP handlers check `if "error" in result` and raise `ValueError`. Server catches and formats as error response.
 - **Package exports requirement**: `estimate_cost` and `report_session` must be importable from `tokencast/__init__.py` to support CI/CD usage without the MCP layer (`from tokencast import estimate_cost, report_session`).
@@ -55,7 +55,7 @@
 - **Shell injection safety**: `learn.sh` and `midcheck.sh` use `shlex.quote()` and env vars pattern to pass data to Python. Never interpolate user-derived strings directly into shell commands.
 - **Hook placement**: Enforcement hooks live in `.claude/hooks/` (not `scripts/`). Core tokencast functionality remains in `scripts/`. Enforcement hooks use `bash '/absolute/path/...'` in `settings.json` to match the existing hook pattern and handle the space in "Macintosh HD2".
 - **Package exports**: `estimate_cost` and `report_session` must be importable from `tokencast/__init__.py` for CI/CD usage without MCP layer.
-- **Lazy `__init__.py` pattern**: `__getattr__`-based lazy loading prevents cascading imports; preserves `from tokencast import estimate_cost` for end users. (See Python Package Design section.)
+- **GNU vs BSD xargs**: Never use `find | xargs -0 ls -t` — GNU xargs runs `ls` with no args on empty stdin. Use `find -exec ls -t {} +` instead. See PR #14 for the full root cause analysis.
 - **CI portability — REPO_ROOT**: Use `Path(__file__).resolve().parent.parent.parent` consistently across all Python modules; never use relative paths. Ensures paths work in both subprocess (learn.sh) and in-process (tests) contexts.
 - **CI portability — sys.executable**: Always use `sys.executable` instead of bare `python3` when spawning subprocesses from tests. Ensures the same Python version runs the subprocess.
 - **CI portability — error logging**: Capture stderr from Python subprocesses and log before exiting; reduce `2>/dev/null` redirections so failures surface in CI.

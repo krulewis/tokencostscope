@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tokencast"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pre-execution cost estimation for LLM agent workflows with calibration learning"
 readme = "README.md"
 license = "MIT"
