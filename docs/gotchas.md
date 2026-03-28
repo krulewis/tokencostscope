@@ -4,11 +4,10 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## Shell & File Paths
 
-- **Paths with spaces**: Always quote shell paths. The repo lives at `/Volumes/Macintosh HD2/Cowork/Projects/costscope` — the space in "Macintosh HD2" will break unquoted shell commands.
+- **Paths with spaces**: Always quote shell paths. If the repo lives at a path with spaces (e.g., `/Volumes/My Drive/...`), unquoted shell commands will break. Use `-print0 | xargs -0` for `find` pipelines.
 - **GNU vs BSD xargs**: Never use `find | xargs -0 ls -t` — GNU xargs (Linux) runs `ls` with no arguments on empty stdin, listing cwd. Use `find -exec ls -t {} +` instead, which only runs `ls` when files are found. Fixed in PR #14.
-- **macOS volume path**: `/Volumes/Macintosh HD2/...` is the working directory; scripts run from there will have the space in the absolute path.
 - **Worktree working directory**: If using git worktrees, the working dir differs from the main repo root. Use absolute paths.
-- **README.md location**: `README.md` is in the repo root (`/Volumes/Macintosh HD2/Cowork/Projects/costscope/README.md`), not inside `.claude/skills/tokencast/`.
+- **README.md location**: `README.md` is in the repo root, not inside `.claude/skills/tokencast/`.
 - **`calibration/` is gitignored**: Do not commit calibration data. The directory may not exist on a fresh clone; scripts must handle its absence gracefully.
 - **macOS `timeout` command**: Not available by default. Tests use `fake_home` + HOME override instead of stdin.
 - **midcheck.sh JSONL discovery**: Use `active-estimate.json` mtime as `-newer` reference, not directory mtime (which changes on `mkdir -p`). Wrap discovery in `if [ -f "$ESTIMATE_FILE" ]`.
@@ -16,9 +15,9 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## Python Testing
 
-- **Python versions**: `/usr/bin/python3` is 3.9.6 (has pytest). Homebrew `python3` is 3.14 (no pytest). Always use `/usr/bin/python3 -m pytest` for the main test suite.
+- **Python versions**: The main test suite requires Python 3.9+. MCP tests require 3.10+. On macOS, check which `python3` you have — Homebrew may install a version without pytest. Use `python3 -m pytest` for the main test suite.
 - **MCP package requirement**: `mcp >= 3.10`. Tests requiring MCP skip cleanly under 3.9 via `pytest.importorskip("mcp")` on Python 3.9.
-- **test_mcp_scaffold.py runs under 3.11 only**: `python3.11 -m pytest tests/test_mcp_scaffold.py` — do NOT try to run under `/usr/bin/python3` (3.9).
+- **test_mcp_scaffold.py runs under 3.10+ only**: `python3 -m pytest tests/test_mcp_scaffold.py` — requires Python 3.10+ with the `mcp` package installed.
 - **sys.path.insert pattern**: Tests use `sys.path.insert(0, str(Path(__file__).parent.parent / "src"))` to import `tokencast` without requiring editable install. Must be placed BEFORE `pytest.importorskip("mcp")` so `tokencast_mcp` is found when running under Python 3.11.
 
 ## Python Package & Imports

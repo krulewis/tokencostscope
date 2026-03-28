@@ -53,7 +53,7 @@
 
 - **Version string consistency**: Must be consistent across three places: `SKILL.md` frontmatter (`version:`), output template header (`## tokencast estimate (v1.x.x)`), and `learn.sh` `VERSION` variable. Always update all three together.
 - **Shell injection safety**: `learn.sh` and `midcheck.sh` use `shlex.quote()` and env vars pattern to pass data to Python. Never interpolate user-derived strings directly into shell commands.
-- **Hook placement**: Enforcement hooks live in `.claude/hooks/` (not `scripts/`). Core tokencast functionality remains in `scripts/`. Enforcement hooks use `bash '/absolute/path/...'` in `settings.json` to match the existing hook pattern and handle the space in "Macintosh HD2".
+- **Hook placement**: Enforcement hooks live in `.claude/hooks/` (not `scripts/`). Core tokencast functionality remains in `scripts/`. Hook commands in `settings.json` use `git rev-parse --show-toplevel` for portable path resolution.
 - **Package exports**: `estimate_cost` and `report_session` must be importable from `tokencast/__init__.py` for CI/CD usage without MCP layer.
 - **GNU vs BSD xargs**: Never use `find | xargs -0 ls -t` — GNU xargs runs `ls` with no args on empty stdin. Use `find -exec ls -t {} +` instead. See PR #14 for the full root cause analysis.
 - **CI portability — REPO_ROOT**: Use `Path(__file__).resolve().parent.parent.parent` consistently across all Python modules; never use relative paths. Ensures paths work in both subprocess (learn.sh) and in-process (tests) contexts.
