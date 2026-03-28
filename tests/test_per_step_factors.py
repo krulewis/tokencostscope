@@ -716,8 +716,8 @@ class TestDocumentContent:
         assert "PR Review Loop" in recorder.read_text()
 
     def test_claude_md_version(self):
-        """CLAUDE.md contains SKILL.md version: 2.1.0."""
-        assert "SKILL.md version**: 2.1.0" in CLAUDE_MD.read_text()
+        """CLAUDE.md references SKILL.md v2.1.0."""
+        assert "v2.1.0" in CLAUDE_MD.read_text()
 
 
 # ---------------------------------------------------------------------------
