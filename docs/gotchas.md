@@ -4,7 +4,8 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## Shell & File Paths
 
-- **Paths with spaces**: Always quote shell paths; use `-print0 | xargs -0` for `find` pipelines. The repo lives at `/Volumes/Macintosh HD2/Cowork/Projects/costscope` — the space in "Macintosh HD2" will break unquoted shell commands.
+- **Paths with spaces**: Always quote shell paths. The repo lives at `/Volumes/Macintosh HD2/Cowork/Projects/costscope` — the space in "Macintosh HD2" will break unquoted shell commands.
+- **GNU vs BSD xargs**: Never use `find | xargs -0 ls -t` — GNU xargs (Linux) runs `ls` with no arguments on empty stdin, listing cwd. Use `find -exec ls -t {} +` instead, which only runs `ls` when files are found. Fixed in PR #14.
 - **macOS volume path**: `/Volumes/Macintosh HD2/...` is the working directory; scripts run from there will have the space in the absolute path.
 - **Worktree working directory**: If using git worktrees, the working dir differs from the main repo root. Use absolute paths.
 - **README.md location**: `README.md` is in the repo root (`/Volumes/Macintosh HD2/Cowork/Projects/costscope/README.md`), not inside `.claude/skills/tokencast/`.
@@ -22,8 +23,8 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## Python Package & Imports
 
-- **Cascading imports issue (in progress)**: `tokencast/__init__.py` currently imports everything at module level, triggering the entire MCP dependency tree. Subprocesses (learn.sh) that only need `session_recorder` get the full cascade. Fix: lazy `__getattr__`-based loading. After fix: revert importlib hacks in learn.sh and sum-session-tokens.py back to clean imports. NOTE: Remove this entry when lazy `__init__.py` lands.
-- **importlib pattern for loading scripts**: `sum-session-tokens.py` and `learn.sh` use importlib to load Python modules from `scripts/` directory. This is a workaround for cascading imports (to be fixed with lazy `__getattr__`).
+- **importlib pattern for loading scripts**: `sum-session-tokens.py` and `learn.sh` use importlib to load Python modules (`pricing.py`, `session_recorder.py`) directly from `src/tokencast/`, bypassing `__init__.py`. This avoids pulling the full dependency tree in subprocess contexts.
+- **Eager `__init__.py` is fine**: The cascading imports hypothesis (CI failures caused by `__init__.py` pulling MCP deps) was disproven. The real CI issue was GNU xargs (see Shell & File Paths). The eager imports in `__init__.py` are not a problem because learn.sh/sum-session-tokens.py use importlib to load modules directly.
 
 ## MCP SDK Behavior
 
@@ -41,7 +42,7 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## CI & Continuous Integration
 
-- **12 remaining CI failures** (as of 2026-03-27): All in `test_continuation_session.py::TestLearnShContinuation` × 4 tests × 3 Python versions. Root cause: cascading imports in `tokencast/__init__.py` prevent learn.sh subprocess from importing `session_recorder` alone. Fix documented in `project_ci_fix_plan.md`. NOTE: Remove when lazy `__init__.py` lands.
-- **Error visibility in tests**: learn.sh uses `|| exit 0` and `2>/dev/null` everywhere. When CI fails, no diagnostic surfaces. Tests must capture stderr from `_run_learn_sh` helper and include it in assertion failures so CI shows the actual error.
+- **CI is green** (as of 2026-03-27): 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest. Fixed in PR #13 (test assertions) + PR #14 (GNU xargs compat).
+- **bash -x tracing in learn.sh tests**: `_run_learn_sh` uses `bash -x` and includes the trace in assertion failure messages. If learn.sh integration tests fail on CI, the error message shows the full execution trace.
 - **REPO_ROOT portability**: `Path(__file__).resolve().parent.parent.parent` must be used consistently; never use relative paths.
 - **sys.executable in subprocess**: Always use `sys.executable` not bare `python3` when spawning subprocesses from tests. Ensures the same Python version runs the subprocess.

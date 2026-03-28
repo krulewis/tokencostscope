@@ -25,7 +25,7 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 | `scripts/calibration_store.py` | Storage abstraction for `history.jsonl` and `factors.json` |
 | `scripts/tokencast-status.py` | Calibration health dashboard (v2.0) |
 | `calibration/` | Calibration data — gitignored; contains `history.jsonl`, `factors.json`, `active-estimate.json` |
-| `src/tokencast/__init__.py` | Package exports via lazy `__getattr__` (Phase 1 migration in progress) |
+| `src/tokencast/__init__.py` | Package exports (eager imports — lazy migration was not needed; CI fix was GNU xargs compat) |
 | `src/tokencast/api.py` | Public API layer — dict-based routing; `estimate_cost()`, `report_session()`, `report_step_cost()` |
 | `src/tokencast/estimation_engine.py` | Core estimation: `compute_estimate(params, calibration_dir)` |
 | `src/tokencast/file_measurement.py` | File size bracket measurement: `measure_files()`, `assign_bracket()` |
@@ -82,7 +82,9 @@ python3.11 -m pytest tests/test_mcp_scaffold.py -v
 
 **Do NOT use `pytest` or `python3 -m pytest` directly.** Homebrew `python3` resolves to 3.14 which does NOT have pytest. Always use `/usr/bin/python3` (3.9.6, has pytest) for the main test suite. Use `python3.11 -m pytest` for MCP-specific protocol tests.
 
-**Test count**: 939 passing, 71 skipped (MCP-dependent tests requiring Python >= 3.10 are skipped cleanly under 3.9 via `pytest.importorskip("mcp")`).
+**Test count**: 981 passing, 92 skipped under 3.9; 1209 passing, 4 skipped under 3.11 (MCP-dependent tests skip cleanly under 3.9 via `pytest.importorskip("mcp")`).
+
+**CI status**: All green — 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest (fixed in PRs #13 + #14).
 
 ## Architecture & Conventions
 
