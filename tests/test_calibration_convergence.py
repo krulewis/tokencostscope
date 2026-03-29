@@ -13,7 +13,7 @@ Implementation notes:
   result = alpha * (v * w) + (1-alpha) * result. When records span many days,
   weights < 1.0 bias the factor below the true ratio. Using 10-minute spacing
   (days_ago = i / 144.0) keeps all weights > 0.99 and avoids this bias.
-- For N <= 10, trimmed_mean is used (exact, no bias). For N > 10, EWMA is used.
+- For N <= 10, trimmed_mean is used (near-exact when weights are uniform). For N > 10, EWMA is used.
 - error_at[0] for ratio=1.4 with default 1.0: |1.0-1.4|/1.4 = 0.286 (< 0.30).
   Threshold is 0.25 (not 0.30) for this ratio.
 """
@@ -605,7 +605,7 @@ class TestProportionalAttributionLimit:
         assert abs(factors["step_factors"]["Research Agent"]["factor"] - 1.0) <= 0.1
         assert abs(factors["step_factors"]["Implementation"]["factor"] - 1.0) <= 0.1
 
-    def test_proportional_attribution_limitation_is_documented_in_code(self):
+    def test_proportional_step_factors_track_session_blend(self):
         """Step factors track session ratio blend, not independent per-step reality.
 
         When step_ratios are derived proportionally from the session ratio, per-step
