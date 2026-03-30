@@ -33,14 +33,14 @@ def wheel_path(tmp_path_factory):
     # --- Path 1: pre-built wheel provided by CI ---
     wheel_dir = os.environ.get("WHEEL_DIR")
     if wheel_dir:
-        matches = glob.glob(os.path.join(wheel_dir, "*.whl"))
+        matches = list(Path(wheel_dir).glob("*.whl"))
         if len(matches) == 0:
             pytest.skip(f"WHEEL_DIR={wheel_dir!r} set but no .whl file found there")
         if len(matches) > 1:
             pytest.skip(
                 f"WHEEL_DIR={wheel_dir!r} contains multiple .whl files: {matches}"
             )
-        return Path(matches[0])
+        return matches[0]
 
     # --- Path 2: build from source ---
     # Verify the build package is available before attempting the subprocess.
