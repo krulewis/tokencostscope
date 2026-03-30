@@ -145,13 +145,6 @@ def test_wheel_mcp_server_importable(wheel_path, tmp_path):
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "Expected to fail on pre-0.1.3 codebase (scripts/ absent from wheel). "
-        "Remove this xfail after the 0.1.3 scripts packaging fix merges."
-    ),
-)
 def test_wheel_tool_call_works(wheel_path, tmp_path):
     """_load_status_module() executes without error in an installed wheel (HC-1).
 

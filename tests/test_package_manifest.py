@@ -41,19 +41,20 @@ import pytest
 # Every .py file that must be present in the installed wheel.
 # Adding a new module requires a deliberate update to this list.
 #
-# NOTE: tokencast/calibration_store.py is intentionally absent here.
-# It does not exist in src/tokencast/ until the 0.1.3 fix merges.
-# TODO: add tokencast/calibration_store.py after 0.1.3 fix merges
 REQUIRED_MODULES = [
     "tokencast/__init__.py",
     "tokencast/api.py",
+    "tokencast/calibration_store.py",
     "tokencast/estimation_engine.py",
     "tokencast/file_measurement.py",
+    "tokencast/parse_last_estimate.py",
     "tokencast/pricing.py",
     "tokencast/heuristics.py",
     "tokencast/session_recorder.py",
     "tokencast/step_names.py",
     "tokencast/telemetry.py",
+    "tokencast/tokencast_status.py",
+    "tokencast/update_factors.py",
     "tokencast_mcp/__init__.py",
     "tokencast_mcp/__main__.py",
     "tokencast_mcp/config.py",
