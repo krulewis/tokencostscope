@@ -22,8 +22,10 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## Python Package & Imports
 
-- **importlib pattern for loading scripts**: `sum-session-tokens.py` and `learn.sh` use importlib to load Python modules (`pricing.py`, `session_recorder.py`) directly from `src/tokencast/`, bypassing `__init__.py`. This avoids pulling the full dependency tree in subprocess contexts.
+- **importlib pattern for loading scripts**: `sum-session-tokens.py` and `learn.sh` use importlib to load Python modules (`pricing.py`, `session_recorder.py`) directly from `src/tokencast/`, bypassing `__init__.py`. This avoids pulling the full dependency tree in subprocess contexts. `api.py` does NOT use importlib — it imports the package modules directly (`from tokencast import calibration_store`, etc.).
 - **Eager `__init__.py` is fine**: The cascading imports hypothesis (CI failures caused by `__init__.py` pulling MCP deps) was disproven. The real CI issue was GNU xargs (see Shell & File Paths). The eager imports in `__init__.py` are not a problem because learn.sh/sum-session-tokens.py use importlib to load modules directly.
+- **Scripts not in wheel**: `scripts/` is NOT included in the built wheel. Any code that uses `Path(__file__).parent.parent.parent / "scripts"` to locate Python modules will crash at import time for `uvx`/`pip` installs. Fix: use package modules in `src/tokencast/` instead. The four affected scripts are now mirrored as `calibration_store.py`, `parse_last_estimate.py`, `tokencast_status.py`, and `update_factors.py` in `src/tokencast/`.
+- **`tokencast_status.py` `heuristics_path=None` behavior**: When `heuristics_path=None` is passed to `build_status_output()`, `rec_stale_pricing()` returns `None` immediately (no stale pricing recommendation). `parse_review_cycles_default()` returns the default (2) via `except (OSError, TypeError)`. This is intentional — callers that don't have a heuristics file path get graceful degradation, not a crash.
 
 ## MCP SDK Behavior
 

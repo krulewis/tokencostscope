@@ -7,13 +7,13 @@ and passed in via params.
 Entry point: compute_estimate(params, calibration_dir) -> dict
 """
 
-import importlib.util
 import warnings
 from datetime import date
 from pathlib import Path
 from typing import Optional
 
 from tokencast import heuristics, pricing
+from tokencast.calibration_store import read_factors as _read_factors
 from tokencast.file_measurement import bracket_from_override, compute_avg_tokens
 
 # ---------------------------------------------------------------------------
@@ -25,25 +25,6 @@ _MODEL_SHORT = {
     pricing.MODEL_OPUS:   "Opus",
     pricing.MODEL_HAIKU:  "Haiku",
 }
-
-# ---------------------------------------------------------------------------
-# Lazy-load calibration_store from scripts/ (has a hyphen-less name but is
-# outside the src/ package tree — same importlib pattern as existing tests)
-# ---------------------------------------------------------------------------
-
-def _load_calibration_store():
-    scripts_dir = Path(__file__).resolve().parent.parent.parent / "scripts"
-    spec = importlib.util.spec_from_file_location(
-        "calibration_store",
-        scripts_dir / "calibration_store.py",
-    )
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-_calibration_store = _load_calibration_store()
-_read_factors = _calibration_store.read_factors
 
 
 # ---------------------------------------------------------------------------

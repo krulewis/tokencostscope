@@ -6,7 +6,6 @@ real implementations.
 """
 
 import hashlib
-import importlib.util
 import json
 import os
 import pathlib
@@ -17,6 +16,10 @@ from typing import List, Optional
 
 from tokencast.pricing import DEFAULT_MODEL, STEP_MODEL_MAP, compute_cost_from_usage
 from tokencast.step_names import resolve_step_name
+from tokencast import calibration_store as _calibration_store
+from tokencast.parse_last_estimate import parse as _parse_last_estimate
+from tokencast.tokencast_status import build_status_output as _build_status_output
+from tokencast.update_factors import update_factors as _update_factors
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -24,58 +27,6 @@ from tokencast.step_names import resolve_step_name
 
 OUTLIER_HIGH = 3.0
 OUTLIER_LOW = 0.2
-
-# ---------------------------------------------------------------------------
-# Lazy-load tokencast-status.py (filename has a hyphen — cannot be imported
-# with normal import machinery).
-# ---------------------------------------------------------------------------
-
-_STATUS_MODULE = None
-
-
-def _load_status_module():
-    global _STATUS_MODULE
-    if _STATUS_MODULE is not None:
-        return _STATUS_MODULE
-    scripts_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts"
-    status_path = scripts_dir / "tokencast-status.py"
-    spec = importlib.util.spec_from_file_location("tokencast_status", status_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    _STATUS_MODULE = mod
-    return mod
-
-
-_CALIBRATION_STORE_MODULE = None
-_PARSE_LAST_ESTIMATE_MODULE = None
-
-
-def _load_calibration_store():
-    """Load calibration_store.py from the scripts directory (cached)."""
-    global _CALIBRATION_STORE_MODULE
-    if _CALIBRATION_STORE_MODULE is not None:
-        return _CALIBRATION_STORE_MODULE
-    scripts_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts"
-    cs_path = scripts_dir / "calibration_store.py"
-    spec = importlib.util.spec_from_file_location("calibration_store", cs_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    _CALIBRATION_STORE_MODULE = mod
-    return mod
-
-
-def _load_parse_last_estimate():
-    """Load parse_last_estimate.py from the scripts directory (cached)."""
-    global _PARSE_LAST_ESTIMATE_MODULE
-    if _PARSE_LAST_ESTIMATE_MODULE is not None:
-        return _PARSE_LAST_ESTIMATE_MODULE
-    scripts_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts"
-    ple_path = scripts_dir / "parse_last_estimate.py"
-    spec = importlib.util.spec_from_file_location("parse_last_estimate", ple_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    _PARSE_LAST_ESTIMATE_MODULE = mod
-    return mod
 
 
 # ---------------------------------------------------------------------------
@@ -372,21 +323,17 @@ def get_calibration_status(
     history_path = str(cal_path / "history.jsonl")
     factors_path = str(cal_path / "factors.json")
 
-    # Default heuristics path (references/heuristics.md relative to repo root)
-    repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
-    heuristics_path = str(repo_root / "references" / "heuristics.md")
+    heuristics_path = None
 
     try:
-        cs = _load_calibration_store()
-        all_records = cs.read_history(history_path)
-        factors = cs.read_factors(factors_path)
+        all_records = _calibration_store.read_history(history_path)
+        factors = _calibration_store.read_factors(factors_path)
     except Exception:
         all_records = []
         factors = {}
 
     try:
-        status_mod = _load_status_module()
-        result = status_mod.build_status_output(
+        result = _build_status_output(
             all_records,
             factors,
             verbose=False,
@@ -451,8 +398,7 @@ def get_cost_history(
     history_path = str(cal_path / "history.jsonl")
 
     try:
-        cs = _load_calibration_store()
-        all_records = cs.read_history(history_path)
+        all_records = _calibration_store.read_history(history_path)
     except Exception:
         all_records = []
 
@@ -594,10 +540,9 @@ def report_session(
         reconstituted = False
         if last_estimate_md.exists():
             try:
-                _parse_mod = _load_parse_last_estimate()
                 content = last_estimate_md.read_text()
                 mtime = last_estimate_md.stat().st_mtime
-                result = _parse_mod.parse(content, mtime=mtime)
+                result = _parse_last_estimate(content, mtime=mtime)
                 if result is not None:
                     estimate_data = result
                     reconstituted = True
@@ -670,21 +615,12 @@ def report_session(
         calibration_dir.mkdir(parents=True, exist_ok=True)
         history_path = str(calibration_dir / "history.jsonl")
         factors_path = str(calibration_dir / "factors.json")
-        cs = _load_calibration_store()
-        cs.append_history(history_path, record)
-        # Trigger factor recomputation via update-factors.py
-        import subprocess
-        import sys as _sys
-        scripts_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts"
-        subprocess.run(
-            [
-                _sys.executable,
-                str(scripts_dir / "update-factors.py"),
-                history_path,
-                factors_path,
-            ],
-            check=False,
-        )
+        _calibration_store.append_history(history_path, record)
+        # Trigger factor recomputation (non-fatal on failure)
+        try:
+            _update_factors(history_path, factors_path)
+        except Exception:
+            pass  # Calibration factor updates are non-critical
     except Exception as _write_exc:
         record_write_error = str(_write_exc)
 
