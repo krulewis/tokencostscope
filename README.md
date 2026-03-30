@@ -11,13 +11,35 @@
 
 Pre-execution cost estimation for LLM agent workflows. Get a cost estimate before running any agent task, then let tokencast learn from actuals to improve accuracy over time.
 
-Available as an **MCP server** (works in Cursor, VS Code + Copilot, Windsurf, Claude Code) or as a **Claude Code skill** (SKILL.md, for Claude Code users who prefer the skill-based workflow).
+Available as a **Claude Code plugin** (recommended — one command delivers everything) or as an **MCP server** for Cursor, VS Code + Copilot, and Windsurf.
 
 ---
 
-## MCP Installation (Recommended)
+## Installation
 
-### 1. Install the package
+### Claude Code (Recommended)
+
+Install tokencast as a Claude Code plugin — delivers the MCP server, calibration hooks, and estimation skill in one command:
+
+```
+/plugin install github.com/krulewis/tokencast --scope user
+```
+
+> **Prerequisites:** [`uv`](https://docs.astral.sh/uv/) must be installed for the MCP server to function.
+> Install with: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+This delivers:
+- **MCP server** (`estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_session`, `report_step_cost`)
+- **Calibration hooks** (auto-learning at session end, mid-session cost warnings, agent timeline tracking)
+- **SKILL.md** (estimation algorithm auto-trigger after plans)
+
+Calibration data is stored in `~/.tokencast/calibration/` (global across projects, preserved on uninstall).
+
+> **Scope options:** `--scope user` (recommended — installs globally for all projects) or `--scope project` (per-project only).
+
+### Other IDEs (MCP Server)
+
+Install the package:
 
 ```bash
 pip install tokencast
@@ -29,27 +51,7 @@ Or with `uvx` (no install required — runs directly from PyPI):
 uvx tokencast
 ```
 
-### 2. Configure your IDE
-
-Replace `/path/to/your/project` with your actual project path in the config snippets below.
-
-#### Claude Code
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "tokencast": {
-      "command": "tokencast-mcp",
-      "args": [
-        "--calibration-dir", "/path/to/your/project/calibration",
-        "--project-dir", "/path/to/your/project"
-      ]
-    }
-  }
-}
-```
+Configure your IDE — replace `/path/to/your/project` with your actual project path in the config snippets below.
 
 #### Cursor
 
@@ -108,7 +110,7 @@ Add to your Windsurf MCP config:
 
 Full config examples are in [`docs/ide-configs/`](docs/ide-configs/).
 
-### 3. Use the tools
+#### Available tools
 
 Once configured, tokencast exposes five MCP tools in your IDE:
 
@@ -142,7 +144,9 @@ Report session cost: actual_cost=4.20
 
 ---
 
-## Claude Code Skill (Alternative)
+## Claude Code Skill (Legacy)
+
+The Claude Code plugin (recommended) delivers everything in one command. Use this only if you prefer the SKILL.md workflow without the plugin system.
 
 If you use Claude Code and prefer the skill-based (SKILL.md) workflow, you can install tokencast as a Claude Code skill instead:
 
@@ -213,7 +217,7 @@ Calibration is fully automatic once you report actuals:
 - **10+ sessions:** EWMA with recency weighting. Per-size-class factors activate when a class has 3+ samples.
 - **Outlier filtering:** Sessions with actual/expected ratio >3.0x or <0.2x are excluded from calibration.
 
-Calibration data lives in `calibration/` (gitignored, local to each user).
+Calibration data lives in `~/.tokencast/calibration/` (gitignored, local to each user).
 
 ---
 

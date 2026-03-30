@@ -1,0 +1,10 @@
+{
+  "name": "tokencast",
+  "version": "2.1.0",
+  "description": "Automatic token cost estimation for Claude Code. Estimates before execution, learns from actuals, improves over time.",
+  "author": "krulewis",
+  "homepage": "https://github.com/krulewis/tokencast",
+  "repository": "https://github.com/krulewis/tokencast",
+  "license": "MIT",
+  "keywords": ["cost", "estimation", "tokens", "calibration", "mcp"]
+}
