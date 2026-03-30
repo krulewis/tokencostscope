@@ -1,6 +1,6 @@
 """tokencast — Pre-execution cost estimation for LLM agent workflows."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from tokencast import pricing  # noqa: F401
 from tokencast import heuristics  # noqa: F401

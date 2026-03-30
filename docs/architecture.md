@@ -3,7 +3,7 @@
 ## Python Package Design
 
 - **Dict-based routing layer**: Public API functions (`estimate_cost`, `report_session`, `report_step_cost`, `get_calibration_status`, `get_cost_history`) accept and return dicts matching MCP tool schemas. MCP tools are thin wrappers that call these functions. CI/CD users import the same functions, ensuring no API drift.
-- **Eager `__init__.py` with importlib bypass**: `__init__.py` uses eager imports (fine for normal package usage). Scripts like `learn.sh` and `sum-session-tokens.py` use importlib to load individual modules (`session_recorder.py`, `pricing.py`) directly, bypassing `__init__.py` to avoid pulling the full dependency tree in subprocess contexts.
+- **Eager `__init__.py` with importlib bypass**: `__init__.py` uses eager imports (fine for normal package usage). Scripts like `learn.sh` and `sum-session-tokens.py` use importlib to load individual modules (`session_recorder.py`, `pricing.py`) directly, bypassing `__init__.py` to avoid pulling the full dependency tree in subprocess contexts. `api.py` uses direct package imports (e.g. `from tokencast import calibration_store`) — never importlib — so it works correctly from both repo checkouts and wheel installs.
 - **No business logic in MCP layer**: `src/tokencast_mcp/tools/` handlers are thin wrappers — they call `api.py` functions, format results, and raise `ValueError` on errors for the server to return `CallToolResult(isError=True)`.
 - **Error handling pattern**: API functions return `{"error": "...", "message": "..."}` dicts on failure. MCP handlers check `if "error" in result` and raise `ValueError`. Server catches and formats as error response.
 - **Package exports requirement**: `estimate_cost` and `report_session` must be importable from `tokencast/__init__.py` to support CI/CD usage without the MCP layer (`from tokencast import estimate_cost, report_session`).
@@ -32,6 +32,24 @@
 ## Data Modules
 
 - **Python data modules**: `src/tokencast/pricing.py`, `src/tokencast/heuristics.py` — plain Python literals, no imports beyond stdlib, no logic, no I/O, no side effects. Markdown files (`references/pricing.md`, `references/heuristics.md`) remain the human-editable source of truth. Python modules are derived artifacts kept in sync by drift tests.
+
+## Scripts Packaging — Package Copies
+
+Four scripts that were previously loaded via `importlib.util` from `scripts/` are now proper package modules in `src/tokencast/`. This fixes a bug where `estimation_engine.py` crashed at import time for wheel installs (the `scripts/` directory is not included in the wheel).
+
+| Package module | Source script | SYNC comment |
+|---|---|---|
+| `src/tokencast/calibration_store.py` | `scripts/calibration_store.py` | Library functions only; no CLI (`argparse`, `subprocess` removed) |
+| `src/tokencast/parse_last_estimate.py` | `scripts/parse_last_estimate.py` | Library functions only; `os` and `sys` imports removed (CLI-only) |
+| `src/tokencast/tokencast_status.py` | `scripts/tokencast-status.py` | Library functions only; importlib loader replaced with `from tokencast import calibration_store`; `parse_args()`, `analyze()`, `main()` omitted |
+| `src/tokencast/update_factors.py` | `scripts/update-factors.py` | Library functions only; `main()` omitted; `sys` retained (`sys.stderr` used in `update_factors()`) |
+
+**SYNC convention**: Each package copy has `# SYNC: scripts/<source-file> -- library functions only (no CLI)` as line 1. When the source script changes, the corresponding package module must be updated to match.
+
+**Targeted changes in `tokencast_status.py`**:
+- `parse_heuristics_pricing_date()` and `parse_review_cycles_default()`: `except OSError:` → `except (OSError, TypeError):` (handles `None` path argument without raising)
+- `rec_stale_pricing()`: guard added at top — `if heuristics_path is None: return None`
+- `build_status_output()`: removed `if heuristics_path is None:` fallback that used `__file__`-relative path (would resolve to wrong location in an installed wheel)
 - **Cross-module band key invariant**: `set(pricing.CACHE_HIT_RATES.keys()) == set(heuristics.BAND_MULTIPLIERS.keys())` — enforced by `test_cross_module_band_keys`.
 - **Pricing module signature**: `compute_cost_from_usage(usage: dict, model: str) -> float` — framework-agnostic cost function, used by `sum-session-tokens.py` (JSONL path) and `report_step_cost` (MCP path).
 - **JSONL adapter**: `compute_line_cost()` in `sum-session-tokens.py` extracts usage from Claude Code JSONL format and delegates to `compute_cost_from_usage()`. This is the integration point between the JSONL parsing path (learn.sh) and the pricing module.

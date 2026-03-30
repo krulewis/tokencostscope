@@ -300,17 +300,11 @@ def record_event(
         records: list = []
         factors: dict = {}
         try:
-            import importlib.util
-            scripts_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts"
-            cs_path = scripts_dir / "calibration_store.py"
-            spec = importlib.util.spec_from_file_location("calibration_store", cs_path)
-            if spec is not None and spec.loader is not None:
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)  # type: ignore[union-attr]
-                records = mod.read_history(history_path)
-                factors = mod.read_factors(factors_path)
+            from tokencast.calibration_store import read_history, read_factors
+            records = read_history(history_path)
+            factors = read_factors(factors_path)
         except Exception:
-            pass  # Degrade gracefully — metrics will show zeros
+            pass  # Degrade gracefully -- metrics will show zeros
 
         metrics = collect_metrics(
             records=records,

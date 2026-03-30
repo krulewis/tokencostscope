@@ -405,19 +405,10 @@ class TestDiskWriteFailure:
         cal_dir = tmp_path / "calibration"
         _make_active_estimate(cal_dir)
 
-        # Patch calibration_store.append_history to raise
-        import importlib.util as _ilu
-        cs_path = REPO_ROOT / "scripts" / "calibration_store.py"
-        spec = _ilu.spec_from_file_location("calibration_store", cs_path)
-        cs_mod = _ilu.module_from_spec(spec)
-        spec.loader.exec_module(cs_mod)
+        from tokencast import calibration_store as _cs_pkg
 
-        with patch.object(cs_mod, "append_history", side_effect=OSError("read-only")):
-            with patch(
-                "tokencast.api._load_calibration_store",
-                return_value=cs_mod,
-            ):
-                result = report_session({"actual_cost": 2.0}, calibration_dir=str(cal_dir))
+        with patch.object(_cs_pkg, "append_history", side_effect=OSError("read-only")):
+            result = report_session({"actual_cost": 2.0}, calibration_dir=str(cal_dir))
 
         assert result is not None
         assert "attribution_protocol_version" in result
@@ -427,18 +418,10 @@ class TestDiskWriteFailure:
         cal_dir = tmp_path / "calibration"
         _make_active_estimate(cal_dir)
 
-        import importlib.util as _ilu
-        cs_path = REPO_ROOT / "scripts" / "calibration_store.py"
-        spec = _ilu.spec_from_file_location("calibration_store", cs_path)
-        cs_mod = _ilu.module_from_spec(spec)
-        spec.loader.exec_module(cs_mod)
+        from tokencast import calibration_store as _cs_pkg
 
-        with patch.object(cs_mod, "append_history", side_effect=OSError("read-only")):
-            with patch(
-                "tokencast.api._load_calibration_store",
-                return_value=cs_mod,
-            ):
-                result = report_session({"actual_cost": 2.0}, calibration_dir=str(cal_dir))
+        with patch.object(_cs_pkg, "append_history", side_effect=OSError("read-only")):
+            result = report_session({"actual_cost": 2.0}, calibration_dir=str(cal_dir))
 
         assert result["record_written"] is False
 
@@ -447,18 +430,10 @@ class TestDiskWriteFailure:
         cal_dir = tmp_path / "calibration"
         _make_active_estimate(cal_dir)
 
-        import importlib.util as _ilu
-        cs_path = REPO_ROOT / "scripts" / "calibration_store.py"
-        spec = _ilu.spec_from_file_location("calibration_store", cs_path)
-        cs_mod = _ilu.module_from_spec(spec)
-        spec.loader.exec_module(cs_mod)
+        from tokencast import calibration_store as _cs_pkg
 
-        with patch.object(cs_mod, "append_history", side_effect=OSError("read-only")):
-            with patch(
-                "tokencast.api._load_calibration_store",
-                return_value=cs_mod,
-            ):
-                result = report_session({"actual_cost": 2.0}, calibration_dir=str(cal_dir))
+        with patch.object(_cs_pkg, "append_history", side_effect=OSError("read-only")):
+            result = report_session({"actual_cost": 2.0}, calibration_dir=str(cal_dir))
 
         assert result.get("error") == "write_failed"
 
