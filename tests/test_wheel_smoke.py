@@ -146,38 +146,22 @@ def test_wheel_mcp_server_importable(wheel_path, tmp_path):
 
 @pytest.mark.slow
 def test_wheel_tool_call_works(wheel_path, tmp_path):
-    """_load_status_module() executes without error in an installed wheel (HC-1).
+    """tokencast_status is importable from the installed wheel (HC-1).
 
-    This is the HC-1 validation test for the pre-0.1.3 scripts/ packaging bug.
+    This is the HC-1 validation test for the scripts/ packaging bug fixed in 0.1.3.
 
-    Calls _load_status_module() directly (not via get_calibration_status) because
-    get_calibration_status() wraps the loader in except Exception, swallowing
-    FileNotFoundError on pre-0.1.3 code. HC-1 requires the test to FAIL on broken
-    code. Direct invocation raises FileNotFoundError immediately on pre-0.1.3 code
-    (scripts/ absent from the installed wheel's site-packages) and succeeds on
-    post-0.1.3 code (tokencast_status module importable directly).
+    Pre-0.1.3: tokencast_status lived in scripts/ (not in the wheel), causing
+    ModuleNotFoundError on import. Post-0.1.3: it is a proper package module in
+    src/tokencast/, so the import succeeds.
 
-    On pre-0.1.3 code this test MUST FAIL with a FileNotFoundError or
-    ModuleNotFoundError referencing the scripts/ directory or tokencast-status.py.
-    If it passes on broken code, the test is not testing what it claims and must
-    be revised before merge.
+    Uses --no-deps so the test runs without the mcp package constraint.
     """
     venv_dir = _make_venv(tmp_path)
-    # Install without deps: this test only exercises tokencast.api, not mcp.
-    # Using --no-deps allows the test to run on Python 3.9 (where mcp is
-    # unavailable) so HC-1 can be verified locally on any Python version.
     _install_wheel(venv_dir, wheel_path, no_deps=True)
     python = _venv_python(venv_dir)
 
-    # Calls _load_status_module() directly (not via get_calibration_status) because
-    # get_calibration_status() wraps the loader in except Exception, swallowing
-    # FileNotFoundError on pre-0.1.3 code. HC-1 requires the test to FAIL on broken
-    # code. Direct invocation raises FileNotFoundError immediately when scripts/ is
-    # absent from the installed wheel, and succeeds on post-0.1.3 code where the
-    # module is importable as a proper package module.
     snippet = (
-        "from tokencast.api import _load_status_module; "
-        "_load_status_module(); "
+        "from tokencast.tokencast_status import build_status_output; "
         "print('ok')"
     )
     result = subprocess.run(
@@ -186,9 +170,7 @@ def test_wheel_tool_call_works(wheel_path, tmp_path):
         text=True,
     )
     assert result.returncode == 0, (
-        f"_load_status_module() raised an error in the installed wheel.\n"
-        f"stdout: {result.stdout}\nstderr: {result.stderr}\n\n"
-        f"If this is the pre-0.1.3 codebase, this failure is expected (HC-1 "
-        f"confirmed). After the 0.1.3 fix merges, this test must pass."
+        f"tokencast.tokencast_status not importable from installed wheel (HC-1).\n"
+        f"stdout: {result.stdout}\nstderr: {result.stderr}"
     )
     assert result.stdout.strip() == "ok"
