@@ -9,7 +9,6 @@ Public API:
 """
 
 import re
-import json
 import time
 from datetime import datetime, timezone
 from typing import Optional

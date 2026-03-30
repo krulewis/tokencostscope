@@ -1,7 +1,7 @@
 # SYNC: scripts/update-factors.py -- library functions only (no CLI)
 """Compute calibration factors from estimate-vs-actual history.
 
-Usage: python3 update-factors.py <history_jsonl_path> <factors_json_path>
+For CLI usage see scripts/update-factors.py.
 
 Reads paired records from history.jsonl, filters outliers, computes
 trimmed_mean(actual/expected) as the calibration factor per size class,

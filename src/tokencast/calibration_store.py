@@ -5,9 +5,7 @@ Design principle (E2): Concentration, not abstraction. All calibration reads and
 flow through this module so a future enterprise adapter replaces one file, not many.
 No abstract base classes, protocols, or dependency injection — just plain functions.
 
-CLI usage (called by learn.sh):
-    python3 calibration_store.py append-history --history PATH --factors PATH --record JSON
-    python3 calibration_store.py read-history --history PATH
+For CLI usage see scripts/calibration_store.py.
 """
 
 import json
