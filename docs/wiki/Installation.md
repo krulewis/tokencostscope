@@ -1,10 +1,32 @@
 # Installation
 
-tokencast is available as an **MCP server** (works in any MCP-compatible IDE) or as a **Claude Code skill** (SKILL.md-based workflow). The MCP server is recommended for new users.
+The Claude Code plugin (recommended) delivers everything in one command. For other IDEs, use the MCP server directly. The SKILL.md skill is available as a legacy option for Claude Code users who prefer it.
 
 ---
 
-## MCP Server (Recommended)
+## Claude Code (Recommended)
+
+Install tokencast as a Claude Code plugin — delivers the MCP server, calibration hooks, and estimation skill in one command:
+
+```
+/plugin install github.com/krulewis/tokencast --scope user
+```
+
+> **Prerequisites:** [`uv`](https://docs.astral.sh/uv/) must be installed for the MCP server to function.
+> Install with: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+This delivers:
+- **MCP server** (`estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_session`, `report_step_cost`)
+- **Calibration hooks** (auto-learning at session end, mid-session cost warnings, agent timeline tracking)
+- **SKILL.md** (estimation algorithm auto-trigger after plans)
+
+Calibration data is stored in `~/.tokencast/calibration/` (global across projects, preserved on uninstall).
+
+> **Scope options:** `--scope user` (recommended — installs globally for all projects) or `--scope project` (per-project only).
+
+---
+
+## Other IDEs (MCP Server)
 
 ### 1. Install the package
 
@@ -21,24 +43,6 @@ uvx tokencast
 ### 2. Configure your IDE
 
 Replace `/path/to/your/project` with your actual project path in the config snippets below.
-
-#### Claude Code
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "tokencast": {
-      "command": "tokencast-mcp",
-      "args": [
-        "--calibration-dir", "/path/to/your/project/calibration",
-        "--project-dir", "/path/to/your/project"
-      ]
-    }
-  }
-}
-```
 
 #### Cursor
 
@@ -99,7 +103,7 @@ Full config examples are in [`docs/ide-configs/`](https://github.com/krulewis/to
 
 ### 3. Use the tools
 
-Once configured, tokencast exposes five MCP tools in your IDE:
+Once configured, tokencast exposes five MCP tools:
 
 | Tool | What it does |
 |------|-------------|
@@ -119,7 +123,7 @@ Once configured, tokencast exposes five MCP tools in your IDE:
 
 ---
 
-## Claude Code Skill (Alternative)
+## Claude Code Skill (Legacy)
 
 If you use Claude Code and prefer the SKILL.md workflow:
 
@@ -172,7 +176,11 @@ The tokencast repo itself can live anywhere on your filesystem — the symlink k
 
 ---
 
-## Uninstalling (Skill Mode)
+## Uninstalling
+
+**Plugin uninstall:** Run `/plugin uninstall tokencast` in Claude Code. Calibration data in `~/.tokencast/calibration/` is preserved.
+
+**Skill mode uninstall:**
 
 ```bash
 bash /path/to/tokencast/scripts/disable.sh "/path/to/your-project"

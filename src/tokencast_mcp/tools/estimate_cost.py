@@ -101,6 +101,14 @@ async def handle_estimate_cost(params: dict, config: ServerConfig) -> dict:
     # --- Build text summary ---
     result["text"] = _format_markdown_table(result)
 
+    # First-run welcome note (US-PL-06)
+    history_path = config.calibration_dir / "history.jsonl"
+    if not history_path.exists() or history_path.stat().st_size == 0:
+        result["text"] += (
+            "\n**First run:** No calibration data yet -- estimates use defaults. "
+            "Accuracy improves after 3+ sessions with auto-learning.\n"
+        )
+
     return result
 
 

@@ -42,6 +42,13 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 - **step_actuals schema**: Values are plain floats (cost in $), not dicts with `'actual'`/`'estimated'` sub-keys. Iteration: `for step_name, step_cost in r['step_actuals'].items()`.
 - **`ServerConfig.ensure_dirs()`**: Directory creation is separated from config construction. `from_args()` does NOT create dirs — `ensure_dirs()` is called at server startup.
 
+## Claude Code Plugin System
+
+- **`${CLAUDE_PLUGIN_ROOT}` expansion**: The variable is used in `.claude-plugin/hooks/hooks.json` but its expansion behavior in Claude Code's plugin hook system is unverified at runtime — must be confirmed after first install. If it fails, consider wrapper scripts using `$(dirname "$0")` as fallback.
+- **Plugin hook scripts vs repo hooks**: `.claude-plugin/hooks/` scripts (`tokencast-learn.sh`, `tokencast-midcheck.sh`, `tokencast-agent-hook.sh`) adapt the originals in `scripts/` with `${HOME}/.tokencast/calibration` as `CALIBRATION_DIR` instead of repo-relative paths. Do not modify the originals — keep both independent.
+- **`session_recorder.py` is stdlib-only**: The plugin copies this file directly into `.claude-plugin/scripts/` and loads it without the tokencast package environment. Do not add non-stdlib imports to this file (json, pathlib, argparse are fine; tokencast.* imports are not).
+- **`pricing.py` drift detection**: `.claude-plugin/scripts/pricing.py` is a verbatim copy of `src/tokencast/pricing.py`. The test `test_pricing_py_no_drift` in `tests/test_plugin_integrity.py` will catch drift on every CI run — do not manually edit the plugin copy.
+
 ## CI & Continuous Integration
 
 - **CI is green** (as of 2026-03-27): 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest. Fixed in PR #13 (test assertions) + PR #14 (GNU xargs compat).
