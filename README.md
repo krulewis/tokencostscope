@@ -19,11 +19,15 @@ Available as a **Claude Code plugin** (recommended — one command delivers ever
 
 ### Claude Code (Recommended)
 
-Install tokencast as a Claude Code plugin — delivers the MCP server, calibration hooks, and estimation skill in one command:
+Install tokencast as a Claude Code plugin — delivers the MCP server, calibration hooks, and estimation skill in two commands:
 
 ```
-/plugin install github.com/krulewis/tokencast --scope user
+/plugin marketplace add krulewis/tokencast
+/plugin install tokencast@tokencast
 ```
+
+The first command registers the tokencast marketplace. The second installs the plugin
+from it.
 
 > **Prerequisites:** [`uv`](https://docs.astral.sh/uv/) must be installed for the MCP server to function.
 > Install with: `curl -LsSf https://astral.sh/uv/install.sh | sh`

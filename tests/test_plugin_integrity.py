@@ -1,4 +1,4 @@
-"""Static structural tests for the .claude-plugin/ tree."""
+"""Static structural tests for the plugin directory layout."""
 
 import json
 import sys
@@ -7,32 +7,38 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PLUGIN_ROOT = REPO_ROOT / ".claude-plugin"
 
 EXPECTED_FILES = [
-    ".claude-plugin/plugin.json",
-    ".claude-plugin/.mcp.json",
-    ".claude-plugin/hooks/hooks.json",
-    ".claude-plugin/hooks/tokencast-learn.sh",
-    ".claude-plugin/hooks/tokencast-midcheck.sh",
-    ".claude-plugin/hooks/tokencast-agent-hook.sh",
-    ".claude-plugin/skills/tokencast/SKILL.md",
-    ".claude-plugin/skills/tokencast/references/heuristics.md",
-    ".claude-plugin/skills/tokencast/references/pricing.md",
-    ".claude-plugin/skills/tokencast/references/examples.md",
-    ".claude-plugin/skills/tokencast/references/calibration-algorithm.md",
-    ".claude-plugin/scripts/sum-session-tokens.py",
-    ".claude-plugin/scripts/pricing.py",
-    ".claude-plugin/scripts/update-factors.py",
-    ".claude-plugin/scripts/calibration_store.py",
-    ".claude-plugin/scripts/parse_last_estimate.py",
-    ".claude-plugin/scripts/session_recorder.py",
-    ".claude-plugin/scripts/tokencast-status.py",
+    # Marketplace manifest
+    ".claude-plugin/marketplace.json",
+    # Plugin manifest (self-describing plugin)
+    "plugin/.claude-plugin/plugin.json",
+    # MCP config
+    "plugin/.mcp.json",
+    # Hooks
+    "plugin/hooks/hooks.json",
+    "plugin/hooks/tokencast-learn.sh",
+    "plugin/hooks/tokencast-midcheck.sh",
+    "plugin/hooks/tokencast-agent-hook.sh",
+    # Skills
+    "plugin/skills/tokencast/SKILL.md",
+    "plugin/skills/tokencast/references/heuristics.md",
+    "plugin/skills/tokencast/references/pricing.md",
+    "plugin/skills/tokencast/references/examples.md",
+    "plugin/skills/tokencast/references/calibration-algorithm.md",
+    # Scripts
+    "plugin/scripts/sum-session-tokens.py",
+    "plugin/scripts/pricing.py",
+    "plugin/scripts/update-factors.py",
+    "plugin/scripts/calibration_store.py",
+    "plugin/scripts/parse_last_estimate.py",
+    "plugin/scripts/session_recorder.py",
+    "plugin/scripts/tokencast-status.py",
 ]
 
 
 def test_plugin_json_exists_and_valid():
-    path = REPO_ROOT / ".claude-plugin" / "plugin.json"
+    path = REPO_ROOT / "plugin" / ".claude-plugin" / "plugin.json"
     assert path.exists(), "plugin.json not found"
     data = json.loads(path.read_text())
     for field in ("name", "version", "description", "author"):
@@ -41,7 +47,7 @@ def test_plugin_json_exists_and_valid():
 
 
 def test_mcp_json_exists_and_valid():
-    path = REPO_ROOT / ".claude-plugin" / ".mcp.json"
+    path = REPO_ROOT / "plugin" / ".mcp.json"
     assert path.exists(), ".mcp.json not found"
     data = json.loads(path.read_text())
     tc = data["mcpServers"]["tokencast"]
@@ -50,7 +56,7 @@ def test_mcp_json_exists_and_valid():
 
 
 def test_hooks_json_exists_and_valid():
-    path = REPO_ROOT / ".claude-plugin" / "hooks" / "hooks.json"
+    path = REPO_ROOT / "plugin" / "hooks" / "hooks.json"
     assert path.exists(), "hooks.json not found"
     data = json.loads(path.read_text())
     hooks = data["hooks"]
@@ -60,7 +66,7 @@ def test_hooks_json_exists_and_valid():
 
 
 def test_hooks_json_commands_use_plugin_root():
-    path = REPO_ROOT / ".claude-plugin" / "hooks" / "hooks.json"
+    path = REPO_ROOT / "plugin" / "hooks" / "hooks.json"
     data = json.loads(path.read_text())
 
     def _collect_commands(obj):
@@ -85,13 +91,26 @@ def test_all_plugin_files_exist():
 
 def test_session_recorder_no_drift():
     src = REPO_ROOT / "src" / "tokencast" / "session_recorder.py"
-    plugin = REPO_ROOT / ".claude-plugin" / "scripts" / "session_recorder.py"
+    plugin = REPO_ROOT / "plugin" / "scripts" / "session_recorder.py"
     assert src.exists() and plugin.exists()
     assert src.read_text() == plugin.read_text(), "session_recorder.py has drifted from src/tokencast/session_recorder.py"
 
 
 def test_pricing_py_no_drift():
     src = REPO_ROOT / "src" / "tokencast" / "pricing.py"
-    plugin = REPO_ROOT / ".claude-plugin" / "scripts" / "pricing.py"
+    plugin = REPO_ROOT / "plugin" / "scripts" / "pricing.py"
     assert src.exists() and plugin.exists()
     assert src.read_text() == plugin.read_text(), "pricing.py has drifted from src/tokencast/pricing.py"
+
+
+def test_marketplace_json_exists_and_valid():
+    path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
+    assert path.exists(), "marketplace.json not found"
+    data = json.loads(path.read_text())
+    assert "name" in data, "marketplace.json missing 'name' field"
+    assert "plugins" in data, "marketplace.json missing 'plugins' field"
+    assert len(data["plugins"]) >= 1, "marketplace.json has no plugins"
+    plugin_entry = data["plugins"][0]
+    assert plugin_entry.get("source") == "./plugin", (
+        f"Expected source './plugin', got {plugin_entry.get('source')!r}"
+    )
