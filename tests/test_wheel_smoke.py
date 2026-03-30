@@ -37,6 +37,12 @@ from pathlib import Path
 
 import pytest
 
+# Wheel smoke tests use Unix venv layout (bin/python). Windows is not supported.
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="wheel smoke tests require Unix venv layout (bin/python)",
+)
+
 
 def _make_venv(tmp_path: Path) -> Path:
     """Create a fresh venv in tmp_path/smokeenv and return its Path."""
@@ -61,24 +67,34 @@ def _venv_python(venv_dir: Path) -> str:
     return str(venv_dir / "bin" / "python")
 
 
-def _install_wheel(venv_dir: Path, wheel_path: Path) -> None:
+def _install_wheel(venv_dir: Path, wheel_path: Path, no_deps: bool = False) -> None:
     """Install the wheel (non-editable) into the venv.
 
     Uses ``python -m pip install`` rather than invoking bin/pip directly for
     robustness across environments where the pip shim may not be present.
+
+    Pass ``no_deps=True`` to install without pulling in dependencies.  Used by
+    test_wheel_tool_call_works which only exercises tokencast.api (no mcp
+    dependency) and must be runnable on Python 3.9 for local HC-1 verification.
+    The mcp package requires Python 3.10+, so tests that need mcp installed are
+    skipped below Python 3.10.
     """
     venv_python = _venv_python(venv_dir)
-    result = subprocess.run(
-        [venv_python, "-m", "pip", "install", str(wheel_path)],
-        capture_output=True,
-        text=True,
-    )
+    cmd = [venv_python, "-m", "pip", "install", str(wheel_path)]
+    if no_deps:
+        # --no-deps: skip dependency resolution (mcp unavailable on Python 3.9).
+        # --ignore-requires-python: pyproject.toml sets requires-python=">=3.10";
+        # we bypass this constraint because we only need the tokencast.api module
+        # (no mcp imports) to verify the HC-1 scripts/ packaging bug.
+        cmd += ["--no-deps", "--ignore-requires-python"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
     assert result.returncode == 0, (
         f"pip install failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
     )
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="mcp requires Python 3.10+")
 def test_wheel_imports_cleanly(wheel_path, tmp_path):
     """tokencast.__version__ is accessible after installing the wheel.
 
@@ -105,6 +121,7 @@ def test_wheel_imports_cleanly(wheel_path, tmp_path):
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="mcp requires Python 3.10+")
 def test_wheel_mcp_server_importable(wheel_path, tmp_path):
     """tokencast_mcp.server.build_server is importable after installing the wheel.
 
@@ -128,6 +145,13 @@ def test_wheel_mcp_server_importable(wheel_path, tmp_path):
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(
+    strict=False,
+    reason=(
+        "Expected to fail on pre-0.1.3 codebase (scripts/ absent from wheel). "
+        "Remove this xfail after the 0.1.3 scripts packaging fix merges."
+    ),
+)
 def test_wheel_tool_call_works(wheel_path, tmp_path):
     """_load_status_module() executes without error in an installed wheel (HC-1).
 
@@ -146,7 +170,10 @@ def test_wheel_tool_call_works(wheel_path, tmp_path):
     be revised before merge.
     """
     venv_dir = _make_venv(tmp_path)
-    _install_wheel(venv_dir, wheel_path)
+    # Install without deps: this test only exercises tokencast.api, not mcp.
+    # Using --no-deps allows the test to run on Python 3.9 (where mcp is
+    # unavailable) so HC-1 can be verified locally on any Python version.
+    _install_wheel(venv_dir, wheel_path, no_deps=True)
     python = _venv_python(venv_dir)
 
     # Calls _load_status_module() directly (not via get_calibration_status) because

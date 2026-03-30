@@ -1,6 +1,5 @@
 """Shared pytest fixtures for the tokencast test suite."""
 
-import glob
 import os
 import subprocess
 import sys
@@ -69,10 +68,10 @@ def wheel_path(tmp_path_factory):
             f"stderr: {result.stderr}"
         )
 
-    matches = glob.glob(str(out_dir / "*.whl"))
+    matches = list(out_dir.glob("*.whl"))
     if len(matches) == 0:
         pytest.skip(f"Wheel build succeeded but no .whl file found in {out_dir}")
     if len(matches) > 1:
         pytest.skip(f"Wheel build produced multiple .whl files: {matches}")
 
-    return Path(matches[0])
+    return matches[0]
