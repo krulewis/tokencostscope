@@ -69,8 +69,8 @@ print(f'SESSION_ID={shlex.quote(str(d.get(\"session_id\", \"\")))}')
         # TODO: cache the discovered JSONL path in a sibling state file (alongside
         # span-counter) to avoid repeating this find call on every hook invocation.
         JSONL_PATH=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
-            -newer "$ESTIMATE_FILE" -print0 2>/dev/null | \
-            xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+            -newer "$ESTIMATE_FILE" \
+            -exec ls -t {} + 2>/dev/null | head -1 || echo "")
         if [ -n "$JSONL_PATH" ] && [ -f "$JSONL_PATH" ]; then
             JSONL_LINE_COUNT=$(wc -l < "$JSONL_PATH" 2>/dev/null || echo 0)
         else

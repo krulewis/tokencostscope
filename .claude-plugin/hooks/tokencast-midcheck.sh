@@ -84,8 +84,8 @@ except Exception:
     sys.exit(1)
 " 2>/dev/null) || {
     # Fallback: most recent JSONL in ~/.claude/projects/
-    JSONL_PATH=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f -print0 2>/dev/null | \
-        xargs -0 ls -t 2>/dev/null | head -1) || true
+    JSONL_PATH=$(find "$HOME/.claude/projects/" -name "*.jsonl" -type f \
+        -exec ls -t {} + 2>/dev/null | head -1) || true
 }
 
 [ -n "$JSONL_PATH" ] && [ -f "$JSONL_PATH" ] || exit 0

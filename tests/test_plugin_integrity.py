@@ -1,7 +1,6 @@
 """Static structural tests for the .claude-plugin/ tree."""
 
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -84,17 +83,11 @@ def test_all_plugin_files_exist():
         assert full.exists(), f"Missing plugin file: {rel_path}"
 
 
-def _strip_stdlib_comment(text):
-    return re.sub(r'^# stdlib-only module:.*\n', '', text, flags=re.MULTILINE)
-
-
 def test_session_recorder_no_drift():
     src = REPO_ROOT / "src" / "tokencast" / "session_recorder.py"
     plugin = REPO_ROOT / ".claude-plugin" / "scripts" / "session_recorder.py"
     assert src.exists() and plugin.exists()
-    src_text = _strip_stdlib_comment(src.read_text())
-    plugin_text = _strip_stdlib_comment(plugin.read_text())
-    assert src_text == plugin_text, "session_recorder.py has drifted from src/tokencast/session_recorder.py"
+    assert src.read_text() == plugin.read_text(), "session_recorder.py has drifted from src/tokencast/session_recorder.py"
 
 
 def test_pricing_py_no_drift():

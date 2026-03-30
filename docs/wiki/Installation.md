@@ -26,7 +26,7 @@ Calibration data is stored in `~/.tokencast/calibration/` (global across project
 
 ---
 
-### Other IDEs (MCP Server)
+## Other IDEs (MCP Server)
 
 ### 1. Install the package
 
@@ -123,7 +123,7 @@ Once configured, tokencast exposes five MCP tools:
 
 ---
 
-### Claude Code Skill (Legacy)
+## Claude Code Skill (Legacy)
 
 If you use Claude Code and prefer the SKILL.md workflow:
 
