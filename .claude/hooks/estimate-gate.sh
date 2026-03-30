@@ -71,10 +71,10 @@ ESTIMATE_FILE="$CALIB_DIR/active-estimate.json"
 
 # Check existence
 if [ ! -f "$ESTIMATE_FILE" ]; then
-  cat >&2 <<'MSG'
+  cat >&2 <<MSG
 BLOCKED: No cost estimate recorded.
-Run /tokencast on the final plan before dispatching implementation agents (implementer, qa, debugger).
-Missing: calibration/active-estimate.json
+Run the estimate_cost MCP tool on the final plan before dispatching implementation agents (implementer, qa, debugger).
+Missing: $ESTIMATE_FILE
 MSG
   exit 2
 fi
@@ -82,10 +82,10 @@ fi
 # Check freshness (24 hours = 1440 minutes)
 FRESH=$(find "$ESTIMATE_FILE" -mmin -1440 2>/dev/null || true)
 if [ -z "$FRESH" ]; then
-  cat >&2 <<'MSG'
+  cat >&2 <<MSG
 BLOCKED: Cost estimate is stale (older than 24 hours).
-Run /tokencast again for the current plan.
-Stale file: calibration/active-estimate.json
+Run the estimate_cost MCP tool again for the current plan.
+Stale file: $ESTIMATE_FILE
 MSG
   exit 2
 fi
