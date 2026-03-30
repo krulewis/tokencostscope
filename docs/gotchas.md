@@ -19,6 +19,7 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 - **MCP package requirement**: `mcp >= 3.10`. Tests requiring MCP skip cleanly under 3.9 via `pytest.importorskip("mcp")` on Python 3.9.
 - **test_mcp_scaffold.py runs under 3.10+ only**: `python3 -m pytest tests/test_mcp_scaffold.py` — requires Python 3.10+ with the `mcp` package installed.
 - **sys.path.insert pattern**: Tests use `sys.path.insert(0, str(Path(__file__).parent.parent / "src"))` to import `tokencast` without requiring editable install. Must be placed BEFORE `pytest.importorskip("mcp")` so `tokencast_mcp` is found when running under Python 3.11.
+- **Do NOT `import tokencast_mcp` in fast tests**: `tokencast_mcp/__init__.py` re-exports `run` from `tokencast_mcp.server`, which executes `from mcp.server import Server` at import time. In environments without the `mcp` package this raises `ModuleNotFoundError`. For version-string checks and other non-MCP assertions, read `src/tokencast_mcp/__init__.py` as a file and extract with regex instead of importing. See `tests/test_version_consistency.py` for the pattern.
 
 ## Python Package & Imports
 

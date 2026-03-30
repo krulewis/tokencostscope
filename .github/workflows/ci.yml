@@ -31,3 +31,45 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/ -v
+
+  wheel-smoke:
+    # HC-2: This job must be added to GitHub branch protection required checks.
+    #
+    # After the FIRST successful CI run with this job, go to:
+    #   GitHub repo → Settings → Branches → Branch protection rule for "main"
+    #   → "Require status checks to pass before merging"
+    #   → Search for and add ALL THREE of:
+    #       "Wheel Smoke (Python 3.10)"
+    #       "Wheel Smoke (Python 3.11)"
+    #       "Wheel Smoke (Python 3.12)"
+    #
+    # These checks only appear in the search box after they have run at least
+    # once.  They cannot be added before the first CI run.
+    name: Wheel Smoke (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest build
+
+      - name: Build wheel
+        run: python -m build --wheel --outdir dist/
+
+      - name: Run wheel smoke and manifest tests
+        run: python -m pytest tests/test_wheel_smoke.py tests/test_package_manifest.py -m slow -v
+        env:
+          WHEEL_DIR: dist/
