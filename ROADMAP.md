@@ -85,6 +85,19 @@
 
 ---
 
+## Phase 1.5 Infrastructure — Test Gaps (in progress)
+
+**Tranche 1 (ship before plugin packaging):** Wheel smoke test + package manifest invariant + version consistency. Prevents a recurrence of the 0.1.2 packaging bug where `scripts/` was missing from the wheel and all external installs crashed.
+- [ ] Wheel smoke CI job (merge-blocking) + `tests/test_wheel_smoke.py`
+- [ ] Package manifest invariant — `tests/test_package_manifest.py`
+- [ ] Version consistency — `tests/test_version_consistency.py`
+
+**Tranche 2 (ship after plugin packaging / Test 1 validated):** Runtime test gaps for mutable state lifecycle and path edge cases. See [`docs/plans/test-gaps-tranche2.md`](docs/plans/test-gaps-tranche2.md).
+- [ ] MCP state reset across sequential calls — `tests/test_mcp_state_lifecycle.py`
+- [ ] Path edge cases (`calibration_dir=None`, spaces, auto-mkdir) — `tests/test_path_edge_cases.py`
+
+---
+
 ## v1.7 — Per-Agent Step Actuals (planned)
 
 **Goal:** Break down actual costs by agent step, not just session-level summary.
@@ -187,4 +200,4 @@
 
 ---
 
-*Last updated: 2026-03-25*
+*Last updated: 2026-03-30*
