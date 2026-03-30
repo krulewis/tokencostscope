@@ -1,0 +1,11 @@
+{
+  "name": "tokencast",
+  "owner": { "name": "krulewis" },
+  "plugins": [
+    {
+      "name": "tokencast",
+      "source": "./plugin",
+      "description": "Automatic token cost estimation for Claude Code"
+    }
+  ]
+}
