@@ -580,47 +580,6 @@ class TestServerParseArgsTelemetry(unittest.TestCase):
 
 
 class TestServerTelemetryIntegration(unittest.TestCase):
-    def test_estimate_cost_triggers_telemetry(self):
-        """Calling estimate_cost via build_server triggers record_event."""
-        try:
-            import asyncio
-            import mcp  # noqa: F401
-        except ImportError:
-            self.skipTest("mcp not available")
-
-        from tokencast_mcp.config import ServerConfig
-        from tokencast_mcp.server import build_server
-
-        recorded = []
-
-        def fake_record_event(event_type, **kwargs):
-            recorded.append(event_type)
-
-        with patch.object(telemetry, "record_event", side_effect=fake_record_event):
-            with tempfile.TemporaryDirectory() as tmp:
-                config = ServerConfig.from_args(
-                    calibration_dir=tmp,
-                    project_dir=None,
-                    telemetry_enabled=True,
-                )
-                server = build_server(config)
-
-                async def _run():
-                    from tokencast_mcp.tools.estimate_cost import handle_estimate_cost
-                    result = await handle_estimate_cost(
-                        {"size": "XS", "files": 1, "complexity": "low"}, config
-                    )
-                    return result
-
-                asyncio.run(_run())
-
-        # record_event must have been called for estimate_cost
-        # (note: we patched telemetry.record_event, but the server calls it after
-        # the handler returns; the test calls handle_estimate_cost directly here,
-        # so we just verify the tool works and the patch is in place)
-        # The actual integration is tested through the server's call_tool dispatcher
-        # in test_server_call_tool_fires_telemetry below.
-
     def test_server_call_tool_fires_telemetry_for_estimate_cost(self):
         """build_server's call_tool dispatcher calls record_event for estimate_cost."""
         try:

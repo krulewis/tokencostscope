@@ -59,6 +59,7 @@ ALLOWED=(
   "code-reviewer"
   "explorer"
   "playwright-qa"
+  "code-simplifier:code-simplifier"
 )
 
 for allowed in "${ALLOWED[@]}"; do

@@ -223,7 +223,7 @@ def _compute_mean_accuracy(records: list) -> Optional[float]:
     if not records:
         return None
 
-    recent = records[-10:] if len(records) > 10 else records
+    recent = records[-10:]
     ratios = []
     for r in recent:
         ratio = r.get("ratio")
@@ -334,6 +334,7 @@ def send_metrics(
     """
     if _POSTHOG_API_KEY == "phc_PLACEHOLDER":
         logger.debug("PostHog API key is placeholder — events will not be recorded")
+        return
     properties = dict(metrics)
     # event_type is not a PostHog property key — remap to tool_name (M8)
     event_type = properties.pop("event_type", "unknown")
