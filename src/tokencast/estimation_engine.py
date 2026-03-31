@@ -31,21 +31,30 @@ _MODEL_SHORT = {
 # Helper: resolve steps
 # ---------------------------------------------------------------------------
 
-def _resolve_steps(size: str, steps_override: Optional[list]) -> list:
+def _resolve_steps(size: str, steps_override: Optional[list], calibration_dir=None) -> list:
     """Return the ordered list of pipeline step names in scope.
 
-    If steps_override is provided and non-empty, use those names (in order),
-    dropping any that are not in PIPELINE_STEPS. Otherwise return all keys
-    from PIPELINE_STEPS in their defined order.
+    If steps_override is provided and non-empty, resolve each name through
+    the agent alias map (e.g. "qa" → "QA", "implementer" → "Implementation")
+    before checking against PIPELINE_STEPS. Names that don't resolve to a
+    known step are dropped with a warning.
+
+    Otherwise return all keys from PIPELINE_STEPS in their defined order.
     """
+    from tokencast.step_names import resolve_step_name
+
     all_steps = list(heuristics.PIPELINE_STEPS.keys())
     if steps_override:
         result = []
         for s in steps_override:
-            if s in heuristics.PIPELINE_STEPS:
-                result.append(s)
+            canonical, _warn = resolve_step_name(s, calibration_dir=calibration_dir)
+            if canonical in heuristics.PIPELINE_STEPS:
+                result.append(canonical)
             else:
-                warnings.warn(f"Unknown step name: {s!r} — skipped", stacklevel=3)
+                warnings.warn(
+                    f"Unknown step name: {s!r} (resolved: {canonical!r}) — skipped",
+                    stacklevel=3,
+                )
         return result
     return all_steps
 
@@ -480,7 +489,7 @@ def compute_estimate(params: dict, calibration_dir: Optional[str] = None) -> dic
 
     # --- Step 1: Resolve steps ---
     steps_override = params.get("steps") or []
-    steps = _resolve_steps(size, steps_override if steps_override else None)
+    steps = _resolve_steps(size, steps_override if steps_override else None, calibration_dir)
 
     # --- Step 2: Review cycles ---
     review_cycles = _resolve_review_cycles(params, steps)
