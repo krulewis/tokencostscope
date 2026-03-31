@@ -1,7 +1,10 @@
-"""Opt-in anonymous telemetry for tokencast.
+"""Opt-out anonymous telemetry for tokencast.
 
-OFF by default. Requires explicit opt-in via the ``--telemetry`` CLI flag or
-``TOKENCAST_TELEMETRY=1`` environment variable.
+ON by default. Disable via ``--no-telemetry`` CLI flag,
+``TOKENCAST_TELEMETRY=0`` environment variable, or by calling the
+``disable_telemetry`` MCP tool (creates ``~/.tokencast/no-telemetry``).
+Note: ``TOKENCAST_TELEMETRY=1`` overrides ``--no-telemetry`` and the
+no-telemetry file (env var is highest priority).
 
 Collected metrics (NO PII, NO project names, NO file paths, NO cost amounts):
   - session_count      — total number of calibration history records
@@ -38,19 +41,22 @@ _POSTHOG_API_KEY = "phc_BVby7HgLhjC5eV2Byntse8wyULpXsDnGbsTqD2AaXxWD"
 
 # Path to the persistent install ID file
 _INSTALL_ID_PATH = pathlib.Path.home() / ".tokencast" / "install_id"
+_NO_TELEMETRY_PATH = pathlib.Path.home() / ".tokencast" / "no-telemetry"
 
 # ---------------------------------------------------------------------------
 # First-run message — printed to stderr once when telemetry is enabled
 # ---------------------------------------------------------------------------
 
 FIRST_RUN_MESSAGE = """\
-[tokencast] Anonymous usage telemetry is enabled.
-Collected: session count, mean accuracy ratio, number of calibrated factors,
-           client name, framework identifier, tool name, tokencast version.
+[tokencast] Telemetry Notice
+Anonymous usage telemetry is ON by default.
+Collected: session count, mean accuracy, calibrated factors, client name, tool name, version.
 NOT collected: project names, file paths, cost amounts, or any personal data.
-Data is sent to PostHog (https://us.i.posthog.com).
-See: https://github.com/krulewis/tokencast/wiki/Configuration#telemetry
-To opt out: remove the --telemetry flag or unset TOKENCAST_TELEMETRY=1.
+To disable permanently: call the disable_telemetry tool
+To disable via CLI: --no-telemetry flag
+To disable via env: TOKENCAST_TELEMETRY=0
+Note: TOKENCAST_TELEMETRY=1 overrides --no-telemetry and the no-telemetry file.
+Info: https://github.com/krulewis/tokencast/wiki/Configuration#telemetry
 """
 
 # Module-level event so the first-run message is only printed once per process.
@@ -151,23 +157,35 @@ def _get_tokencast_version() -> str:
 # ---------------------------------------------------------------------------
 
 
-def is_enabled(telemetry_enabled: bool = False) -> bool:
-    """Return True when telemetry is explicitly opted in.
+def is_enabled(telemetry_enabled: bool = True) -> bool:
+    """Return True when telemetry is active.
 
-    Checks (in order):
-    1. The ``telemetry_enabled`` argument (from ``ServerConfig``).
-    2. The ``TOKENCAST_TELEMETRY`` environment variable (``"1"`` → enabled).
+    Checks four sources in strict priority order. The first source that
+    expresses an opinion wins; later sources are not consulted.
+
+    Priority 1 (highest): TOKENCAST_TELEMETRY=0  -->  return False
+    Priority 2:           TOKENCAST_TELEMETRY=1  -->  return True
+    Priority 3:           ~/.tokencast/no-telemetry file exists  -->  return False
+    Priority 4 (lowest):  telemetry_enabled parameter (default=True)
+
+    Note: TOKENCAST_TELEMETRY=1 (priority 2) overrides the no-telemetry file
+    (priority 3) and the --no-telemetry flag (which sets telemetry_enabled=False,
+    priority 4). Document this precedence clearly in user-facing docs.
 
     Args:
-        telemetry_enabled: Value from ServerConfig (set via ``--telemetry``
-            flag at server startup).
+        telemetry_enabled: Value from ServerConfig. Default True (opt-out model).
 
     Returns:
-        True if telemetry is opted in, False otherwise.
+        True if telemetry is active, False otherwise.
     """
-    if telemetry_enabled:
+    env_val = os.environ.get("TOKENCAST_TELEMETRY", "").strip()
+    if env_val == "0":
+        return False
+    if env_val == "1":
         return True
-    return os.environ.get("TOKENCAST_TELEMETRY", "").strip() == "1"
+    if _NO_TELEMETRY_PATH.exists():
+        return False
+    return telemetry_enabled
 
 
 # ---------------------------------------------------------------------------
@@ -364,7 +382,7 @@ def send_metrics(
 def record_event(
     event_type: str,
     *,
-    telemetry_enabled: bool = False,
+    telemetry_enabled: bool = True,
     calibration_dir: Optional[str] = None,
     client_name: Optional[str] = None,
     framework: str = "mcp",
@@ -382,7 +400,7 @@ def record_event(
 
     Args:
         event_type: Logical event name (e.g. "estimate_cost", "report_session").
-        telemetry_enabled: Whether telemetry was enabled via CLI flag / config.
+        telemetry_enabled: Whether telemetry is active (default True — opt-out model).
         calibration_dir: Path to calibration directory. When None, defaults to
             ``~/.tokencast/calibration``.
         client_name: MCP client identifier string, if available.

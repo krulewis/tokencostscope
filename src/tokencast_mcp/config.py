@@ -19,7 +19,7 @@ class ServerConfig:
     no_cta: bool = False
     # Mutable per-server-session state: True once the CTA has been shown.
     cta_shown: bool = field(default=False, repr=False)
-    telemetry_enabled: bool = False
+    telemetry_enabled: bool = True
     client_name: Optional[str] = None
 
     # ------------------------------------------------------------------
@@ -52,7 +52,7 @@ class ServerConfig:
         calibration_dir: Optional[str],
         project_dir: Optional[str],
         no_cta: bool = False,
-        telemetry_enabled: bool = False,
+        telemetry_enabled: bool = True,
     ) -> "ServerConfig":
         """Build a ServerConfig from raw CLI argument strings.
 

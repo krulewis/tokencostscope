@@ -70,11 +70,12 @@ Four scripts that were previously loaded via `importlib.util` from `scripts/` ar
 
 ## Telemetry Architecture (v0.1.4+)
 
-- **PostHog integration**: `src/tokencast/telemetry.py` sends opt-in telemetry via raw `urllib.request` POST to PostHog Cloud US endpoint (`https://us.i.posthog.com/capture/`). No SDK dependency, minimal payload, framework-agnostic.
+- **PostHog integration**: `src/tokencast/telemetry.py` sends opt-out telemetry via raw `urllib.request` POST to PostHog Cloud US endpoint (`https://us.i.posthog.com/capture/`). No SDK dependency, minimal payload, framework-agnostic.
 - **Install ID persistence**: Random UUID4 at `~/.tokencast/install_id` (atomic write via `os.rename()` handles concurrent server starts). Regenerated if file is empty or contains invalid UUID. Used as PostHog `distinct_id` for anonymity.
-- **Endpoint hardcoding**: The PostHog API key is hardcoded in `telemetry.py` (not configurable via env var). `TOKENCAST_TELEMETRY_URL` env var is no longer used and is ignored if set. Opt-in control remains via `TOKENCAST_TELEMETRY=1` or `--telemetry` flag.
+- **Endpoint hardcoding**: The PostHog API key is hardcoded in `telemetry.py` (not configurable via env var). `TOKENCAST_TELEMETRY_URL` env var is no longer used and is ignored if set. Opt-out control via `TOKENCAST_TELEMETRY=0`, `--no-telemetry` flag, or `disable_telemetry` MCP tool.
 - **No new dependencies**: Telemetry uses only stdlib (`json`, `urllib.request`, `hashlib`, `uuid`) — does not add MCP or external deps to the tokencast package.
 - **Data minimization**: Events contain no PII, project names, file paths, or cost amounts. Session count, mean accuracy ratio, calibrated factor count, client name, tool name, and version only.
+- **`disable_telemetry` tool** (v0.1.5+): `src/tokencast_mcp/tools/disable_telemetry.py` creates `~/.tokencast/no-telemetry` file for permanent opt-out. Atomic write pattern matches install ID persistence.
 
 ## Coding Conventions
 

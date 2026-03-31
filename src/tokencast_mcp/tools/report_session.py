@@ -75,7 +75,7 @@ async def handle_report_session(params: dict, config: ServerConfig) -> dict:
             negative ``step_actuals`` values, etc.).
     """
     # Determine suppression: --no-cta flag or TOKENCAST_NO_CTA env var.
-    # Requires exactly "1" to match TOKENCAST_TELEMETRY convention.
+    # Requires exactly "1" to match TOKENCAST_TELEMETRY opt-out convention.
     env_no_cta = os.environ.get("TOKENCAST_NO_CTA") == "1"
     suppress_cta = config.no_cta or env_no_cta or config.cta_shown
 

@@ -413,13 +413,14 @@ class TestServerBuildAndDispatch:
         # result is a ServerResult wrapping a ListToolsResult
         tools = result.root.tools
         tool_names = {t.name for t in tools}
-        assert len(tools) == 5
+        assert len(tools) == 6
         assert tool_names == {
             "estimate_cost",
             "get_calibration_status",
             "get_cost_history",
             "report_session",
             "report_step_cost",
+            "disable_telemetry",
         }
 
     def test_unknown_tool_returns_is_error(self, tmp_path):

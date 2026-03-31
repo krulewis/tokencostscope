@@ -34,13 +34,14 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 | `src/tokencast/heuristics.py` | Tunable parameters (derived from `references/heuristics.md`) |
 | `src/tokencast/session_recorder.py` | `build_history_record()` — shared by shell and MCP paths |
 | `src/tokencast/step_names.py` | Step name resolution: `resolve_step_name()` (handles alias mapping) |
-| `src/tokencast/telemetry.py` | Opt-in PostHog telemetry (endpoint hardcoded, install ID at `~/.tokencast/install_id`) |
+| `src/tokencast/telemetry.py` | Opt-out PostHog telemetry (endpoint hardcoded, install ID at `~/.tokencast/install_id`, no-telemetry file at `~/.tokencast/no-telemetry`) |
 | `src/tokencast/calibration_store.py` | Storage abstraction for history and factors |
 | `src/tokencast/parse_last_estimate.py` | Reconstitution of minimal estimates from `last-estimate.md` (package module) |
 | `src/tokencast/tokencast_status.py` | Calibration health dashboard utilities (package module) |
 | `src/tokencast/update_factors.py` | Calibration factor computation and persistence (package module) |
 | `src/tokencast_mcp/server.py` | MCP server: `main()`, `build_server()`, tool dispatcher |
-| `src/tokencast_mcp/tools/` | MCP handlers: `estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_step_cost`, `report_session` |
+| `src/tokencast_mcp/tools/` | MCP handlers: `estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_step_cost`, `report_session`, `disable_telemetry` |
+| `src/tokencast_mcp/tools/disable_telemetry.py` | Handler for `disable_telemetry` tool — creates `~/.tokencast/no-telemetry` file (v0.1.5+) |
 | `docs/wiki/` | GitHub wiki source — Home, How-It-Works, Installation, Configuration, Calibration, Roadmap, Attribution |
 | `docs/attribution-protocol.md` | Framework-agnostic attribution protocol spec (v1) |
 | `docs/phase-1-execution-plan.md` | Owner decisions and story inventory (Phase 1 completed) |
