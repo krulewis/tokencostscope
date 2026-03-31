@@ -33,9 +33,8 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # PostHog ingest endpoint — US region, fixed at build time.
-# Replace phc_PLACEHOLDER with the real project API key before shipping.
 _POSTHOG_ENDPOINT = "https://us.i.posthog.com/capture/"
-_POSTHOG_API_KEY = "phc_PLACEHOLDER"
+_POSTHOG_API_KEY = "phc_BVby7HgLhjC5eV2Byntse8wyULpXsDnGbsTqD2AaXxWD"
 
 # Path to the persistent install ID file
 _INSTALL_ID_PATH = pathlib.Path.home() / ".tokencast" / "install_id"
