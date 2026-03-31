@@ -67,7 +67,10 @@ _install_id_cache: Optional[str] = None
 
 
 def _show_first_run_message_once() -> None:
-    """Print the first-run consent notice to stderr exactly once per process."""
+    """Print the first-run consent notice to stderr once per process.
+
+    May print twice under heavy thread contention (benign — cosmetic only).
+    """
     if not _first_run_message_shown.is_set():
         _first_run_message_shown.set()
         import sys
@@ -315,7 +318,6 @@ def _send_payload(url: str, payload: dict, timeout: float = TELEMETRY_TIMEOUT_SE
 
 def send_metrics(
     metrics: dict,
-    **_ignored: object,
 ) -> None:
     """Send *metrics* to PostHog in a background daemon thread.
 
@@ -331,6 +333,8 @@ def send_metrics(
         metrics: Dict produced by :func:`collect_metrics` with ``event_type``
             and ``install_id`` keys added by :func:`record_event`.
     """
+    if _POSTHOG_API_KEY == "phc_PLACEHOLDER":
+        logger.debug("PostHog API key is placeholder — events will not be recorded")
     properties = dict(metrics)
     # event_type is not a PostHog property key — remap to tool_name (M8)
     event_type = properties.pop("event_type", "unknown")

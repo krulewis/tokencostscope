@@ -330,7 +330,7 @@ class TestTimeoutBehavior(unittest.TestCase):
 
         with patch.object(telemetry, "_send_payload", side_effect=slow_send):
             start = time.time()
-            telemetry.send_metrics({"x": 1}, endpoint_url="https://slow.example")
+            telemetry.send_metrics({"x": 1})
             elapsed = time.time() - start
 
         # send_metrics should return almost immediately (< 0.5s)
@@ -349,7 +349,7 @@ class TestRecordEvent(unittest.TestCase):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             sent = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 sent.append(metrics)
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -392,7 +392,7 @@ class TestRecordEvent(unittest.TestCase):
         with patch.dict(os.environ, {"TOKENCAST_TELEMETRY": "1"}):
             sent = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 sent.append(metrics)
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -412,7 +412,7 @@ class TestRecordEvent(unittest.TestCase):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             captured = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 captured.append(dict(metrics))
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -446,7 +446,7 @@ class TestRecordEvent(unittest.TestCase):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             captured_metrics = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 captured_metrics.append(dict(metrics))
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
