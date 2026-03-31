@@ -27,7 +27,7 @@ Install once per project. It auto-estimates after plans are created and auto-lea
 After a plan is created, tokencast automatically outputs a cost table:
 
 ```
-## tokencast estimate (v2.1.0)
+## tokencast estimate (v2.2.0)
 
 Change: size=M, files=5, complexity=medium, type=greenfield, lang=python
 Steps: all (8 steps)

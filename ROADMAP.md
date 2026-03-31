@@ -85,14 +85,15 @@
 
 ---
 
-## Phase 1.5 Infrastructure — Test Gaps (in progress)
+## Phase 1.5 Infrastructure — Test Gaps (Tranche 1 shipped 2026-03-30, Tranche 2 planned)
 
-**Tranche 1 (ship before plugin packaging):** Wheel smoke test + package manifest invariant + version consistency. Prevents a recurrence of the 0.1.2 packaging bug where `scripts/` was missing from the wheel and all external installs crashed.
-- [ ] Wheel smoke CI job (merge-blocking) + `tests/test_wheel_smoke.py`
-- [ ] Package manifest invariant — `tests/test_package_manifest.py`
-- [ ] Version consistency — `tests/test_version_consistency.py`
+**Tranche 1 (shipped 2026-03-30):** Wheel smoke test + package manifest invariant + version consistency. Prevents a recurrence of the 0.1.2 packaging bug where `scripts/` was missing from the wheel and all external installs crashed.
+- [x] Wheel smoke CI job (merge-blocking) + `tests/test_wheel_smoke.py`
+- [x] Package manifest invariant — `tests/test_package_manifest.py`
+- [x] Version consistency — `tests/test_version_consistency.py`
+- [x] Step resolution tests — 48 integration, failure mode, fuzz, and consistency tests
 
-**Tranche 2 (ship after plugin packaging / Test 1 validated):** Runtime test gaps for mutable state lifecycle and path edge cases. See [`docs/plans/test-gaps-tranche2.md`](docs/plans/test-gaps-tranche2.md).
+**Tranche 2 (planned):** Runtime test gaps for mutable state lifecycle and path edge cases. See [`docs/plans/test-gaps-tranche2.md`](docs/plans/test-gaps-tranche2.md).
 - [ ] MCP state reset across sequential calls — `tests/test_mcp_state_lifecycle.py`
 - [ ] Path edge cases (`calibration_dir=None`, spaces, auto-mkdir) — `tests/test_path_edge_cases.py`
 
@@ -120,6 +121,17 @@
 - [ ] **Estimate diff** — when a plan changes mid-session, show delta from previous estimate
 - [ ] **Quiet mode** — option to log estimates without rendering the table
 - [ ] **Project-level heuristics overrides** — allow `calibration/heuristics-overrides.json` (or similar) to shadow specific values from `references/heuristics.md` without modifying the shared file. Primary use case: `review_cycles_default` varies by project (this project averages 4–5; the shared default of 2 is too low). Would replace the manual `review_cycles=4` override documented in `CLAUDE.md`.
+
+---
+
+## v0.1.4 — PostHog Telemetry & Step Resolution (shipped 2026-03-31)
+
+**PyPI package version.** This is the independent PyPI version track (separate from SKILL.md v2.x).
+
+- [x] **PostHog telemetry integration** — opt-in anonymous metrics via PostHog Cloud US; install ID at `~/.tokencast/install_id`; no SDK dependency, uses raw `urllib.request`; endpoint hardcoded (PR #30)
+- [x] **estimate_cost alias resolution** — fix $0.00 bug when step names use aliases like `"qa"` → `"QA"`, `"test-writing"` → `"Test Writing"` (PR #31)
+- [x] **PostHog API key** — real key set in production (PR #32)
+- [x] **Step resolution test suite** — 48 comprehensive tests: integration, failure modes, fuzz, consistency (PR #33)
 
 ---
 
@@ -200,4 +212,4 @@
 
 ---
 
-*Last updated: 2026-03-30*
+*Last updated: 2026-03-31*

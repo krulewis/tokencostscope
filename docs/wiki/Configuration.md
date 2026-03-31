@@ -263,5 +263,7 @@ Data is sent to [PostHog](https://posthog.com) (US region, `https://us.i.posthog
 A random install ID (`~/.tokencast/install_id`) is generated locally on first use and used
 as the PostHog `distinct_id`. It contains no personal information.
 
+**To disable:** remove the `--telemetry` flag from your MCP server config, or unset `TOKENCAST_TELEMETRY=1`. To delete your install ID: `rm ~/.tokencast/install_id`.
+
 > **Note:** The `TOKENCAST_TELEMETRY_URL` environment variable is no longer used
 > and is ignored if set. The endpoint is fixed at `https://us.i.posthog.com/capture/`.

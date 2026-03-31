@@ -45,7 +45,7 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 - **estimate_cost does NOT write active-estimate.json**: The MCP tool handler writes it. E2E tests use `_make_active_estimate()` helper.
 - **report_session stub removal gotcha**: The old stub returned `{"recorded": False, "_stub": True}`. The real handler must NOT return `_stub` key. Tests check `"_stub" not in result`.
-- **`estimate_cost` returns $0.00 for agent alias names**: `_resolve_steps()` in `estimation_engine.py` checks raw strings against `PIPELINE_STEPS` keys without resolving aliases. Passing `"qa"` instead of `"QA"`, or `"implementer"` instead of `"Implementation"`, silently drops all steps → $0.00. Fix: call `resolve_step_name()` before the membership check.
+- **`estimate_cost` $0.00 bug (FIXED in PR #31)**: Previously, `_resolve_steps()` checked raw strings against `PIPELINE_STEPS` keys without resolving aliases. Passing `"qa"` instead of `"QA"` would silently drop steps. Now `resolve_step_name()` is called before the membership check, resolving aliases like `"test-writing"` → `"Test Writing"` and `"qa"` → `"QA"`.
 - **`build_status_output` signature**: `build_status_output(all_records, factors, verbose=False, window_spec=None, heuristics_path=None)`. Windowing is computed internally.
 - **step_actuals schema**: Values are plain floats (cost in $), not dicts with `'actual'`/`'estimated'` sub-keys. Iteration: `for step_name, step_cost in r['step_actuals'].items()`.
 - **`ServerConfig.ensure_dirs()`**: Directory creation is separated from config construction. `from_args()` does NOT create dirs — `ensure_dirs()` is called at server startup.

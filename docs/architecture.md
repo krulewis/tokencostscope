@@ -29,9 +29,10 @@
 - **Step-cost accumulator**: `report_step_cost` persists accumulated costs to `calibration/{hash}-step-accumulator.json` (atomic rename pattern). Hash is the first 12 chars of MD5 of the `active-estimate.json` absolute path — same hash used by `agent-hook.sh`. Cleared when `report_session` completes or when a new `estimate_cost` call is made.
 - **Graceful degradation**: All API functions degrade gracefully on missing/corrupted calibration data. Missing `calibration_dir` is not an error — uses defaults. Corrupted `factors.json` or `history.jsonl` is caught and handled (partial data returned, status='collecting').
 
-## Data Modules
+## Data Modules & Step Name Resolution
 
 - **Python data modules**: `src/tokencast/pricing.py`, `src/tokencast/heuristics.py` — plain Python literals, no imports beyond stdlib, no logic, no I/O, no side effects. Markdown files (`references/pricing.md`, `references/heuristics.md`) remain the human-editable source of truth. Python modules are derived artifacts kept in sync by drift tests.
+- **Step name resolution**: `src/tokencast/step_names.py` exposes `resolve_step_name(name_string)` which maps canonical names and aliases to canonical forms. E.g. `"qa"` → `"QA"`, `"test-writing"` → `"Test Writing"`, `"implementer"` → `"Implementation"`. Used in `_resolve_steps()` during estimation to ensure user inputs (e.g., from plan step lists) correctly match `PIPELINE_STEPS` keys in heuristics.py.
 
 ## Scripts Packaging — Package Copies
 
@@ -67,9 +68,17 @@ Four scripts that were previously loaded via `importlib.util` from `scripts/` ar
 - **Three brackets**: small (≤49 lines) = 3k read/1k edit tokens, medium (50–500 lines) = 10k/2.5k, large (≥501 lines) = 20k/5k.
 - **N-scaling vs fixed-count**: Implementation and Test Writing use per-bracket sums. Research, Engineer, QA use weighted-average read tokens × fixed multiplier.
 
+## Telemetry Architecture (v0.1.4+)
+
+- **PostHog integration**: `src/tokencast/telemetry.py` sends opt-in telemetry via raw `urllib.request` POST to PostHog Cloud US endpoint (`https://us.i.posthog.com/capture/`). No SDK dependency, minimal payload, framework-agnostic.
+- **Install ID persistence**: Random UUID4 at `~/.tokencast/install_id` (atomic write via `os.rename()` handles concurrent server starts). Regenerated if file is empty or contains invalid UUID. Used as PostHog `distinct_id` for anonymity.
+- **Endpoint hardcoding**: The PostHog API key is hardcoded in `telemetry.py` (not configurable via env var). `TOKENCAST_TELEMETRY_URL` env var is no longer used and is ignored if set. Opt-in control remains via `TOKENCAST_TELEMETRY=1` or `--telemetry` flag.
+- **No new dependencies**: Telemetry uses only stdlib (`json`, `urllib.request`, `hashlib`, `uuid`) — does not add MCP or external deps to the tokencast package.
+- **Data minimization**: Events contain no PII, project names, file paths, or cost amounts. Session count, mean accuracy ratio, calibrated factor count, client name, tool name, and version only.
+
 ## Coding Conventions
 
-- **Version string consistency**: Must be consistent across three places: `SKILL.md` frontmatter (`version:`), output template header (`## tokencast estimate (v1.x.x)`), and `learn.sh` `VERSION` variable. Always update all three together.
+- **Version string consistency**: Must be consistent across three places: `SKILL.md` frontmatter (`version:`), output template header (`## tokencast estimate (v2.x.x)`), and `learn.sh` `VERSION` variable. Always update all three together.
 - **Shell injection safety**: `learn.sh` and `midcheck.sh` use `shlex.quote()` and env vars pattern to pass data to Python. Never interpolate user-derived strings directly into shell commands.
 - **Hook placement**: Enforcement hooks live in `.claude/hooks/` (not `scripts/`). Core tokencast functionality remains in `scripts/`. Hook commands in `settings.json` use `git rev-parse --show-toplevel` for portable path resolution.
 - **Package exports**: `estimate_cost` and `report_session` must be importable from `tokencast/__init__.py` for CI/CD usage without MCP layer.
