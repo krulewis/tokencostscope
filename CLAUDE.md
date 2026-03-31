@@ -5,7 +5,7 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 ## Repo
 
 - GitHub: `krulewis/tokencast`
-- **PyPI package version**: 0.1.2
+- **PyPI package version**: 0.1.4
 - **Distribution**: MCP server via `uvx tokencast` (registered in MCP Registry as `io.github.krulewis/tokencast`)
 - **SKILL.md**: Retained as algorithm reference doc, but no longer installed as a Claude Code skill. MCP server is the primary interface.
 
@@ -33,9 +33,12 @@ A Claude Code skill that automatically estimates Anthropic API token costs when 
 | `src/tokencast/pricing.py` | Cost computation: `compute_cost_from_usage(usage, model)` |
 | `src/tokencast/heuristics.py` | Tunable parameters (derived from `references/heuristics.md`) |
 | `src/tokencast/session_recorder.py` | `build_history_record()` — shared by shell and MCP paths |
-| `src/tokencast/step_names.py` | Step name resolution: `resolve_step_name()` |
-| `src/tokencast/telemetry.py` | Opt-in anonymous metrics |
-| `src/tokencast/calibration_store.py` | Storage abstraction |
+| `src/tokencast/step_names.py` | Step name resolution: `resolve_step_name()` (handles alias mapping) |
+| `src/tokencast/telemetry.py` | Opt-in PostHog telemetry (endpoint hardcoded, install ID at `~/.tokencast/install_id`) |
+| `src/tokencast/calibration_store.py` | Storage abstraction for history and factors |
+| `src/tokencast/parse_last_estimate.py` | Reconstitution of minimal estimates from `last-estimate.md` (package module) |
+| `src/tokencast/tokencast_status.py` | Calibration health dashboard utilities (package module) |
+| `src/tokencast/update_factors.py` | Calibration factor computation and persistence (package module) |
 | `src/tokencast_mcp/server.py` | MCP server: `main()`, `build_server()`, tool dispatcher |
 | `src/tokencast_mcp/tools/` | MCP handlers: `estimate_cost`, `get_calibration_status`, `get_cost_history`, `report_step_cost`, `report_session` |
 | `docs/wiki/` | GitHub wiki source — Home, How-It-Works, Installation, Configuration, Calibration, Roadmap, Attribution |
@@ -60,7 +63,7 @@ python3 -m pytest tests/test_mcp_scaffold.py -v
 
 **Python version notes:** The main test suite requires Python 3.9+. MCP-dependent tests require Python 3.10+ and skip cleanly on older versions via `pytest.importorskip("mcp")`.
 
-**Test count**: 981 passing, 92 skipped under 3.9; 1209 passing, 4 skipped under 3.11.
+**Test count**: 1029 passing, 4 skipped (0.1.4 includes 48 step resolution tests).
 
 **CI status**: All green — 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest.
 
