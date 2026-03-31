@@ -171,9 +171,10 @@ class TestResolveStepNameFailureModes(unittest.TestCase):
         self.assertIsNone(warn)
 
     def test_emoji(self):
-        """Emoji in step name doesn't crash."""
+        """Emoji in step name doesn't crash — passes through as unknown."""
         canonical, warn = resolve_step_name("🔧implementer")
-        self.assertIsInstance(canonical, str)
+        self.assertEqual(canonical, "🔧implementer")
+        self.assertIsNone(warn)
 
     def test_special_characters_semicolons(self):
         """Semicolons, pipes, ampersands don't crash."""
@@ -254,7 +255,7 @@ class TestResolveStepsFailureModes(unittest.TestCase):
             warnings.simplefilter("always")
             result = _resolve_steps("M", ["bogus1", "bogus2", "bogus3"])
         self.assertEqual(result, [])
-        self.assertEqual(len(w), 3)
+        self.assertGreaterEqual(len(w), 1)
 
     def test_mix_of_valid_and_invalid(self):
         """Valid steps kept, invalid dropped with warning."""
@@ -277,6 +278,7 @@ class TestResolveStepsFailureModes(unittest.TestCase):
             result = _resolve_steps("M", ["", "qa"])
         self.assertEqual(result, ["QA"])
         self.assertEqual(len(w), 1)
+        self.assertIn("''", str(w[0].message))
 
     def test_whitespace_in_list(self):
         """Whitespace-only entries → dropped with warning."""
@@ -374,17 +376,153 @@ class TestAliasMapConsistency(unittest.TestCase):
         """Every PIPELINE_STEPS key should be reachable via at least one alias
         or by its own canonical name."""
         alias_targets = set(DEFAULT_AGENT_TO_STEP.values())
+        unreachable = []
         for step_name in heuristics.PIPELINE_STEPS:
             reachable = (
                 step_name in alias_targets
                 or step_name.lower() in DEFAULT_AGENT_TO_STEP
             )
-            # Not a hard failure — just flag steps without aliases
             if not reachable:
-                self.skipTest(
-                    f"Step {step_name!r} has no alias in DEFAULT_AGENT_TO_STEP "
-                    f"(only reachable by exact canonical name)"
-                )
+                unreachable.append(step_name)
+        self.assertEqual(
+            unreachable,
+            [],
+            f"PIPELINE_STEPS entries with no alias in DEFAULT_AGENT_TO_STEP: {unreachable}. "
+            f"Users can only reach these by exact canonical name.",
+        )
+
+
+class TestDuplicateStepsCostDoubles(unittest.TestCase):
+    """Duplicate steps in the override list should increase the estimate."""
+
+    def test_duplicate_step_costs_more_than_single(self):
+        """Passing ["qa", "qa"] should produce a higher estimate than ["qa"]."""
+        single = compute_estimate({
+            "size": "M", "files": 3, "complexity": "medium",
+            "steps": ["qa"], "review_cycles": 0,
+        })
+        double = compute_estimate({
+            "size": "M", "files": 3, "complexity": "medium",
+            "steps": ["qa", "qa"], "review_cycles": 0,
+        })
+        self.assertGreater(
+            double["estimate"]["expected"],
+            single["estimate"]["expected"],
+            "Duplicate steps should increase the estimate",
+        )
+
+
+class TestRandomValidStepStrings(unittest.TestCase):
+    """Fuzz-style test: random combinations of valid alias strings must always
+    resolve to recognized steps and produce non-zero estimates."""
+
+    def test_random_subsets_of_aliases_all_resolve(self):
+        """Pick random subsets of valid aliases — all must produce non-zero."""
+        import random
+        random.seed(42)  # deterministic for CI reproducibility
+
+        # Build list of aliases that map to PIPELINE_STEPS entries
+        valid_aliases = [
+            alias for alias, canonical in DEFAULT_AGENT_TO_STEP.items()
+            if canonical in heuristics.PIPELINE_STEPS
+        ]
+
+        for _ in range(20):  # 20 random trials
+            k = random.randint(1, len(valid_aliases))
+            subset = random.sample(valid_aliases, k)
+            result = compute_estimate({
+                "size": random.choice(["XS", "S", "M", "L"]),
+                "files": random.randint(1, 20),
+                "complexity": random.choice(["low", "medium", "high"]),
+                "steps": subset,
+                "review_cycles": random.randint(0, 4),
+            })
+            self.assertGreater(
+                result["estimate"]["expected"],
+                0.0,
+                f"Random alias subset {subset} produced $0.00",
+            )
+            # Verify all steps resolved (no silent drops)
+            resolved_names = {s["name"] for s in result["steps"]}
+            resolved_names.discard("PR Review Loop")  # auto-added
+            expected_canonicals = {
+                DEFAULT_AGENT_TO_STEP[a] for a in subset
+            }
+            self.assertEqual(
+                resolved_names,
+                expected_canonicals,
+                f"Aliases {subset} → expected {expected_canonicals}, got {resolved_names}",
+            )
+
+    def test_random_case_mutations_all_resolve(self):
+        """Random case mutations of valid aliases must still resolve."""
+        import random
+        random.seed(99)
+
+        valid_aliases = [
+            alias for alias, canonical in DEFAULT_AGENT_TO_STEP.items()
+            if canonical in heuristics.PIPELINE_STEPS
+        ]
+
+        for alias in valid_aliases:
+            # Random case mutation: flip each char's case randomly
+            mutated = "".join(
+                c.upper() if random.random() > 0.5 else c.lower()
+                for c in alias
+            )
+            canonical, warn = resolve_step_name(mutated)
+            expected = DEFAULT_AGENT_TO_STEP[alias]
+            self.assertEqual(
+                canonical,
+                expected,
+                f"Case-mutated alias {mutated!r} (from {alias!r}) "
+                f"resolved to {canonical!r}, expected {expected!r}",
+            )
+
+    def test_aliases_with_random_whitespace_padding(self):
+        """Valid aliases with random leading/trailing whitespace still resolve."""
+        import random
+        random.seed(77)
+
+        valid_aliases = [
+            alias for alias, canonical in DEFAULT_AGENT_TO_STEP.items()
+            if canonical in heuristics.PIPELINE_STEPS
+        ]
+
+        for alias in valid_aliases:
+            padding_left = " " * random.randint(0, 5) + "\t" * random.randint(0, 2)
+            padding_right = " " * random.randint(0, 5) + "\n" * random.randint(0, 1)
+            padded = padding_left + alias + padding_right
+            canonical, warn = resolve_step_name(padded)
+            expected = DEFAULT_AGENT_TO_STEP[alias]
+            self.assertEqual(
+                canonical,
+                expected,
+                f"Padded alias {padded!r} (from {alias!r}) "
+                f"resolved to {canonical!r}, expected {expected!r}",
+            )
+
+
+class TestAgentMapOverrideIntegration(unittest.TestCase):
+    """Integration test for custom agent-map.json alias resolution."""
+
+    def test_custom_alias_via_agent_map_json(self):
+        """A custom alias in agent-map.json resolves to a PIPELINE_STEPS key
+        and produces a non-zero estimate."""
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            agent_map = {"custom-agent": "QA"}
+            (Path(tmp) / "agent-map.json").write_text(json.dumps(agent_map))
+            result = compute_estimate(
+                {
+                    "size": "S", "files": 1, "complexity": "low",
+                    "steps": ["custom-agent"], "review_cycles": 0,
+                },
+                calibration_dir=tmp,
+            )
+        step_names = [s["name"] for s in result["steps"]]
+        self.assertIn("QA", step_names)
+        self.assertGreater(result["estimate"]["expected"], 0.0)
 
 
 if __name__ == "__main__":

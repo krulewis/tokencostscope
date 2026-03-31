@@ -25,6 +25,8 @@ DEFAULT_AGENT_TO_STEP: dict = {
     "implementer": "Implementation",
     "implement": "Implementation",
     "qa": "QA",
+    "test-writing": "Test Writing",
+    "test_writing": "Test Writing",
     "frontend-designer": "Frontend Designer",
     "frontend_designer": "Frontend Designer",
     "docs-updater": "Docs Updater",
