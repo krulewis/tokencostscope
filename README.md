@@ -144,7 +144,22 @@ Report session cost: actual_cost=4.20
 |------|---------|-------------|
 | `--calibration-dir PATH` | `~/.tokencast/calibration` | Where calibration data is stored |
 | `--project-dir PATH` | None | Project root for file measurement |
+| `--telemetry` | Off | Enable anonymous usage telemetry (see below) |
 | `--version` | | Print version and exit |
+
+---
+
+## Telemetry
+
+tokencast includes **opt-in** anonymous usage telemetry. It is **off by default** — no data is sent unless you explicitly enable it.
+
+**To enable:** add `--telemetry` to the MCP server command, or set `TOKENCAST_TELEMETRY=1`.
+
+**To disable:** remove the `--telemetry` flag or unset `TOKENCAST_TELEMETRY=1`. To delete your install ID: `rm ~/.tokencast/install_id`.
+
+**What is collected:** session count, mean accuracy ratio, calibrated factor count, client name, framework, tool name, package version. **What is NOT collected:** project names, file paths, cost amounts, or any personal data.
+
+Data is sent to [PostHog](https://posthog.com) (US region). A random UUID is generated locally as your install ID — it contains no personal information. See the [wiki](https://github.com/krulewis/tokencast/wiki/Configuration#telemetry) for full details.
 
 ---
 
