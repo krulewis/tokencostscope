@@ -4,29 +4,41 @@ OFF by default. Requires explicit opt-in via the ``--telemetry`` CLI flag or
 ``TOKENCAST_TELEMETRY=1`` environment variable.
 
 Collected metrics (NO PII, NO project names, NO file paths, NO cost amounts):
-  - session_count     — total number of calibration history records
-  - mean_accuracy     — mean actual/expected ratio over recent history
+  - session_count      — total number of calibration history records
+  - mean_accuracy      — mean actual/expected ratio over recent history
   - calibrated_factors — count of active calibration factor entries
-  - client_name       — MCP client identifier string (from MCP init, if set)
-  - framework         — "mcp" (always, for the MCP server path)
+  - client_name        — MCP client identifier string (from MCP init, if set)
+  - framework          — "mcp" (always, for the MCP server path)
+  - tool_name          — MCP tool name that triggered the event
+  - tokencast_version  — installed package version string
 
 Fire-and-forget: telemetry is sent on a background thread so it never blocks
 the calling code. Failures are silently discarded.
 
-The endpoint URL is configured via ``TOKENCAST_TELEMETRY_URL``. If the env var
-is unset or empty, metrics are collected but never transmitted (safe default).
+Telemetry is sent to PostHog (US region, https://us.i.posthog.com).
+TOKENCAST_TELEMETRY_URL is ignored — the endpoint is fixed at build time.
 """
 
 import json
 import logging
 import os
+import pathlib
 import threading
+import uuid
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# PostHog ingest endpoint — US region, fixed at build time.
+# Replace phc_PLACEHOLDER with the real project API key before shipping.
+_POSTHOG_ENDPOINT = "https://us.i.posthog.com/capture/"
+_POSTHOG_API_KEY = "phc_PLACEHOLDER"
+
+# Path to the persistent install ID file
+_INSTALL_ID_PATH = pathlib.Path.home() / ".tokencast" / "install_id"
 
 # ---------------------------------------------------------------------------
 # First-run message — printed to stderr once when telemetry is enabled
@@ -35,8 +47,10 @@ logger = logging.getLogger(__name__)
 FIRST_RUN_MESSAGE = """\
 [tokencast] Anonymous usage telemetry is enabled.
 Collected: session count, mean accuracy ratio, number of calibrated factors,
-           client name, framework identifier.
+           client name, framework identifier, tool name, tokencast version.
 NOT collected: project names, file paths, cost amounts, or any personal data.
+Data is sent to PostHog (https://us.i.posthog.com).
+See: https://github.com/krulewis/tokencast/wiki/Configuration#telemetry
 To opt out: remove the --telemetry flag or unset TOKENCAST_TELEMETRY=1.
 """
 
@@ -45,6 +59,12 @@ To opt out: remove the --telemetry flag or unset TOKENCAST_TELEMETRY=1.
 # an explicit lock.
 _first_run_message_shown = threading.Event()
 
+# Module-level install ID cache. Set once and never mutated after that.
+# Multiple threads may race to populate this on first call, but the race is
+# benign: both threads read the same file and assign the same value, and the
+# value is immutable once written. No lock is needed.
+_install_id_cache: Optional[str] = None
+
 
 def _show_first_run_message_once() -> None:
     """Print the first-run consent notice to stderr exactly once per process."""
@@ -52,6 +72,76 @@ def _show_first_run_message_once() -> None:
         _first_run_message_shown.set()
         import sys
         print(FIRST_RUN_MESSAGE, file=sys.stderr, end="")
+
+
+def _get_or_create_install_id() -> str:
+    """Return a persistent install UUID, creating it on first call.
+
+    The ID is stored in ``~/.tokencast/install_id`` and used as the PostHog
+    ``distinct_id``. It contains no personal information — it is a random
+    UUID4 generated locally.
+
+    Atomic write pattern (H2):
+      1. Write to ``install_id.tmp.<pid>``
+      2. ``os.rename()`` to ``install_id``
+      3. If rename fails (OSError — another process won the race), read the
+         winner's file instead.
+
+    Empty or non-UUID4 files are treated as corrupt and regenerated (M4).
+
+    Thread safety (H3): multiple threads may race to set ``_install_id_cache``
+    on first call, but the race is benign — both threads read the same file
+    and assign the same immutable value. No lock is needed.
+    """
+    global _install_id_cache
+    if _install_id_cache is not None:
+        return _install_id_cache
+
+    id_path = _INSTALL_ID_PATH
+    id_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Attempt to read and validate an existing file
+    if id_path.exists():
+        try:
+            raw = id_path.read_text(encoding="utf-8").strip()
+            uuid.UUID(raw, version=4)  # raises ValueError if invalid
+            _install_id_cache = raw
+            return _install_id_cache
+        except (OSError, ValueError):
+            pass  # Fall through to regenerate
+
+    # Generate a new UUID and write atomically
+    new_id = str(uuid.uuid4())
+    tmp_path = id_path.parent / f"install_id.tmp.{os.getpid()}"
+    try:
+        tmp_path.write_text(new_id, encoding="utf-8")
+        os.rename(str(tmp_path), str(id_path))
+        _install_id_cache = new_id
+    except OSError:
+        # Another process won the race — read their value if possible
+        try:
+            raw = id_path.read_text(encoding="utf-8").strip()
+            uuid.UUID(raw, version=4)
+            _install_id_cache = raw
+        except (OSError, ValueError):
+            # Last resort: use the in-memory value without persisting
+            _install_id_cache = new_id
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    return _install_id_cache
+
+
+def _get_tokencast_version() -> str:
+    """Return the installed tokencast version string, or 'unknown' on failure."""
+    try:
+        import tokencast
+        return tokencast.__version__
+    except Exception:
+        return "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -225,22 +315,40 @@ def _send_payload(url: str, payload: dict, timeout: float = TELEMETRY_TIMEOUT_SE
 
 def send_metrics(
     metrics: dict,
-    endpoint_url: Optional[str] = None,
+    **_ignored: object,
 ) -> None:
-    """Send *metrics* to *endpoint_url* in a background daemon thread.
+    """Send *metrics* to PostHog in a background daemon thread.
 
-    Does nothing (no-op) when *endpoint_url* is None or empty — metrics
-    are collected but not transmitted until an endpoint is configured.
+    Builds a PostHog ``/capture/`` payload with:
+      - ``api_key``    — PostHog project token
+      - ``event``      — fixed string ``"tool_called"``
+      - ``distinct_id`` — persistent install UUID
+      - ``timestamp``  — ISO 8601 UTC string from ``metrics["collected_at"]``
+      - ``properties`` — all collected metrics, with ``tool_name`` set from
+                         the original ``event_type`` value (M8)
 
     Args:
-        metrics: Dict produced by :func:`collect_metrics`.
-        endpoint_url: Target URL. When None/empty, the call is a no-op.
+        metrics: Dict produced by :func:`collect_metrics` with ``event_type``
+            and ``install_id`` keys added by :func:`record_event`.
     """
-    url = endpoint_url or os.environ.get("TOKENCAST_TELEMETRY_URL", "").strip()
-    if not url:
-        return  # No endpoint configured — collect but don't send
+    properties = dict(metrics)
+    # event_type is not a PostHog property key — remap to tool_name (M8)
+    event_type = properties.pop("event_type", "unknown")
+    properties["tool_name"] = event_type
+    # install_id travels as distinct_id, not in properties
+    install_id = properties.pop("install_id", "unknown")
 
-    t = threading.Thread(target=_send_payload, args=(url, metrics), daemon=True)
+    payload = {
+        "api_key": _POSTHOG_API_KEY,
+        "event": "tool_called",
+        "distinct_id": install_id,
+        "timestamp": metrics.get("collected_at", ""),  # M7
+        "properties": properties,
+    }
+
+    t = threading.Thread(
+        target=_send_payload, args=(_POSTHOG_ENDPOINT, payload), daemon=True
+    )
     t.start()
 
 
@@ -256,7 +364,6 @@ def record_event(
     calibration_dir: Optional[str] = None,
     client_name: Optional[str] = None,
     framework: str = "mcp",
-    endpoint_url: Optional[str] = None,
 ) -> None:
     """Collect metrics and fire-and-forget send them if telemetry is enabled.
 
@@ -276,8 +383,6 @@ def record_event(
             ``~/.tokencast/calibration``.
         client_name: MCP client identifier string, if available.
         framework: Framework / source identifier. Defaults to "mcp".
-        endpoint_url: Override for telemetry endpoint URL. If None, reads from
-            ``TOKENCAST_TELEMETRY_URL`` env var.
     """
     try:
         if not is_enabled(telemetry_enabled):
@@ -285,9 +390,7 @@ def record_event(
 
         _show_first_run_message_once()
 
-        # Resolve calibration paths
-        import pathlib
-
+        # Resolve calibration paths (pathlib now at module level — L10)
         if calibration_dir is not None:
             cal_path = pathlib.Path(calibration_dir)
         else:
@@ -313,8 +416,10 @@ def record_event(
             framework=framework,
         )
         metrics["event_type"] = event_type
+        metrics["install_id"] = _get_or_create_install_id()
+        metrics["tokencast_version"] = _get_tokencast_version()
 
-        send_metrics(metrics, endpoint_url=endpoint_url)
+        send_metrics(metrics)
 
     except Exception:
         # Unconditional safety net — telemetry must never raise or crash
