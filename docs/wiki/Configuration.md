@@ -240,3 +240,28 @@ The hook is fail-silent — hook failures do not interrupt your work. A sidecar 
 | `status_outlier_low` | 0.2 | Ratio threshold for low outlier flagging |
 
 Invoke with `--window 30` to override the default window mode, `--verbose` for detailed breakdown, or `--json` for machine-readable output.
+
+## Telemetry
+
+tokencast includes opt-in anonymous usage telemetry. It is **OFF by default**.
+
+**To enable:** pass `--telemetry` to the MCP server, or set `TOKENCAST_TELEMETRY=1`.
+
+**What is collected** (no PII, no project names, no file paths, no cost amounts):
+
+| Field | Description |
+|-------|-------------|
+| `session_count` | Number of calibration history records |
+| `mean_accuracy` | Mean actual/expected ratio over last 10 sessions |
+| `calibrated_factors` | Count of active (non-identity) calibration factor entries |
+| `client_name` | MCP client identifier (e.g. "claude-code") |
+| `framework` | Always "mcp" for the MCP server path |
+| `tool_name` | Which MCP tool was called |
+| `tokencast_version` | Installed package version |
+
+Data is sent to [PostHog](https://posthog.com) (US region, `https://us.i.posthog.com`).
+A random install ID (`~/.tokencast/install_id`) is generated locally on first use and used
+as the PostHog `distinct_id`. It contains no personal information.
+
+> **Note:** The `TOKENCAST_TELEMETRY_URL` environment variable is no longer used
+> and is ignored if set. The endpoint is fixed at `https://us.i.posthog.com/capture/`.

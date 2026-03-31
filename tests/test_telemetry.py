@@ -12,6 +12,8 @@ Covers:
 - First-run message shown exactly once
 - record_event is a no-op when disabled
 - parse_args --telemetry flag propagates to ServerConfig
+- PostHog payload shape and routing
+- Install ID creation and persistence
 """
 
 import importlib.util
@@ -22,6 +24,7 @@ import tempfile
 import threading
 import time
 import unittest
+import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -259,97 +262,56 @@ class TestComputeMeanAccuracy(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Unit tests: send_metrics — fire-and-forget, no-op without URL
+# Unit tests: send_metrics — fire-and-forget, always sends to PostHog
 # ---------------------------------------------------------------------------
 
 
 class TestSendMetrics(unittest.TestCase):
-    def test_noop_when_no_url(self):
-        """send_metrics does nothing when endpoint_url is None and env var unset."""
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("TOKENCAST_TELEMETRY_URL", None)
-            sent = []
-
-            def fake_send(url, payload):
-                sent.append(url)
-
-            with patch.object(telemetry, "_send_payload", side_effect=fake_send):
-                telemetry.send_metrics({"a": 1}, endpoint_url=None)
-                # Give any background thread a moment
-                time.sleep(0.05)
-                self.assertEqual(sent, [])
-
-    def test_noop_when_env_url_empty(self):
-        """send_metrics does nothing when TOKENCAST_TELEMETRY_URL is empty."""
-        with patch.dict(os.environ, {"TOKENCAST_TELEMETRY_URL": ""}):
-            sent = []
-
-            def fake_send(url, payload):
-                sent.append(url)
-
-            with patch.object(telemetry, "_send_payload", side_effect=fake_send):
-                telemetry.send_metrics({"a": 1})
-                time.sleep(0.05)
-                self.assertEqual(sent, [])
-
     def test_sends_to_explicit_url(self):
-        """send_metrics fires a background thread when endpoint_url is set."""
+        """send_metrics fires a background thread and sends to _POSTHOG_ENDPOINT."""
         sent_events = []
         send_done = threading.Event()
 
-        def fake_send(url, payload):
+        fake_install_id = str(uuid.uuid4())
+
+        def fake_send(url, payload, timeout=telemetry.TELEMETRY_TIMEOUT_SECONDS):
             sent_events.append({"url": url, "payload": payload})
             send_done.set()
 
+        metrics = {
+            "event_type": "estimate_cost",
+            "install_id": fake_install_id,
+            "collected_at": "2026-01-01T00:00:00+00:00",
+        }
+
         with patch.object(telemetry, "_send_payload", side_effect=fake_send):
-            telemetry.send_metrics({"x": 99}, endpoint_url="https://example.com/ping")
+            telemetry.send_metrics(metrics)
             send_done.wait(timeout=2.0)
 
         self.assertEqual(len(sent_events), 1)
-        self.assertEqual(sent_events[0]["url"], "https://example.com/ping")
-        self.assertEqual(sent_events[0]["payload"]["x"], 99)
-
-    def test_sends_to_env_url(self):
-        """send_metrics uses TOKENCAST_TELEMETRY_URL when endpoint_url not given."""
-        sent_events = []
-        send_done = threading.Event()
-
-        def fake_send(url, payload):
-            sent_events.append(url)
-            send_done.set()
-
-        with patch.dict(
-            os.environ, {"TOKENCAST_TELEMETRY_URL": "https://env-endpoint.test/t"}
-        ):
-            with patch.object(telemetry, "_send_payload", side_effect=fake_send):
-                telemetry.send_metrics({"k": 1})
-                send_done.wait(timeout=2.0)
-
-        self.assertEqual(sent_events, ["https://env-endpoint.test/t"])
+        self.assertEqual(sent_events[0]["url"], telemetry._POSTHOG_ENDPOINT)
 
     def test_graceful_failure_unreachable_endpoint(self):
-        """send_metrics swallows connection errors silently.
-
-        Uses an actual port that refuses connections (localhost:1) to trigger
-        a real URLError without needing a mock that raises on a daemon thread
-        (which would produce a PytestUnhandledThreadExceptionWarning).
-        """
+        """send_metrics swallows URLError silently."""
+        import urllib.error
         done = threading.Event()
-        original_send = telemetry._send_payload
 
-        def tracked_send(url, payload, timeout=2.0):
-            # Call the real implementation against an unreachable endpoint.
-            # It must not raise (all exceptions are caught inside _send_payload).
-            try:
-                original_send(url, payload, timeout=0.2)
-            finally:
-                done.set()
+        def failing_send(url, payload, timeout=telemetry.TELEMETRY_TIMEOUT_SECONDS):
+            done.set()
+            raise urllib.error.URLError("connection refused")
 
-        with patch.object(telemetry, "_send_payload", side_effect=tracked_send):
-            # localhost port 1 is reserved and always refuses connections
-            telemetry.send_metrics({"x": 1}, endpoint_url="http://localhost:1/telemetry")
+        fake_install_id = str(uuid.uuid4())
+        metrics = {
+            "event_type": "estimate_cost",
+            "install_id": fake_install_id,
+            "collected_at": "2026-01-01T00:00:00+00:00",
+        }
+
+        with patch.object(telemetry, "_send_payload", side_effect=failing_send):
+            # Must not raise
+            telemetry.send_metrics(metrics)
             done.wait(timeout=3.0)
-        # If we reach here without an exception propagating, the test passes.
+        # Reaching here without an unhandled exception means the test passes.
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +330,7 @@ class TestTimeoutBehavior(unittest.TestCase):
 
         with patch.object(telemetry, "_send_payload", side_effect=slow_send):
             start = time.time()
-            telemetry.send_metrics({"x": 1}, endpoint_url="https://slow.example")
+            telemetry.send_metrics({"x": 1})
             elapsed = time.time() - start
 
         # send_metrics should return almost immediately (< 0.5s)
@@ -387,7 +349,7 @@ class TestRecordEvent(unittest.TestCase):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             sent = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 sent.append(metrics)
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -405,7 +367,7 @@ class TestRecordEvent(unittest.TestCase):
             sent = []
             done = threading.Event()
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics, **kwargs):
                 sent.append(metrics)
                 done.set()
 
@@ -415,7 +377,6 @@ class TestRecordEvent(unittest.TestCase):
                         "estimate_cost",
                         telemetry_enabled=True,
                         calibration_dir=tmp,
-                        endpoint_url="https://example.com/t",
                     )
                     # record_event calls send_metrics synchronously inside a
                     # try/except (not on its own thread) — no wait needed.
@@ -431,7 +392,7 @@ class TestRecordEvent(unittest.TestCase):
         with patch.dict(os.environ, {"TOKENCAST_TELEMETRY": "1"}):
             sent = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 sent.append(metrics)
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -451,7 +412,7 @@ class TestRecordEvent(unittest.TestCase):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             captured = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 captured.append(dict(metrics))
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -470,12 +431,14 @@ class TestRecordEvent(unittest.TestCase):
         """record_event is fail-silent even with a nonexistent calibration dir."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
-            # Should not raise
-            telemetry.record_event(
-                "estimate_cost",
-                telemetry_enabled=True,
-                calibration_dir="/nonexistent/path/that/does/not/exist",
-            )
+            # Prevent real HTTP while ensuring the function runs without raising
+            with patch.object(telemetry, "_send_payload", side_effect=lambda url, p: None):
+                # Should not raise
+                telemetry.record_event(
+                    "estimate_cost",
+                    telemetry_enabled=True,
+                    calibration_dir="/nonexistent/path/that/does/not/exist",
+                )
 
     def test_client_name_passed_through(self):
         """client_name is forwarded to collect_metrics."""
@@ -483,7 +446,7 @@ class TestRecordEvent(unittest.TestCase):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             captured_metrics = []
 
-            def fake_send(metrics, endpoint_url=None):
+            def fake_send(metrics):
                 captured_metrics.append(dict(metrics))
 
             with patch.object(telemetry, "send_metrics", side_effect=fake_send):
@@ -523,6 +486,7 @@ class TestFirstRunMessage(unittest.TestCase):
         self.assertIn("anonymous", output.lower())
         self.assertIn("session count", output.lower())
         self.assertIn("opt out", output.lower())
+        self.assertIn("posthog", output.lower())
 
     def test_message_shown_only_once(self):
         import io
@@ -759,6 +723,248 @@ class TestCountCalibratedFactors(unittest.TestCase):
         }
         # global=identity; sig a(0.8) + c(0.95) = 2
         self.assertEqual(telemetry._count_calibrated_factors(factors), 2)
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: _get_tokencast_version
+# ---------------------------------------------------------------------------
+
+
+class TestGetTokencastVersion(unittest.TestCase):
+    def test_returns_version_string(self):
+        """_get_tokencast_version returns a non-empty string."""
+        result = telemetry._get_tokencast_version()
+        self.assertIsInstance(result, str)
+        self.assertTrue(len(result) > 0)
+
+    def test_returns_unknown_on_import_failure(self):
+        """_get_tokencast_version returns 'unknown' when tokencast cannot be imported."""
+        original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "tokencast":
+                raise ImportError("mocked import failure")
+            # Use the real __import__ for everything else
+            import builtins
+            return builtins.__import__(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            result = telemetry._get_tokencast_version()
+
+        self.assertEqual(result, "unknown")
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: _get_or_create_install_id
+# ---------------------------------------------------------------------------
+
+
+class TestGetOrCreateInstallId(unittest.TestCase):
+    def setUp(self):
+        # Reset the module-level cache before each test
+        telemetry._install_id_cache = None
+
+    def tearDown(self):
+        # Reset the module-level cache after each test
+        telemetry._install_id_cache = None
+
+    def test_creates_uuid4_file_on_first_call(self):
+        """First call creates ~/.tokencast/install_id with a valid UUID4."""
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_path = Path(tmp) / "install_id"
+            with patch.object(telemetry, "_INSTALL_ID_PATH", fake_path):
+                result = telemetry._get_or_create_install_id()
+
+            self.assertTrue(fake_path.exists())
+            stored = fake_path.read_text().strip()
+            # Must be a valid UUID4
+            parsed = uuid.UUID(stored, version=4)
+            self.assertEqual(str(parsed), stored)
+            self.assertEqual(result, stored)
+
+    def test_returns_same_id_on_subsequent_calls(self):
+        """Two calls (with cache reset between) return the same install ID."""
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_path = Path(tmp) / "install_id"
+            with patch.object(telemetry, "_INSTALL_ID_PATH", fake_path):
+                first = telemetry._get_or_create_install_id()
+                # Reset cache to force re-read from disk
+                telemetry._install_id_cache = None
+                second = telemetry._get_or_create_install_id()
+
+            self.assertEqual(first, second)
+
+    def test_reads_existing_valid_file(self):
+        """An existing valid UUID4 file is returned as-is."""
+        known_id = str(uuid.uuid4())
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_path = Path(tmp) / "install_id"
+            fake_path.write_text(known_id + "\n")
+            with patch.object(telemetry, "_INSTALL_ID_PATH", fake_path):
+                result = telemetry._get_or_create_install_id()
+
+        self.assertEqual(result, known_id)
+
+    def test_regenerates_empty_file(self):
+        """An empty install_id file triggers generation of a new UUID4."""
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_path = Path(tmp) / "install_id"
+            fake_path.write_text("")
+            with patch.object(telemetry, "_INSTALL_ID_PATH", fake_path):
+                result = telemetry._get_or_create_install_id()
+
+            # Must be a valid UUID4
+            parsed = uuid.UUID(result, version=4)
+            self.assertEqual(str(parsed), result)
+
+    def test_regenerates_garbage_file(self):
+        """A corrupt install_id file triggers generation of a new UUID4."""
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_path = Path(tmp) / "install_id"
+            fake_path.write_text("not-a-uuid")
+            with patch.object(telemetry, "_INSTALL_ID_PATH", fake_path):
+                result = telemetry._get_or_create_install_id()
+
+            # Must be a valid UUID4
+            parsed = uuid.UUID(result, version=4)
+            self.assertEqual(str(parsed), result)
+
+    def test_atomic_write_race_condition(self):
+        """Concurrent calls from 5 threads all return a valid UUID4 without errors."""
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_path = Path(tmp) / "install_id"
+            results = []
+            errors = []
+
+            def call_fn():
+                try:
+                    # Each thread resets cache so they race on file creation
+                    telemetry._install_id_cache = None
+                    val = telemetry._get_or_create_install_id()
+                    results.append(val)
+                except Exception as exc:
+                    errors.append(exc)
+
+            with patch.object(telemetry, "_INSTALL_ID_PATH", fake_path):
+                threads = [threading.Thread(target=call_fn) for _ in range(5)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join(timeout=5.0)
+
+        self.assertEqual(len(errors), 0, f"Unexpected errors: {errors}")
+        self.assertEqual(len(results), 5)
+        for r in results:
+            parsed = uuid.UUID(r, version=4)
+            self.assertEqual(str(parsed), r)
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: PostHog payload shape
+# ---------------------------------------------------------------------------
+
+
+class TestPostHogPayload(unittest.TestCase):
+    def _capture_payload(self, metrics: dict) -> dict:
+        """Call send_metrics with a fake _send_payload and return captured data."""
+        captured = {}
+        done = threading.Event()
+
+        def fake_send(url, payload, timeout=telemetry.TELEMETRY_TIMEOUT_SECONDS):
+            captured.update({"url": url, "payload": payload})
+            done.set()
+
+        with patch.object(telemetry, "_send_payload", side_effect=fake_send):
+            telemetry.send_metrics(metrics)
+            done.wait(timeout=2.0)
+
+        return captured
+
+    def _make_metrics(self, event_type: str = "report_session") -> dict:
+        """Build a minimal metrics dict as record_event would produce it."""
+        return {
+            "event_type": event_type,
+            "install_id": str(uuid.uuid4()),
+            "collected_at": "2026-01-01T12:00:00+00:00",
+            "session_count": 5,
+            "mean_accuracy": 1.05,
+            "calibrated_factors": 2,
+            "client_name": "claude-code",
+            "framework": "mcp",
+        }
+
+    def test_event_field_is_tool_called(self):
+        """PostHog payload top-level 'event' key is 'tool_called'."""
+        metrics = self._make_metrics("report_session")
+        captured = self._capture_payload(metrics)
+        self.assertEqual(captured["payload"]["event"], "tool_called")
+
+    def test_tool_name_in_properties(self):
+        """PostHog properties contain tool_name equal to the event_type value."""
+        metrics = self._make_metrics("report_session")
+        captured = self._capture_payload(metrics)
+        props = captured["payload"]["properties"]
+        self.assertEqual(props["tool_name"], "report_session")
+
+    def test_event_type_not_in_properties(self):
+        """Raw 'event_type' key from metrics dict is not forwarded to properties."""
+        metrics = self._make_metrics("report_session")
+        captured = self._capture_payload(metrics)
+        props = captured["payload"]["properties"]
+        self.assertNotIn("event_type", props)
+
+    def test_timestamp_in_payload(self):
+        """PostHog payload top-level 'timestamp' equals collected_at value."""
+        ts = "2026-01-01T12:00:00+00:00"
+        metrics = self._make_metrics()
+        metrics["collected_at"] = ts
+        captured = self._capture_payload(metrics)
+        self.assertEqual(captured["payload"]["timestamp"], ts)
+
+    def test_distinct_id_is_install_id(self):
+        """PostHog payload top-level 'distinct_id' equals install_id value."""
+        iid = str(uuid.uuid4())
+        metrics = self._make_metrics()
+        metrics["install_id"] = iid
+        captured = self._capture_payload(metrics)
+        self.assertEqual(captured["payload"]["distinct_id"], iid)
+
+    def test_install_id_not_in_properties(self):
+        """Raw 'install_id' key is not forwarded into PostHog properties."""
+        metrics = self._make_metrics()
+        captured = self._capture_payload(metrics)
+        props = captured["payload"]["properties"]
+        self.assertNotIn("install_id", props)
+
+    def test_api_key_present(self):
+        """PostHog payload contains the tokencast API key."""
+        metrics = self._make_metrics()
+        captured = self._capture_payload(metrics)
+        self.assertEqual(captured["payload"]["api_key"], telemetry._POSTHOG_API_KEY)
+
+    def test_sends_to_posthog_endpoint(self):
+        """send_metrics always POSTs to _POSTHOG_ENDPOINT."""
+        metrics = self._make_metrics()
+        captured = self._capture_payload(metrics)
+        self.assertEqual(captured["url"], telemetry._POSTHOG_ENDPOINT)
+
+    def test_env_url_var_is_ignored(self):
+        """TOKENCAST_TELEMETRY_URL env var is ignored; PostHog endpoint is always used."""
+        metrics = self._make_metrics()
+        captured = {}
+        done = threading.Event()
+
+        def fake_send(url, payload, timeout=telemetry.TELEMETRY_TIMEOUT_SECONDS):
+            captured.update({"url": url, "payload": payload})
+            done.set()
+
+        with patch.dict(os.environ, {"TOKENCAST_TELEMETRY_URL": "https://decoy.example.com/t"}):
+            with patch.object(telemetry, "_send_payload", side_effect=fake_send):
+                telemetry.send_metrics(metrics)
+                done.wait(timeout=2.0)
+
+        self.assertEqual(captured["url"], telemetry._POSTHOG_ENDPOINT)
+        self.assertNotEqual(captured["url"], "https://decoy.example.com/t")
 
 
 if __name__ == "__main__":
