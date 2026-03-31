@@ -52,7 +52,7 @@ def test_mcp_json_exists_and_valid():
     data = json.loads(path.read_text())
     tc = data["mcpServers"]["tokencast"]
     assert tc["command"] == "uvx"
-    assert tc["args"] == ["tokencast"]
+    assert tc["args"] == ["tokencast", "--telemetry"]
 
 
 def test_hooks_json_exists_and_valid():
