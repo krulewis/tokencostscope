@@ -7,6 +7,18 @@ from pathlib import Path
 
 import pytest
 
+
+@pytest.fixture(scope="session", autouse=True)
+def suppress_telemetry():
+    """Disable PostHog telemetry for all tests.
+
+    Prevents test runs from sending real events to PostHog, which would
+    contaminate Test 3 (report_session adoption) measurement data.
+    TOKENCAST_TELEMETRY=0 is the highest-priority opt-out signal in
+    telemetry.is_enabled() and overrides all other settings.
+    """
+    os.environ["TOKENCAST_TELEMETRY"] = "0"
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 

@@ -37,6 +37,7 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 
 ## Telemetry
 
+- **CI telemetry contamination (FIXED)**: The test suite previously fired real PostHog events, contaminating Test 3 (report_session adoption) measurement data. Fixed by: (1) `TOKENCAST_TELEMETRY: "0"` env var on both CI jobs in `.github/workflows/ci.yml`, and (2) an autouse session fixture in `tests/conftest.py` that sets `os.environ["TOKENCAST_TELEMETRY"] = "0"` for local runs. `TOKENCAST_TELEMETRY=0` is priority-1 in `is_enabled()` — highest precedence, overrides all other settings.
 - **`TOKENCAST_TELEMETRY_URL` removed**: The env var is no longer used. The PostHog endpoint (`https://us.i.posthog.com/capture/`) is hardcoded. Setting `TOKENCAST_TELEMETRY_URL` has no effect.
 - **Install ID persistence**: `~/.tokencast/install_id` is created on first run. Atomic write via `os.rename()` handles concurrent MCP server starts. Empty or non-UUID4 content triggers regeneration.
 - **`send_metrics` signature change**: `endpoint_url` parameter removed. Tests that pass `endpoint_url=` to `send_metrics` will get absorbed by `**_ignored` but should be updated.
