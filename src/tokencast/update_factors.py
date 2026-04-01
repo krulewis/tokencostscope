@@ -35,12 +35,15 @@ DECAY_MIN_RECORDS = 5      # Cold-start guard: below this record count per strat
 def compute_ewma(values: list[float], alpha: float = 0.15, weights=None) -> float:
     """Exponentially weighted moving average. Most recent values weighted highest.
 
-    When weights are provided, each sample is multiplied by its weight before the
-    EWMA update: result = alpha * (v * w) + (1 - alpha) * result.
+    When weights are provided, the weight modulates the effective learning rate:
+    eff_alpha = alpha * w; result = eff_alpha * v + (1 - eff_alpha) * result.
 
     The seed (first value) is NOT multiplied by its weight. Weights participate
     only in the iterative update, not in the initial seed. This prevents the seed
     from being artificially deflated when the oldest record is stale.
+
+    This formulation is unbiased: for any constant sequence v=k, the result
+    converges to k regardless of weight magnitude.
     """
     if not values:
         return 1.0
@@ -48,12 +51,12 @@ def compute_ewma(values: list[float], alpha: float = 0.15, weights=None) -> floa
     result = values[0]
     for i, v in enumerate(values[1:], 1):
         w = weights[i] if weights is not None else 1.0
-        # NOTE: weight multiplies the sample value, not the alpha coefficient.
-        # This produces a mild downward bias for old records (w < 1.0) since their
-        # contribution is alpha*v*w rather than alpha*v. Intentional: old sessions
-        # should exert less influence AND should pull the average less strongly.
-        # Acceptable for calibration purposes — trimmed_mean is the primary estimator.
-        result = alpha * (v * w) + (1 - alpha) * result
+        # Weight modulates the learning rate (effective alpha), not the sample value.
+        # This ensures EWMA is unbiased: for any constant sequence v=k, the result
+        # converges to k regardless of weight magnitude. Old records barely move the
+        # result (tiny eff_alpha); recent records update at full alpha.
+        eff_alpha = alpha * w
+        result = eff_alpha * v + (1 - eff_alpha) * result
     return result
 
 
@@ -109,6 +112,11 @@ def compute_decay_weights(records: list[dict], halflife_days: float) -> list[flo
         except (ValueError, TypeError):
             w = 1.0
         weights.append(w)
+    # Normalize so most-recent record always has weight 1.0.
+    # Prevents downward bias for infrequent users (>24h session gaps).
+    max_w = max(weights)
+    if max_w > 0:
+        weights = [w / max_w for w in weights]
     return weights
 
 

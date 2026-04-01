@@ -58,6 +58,12 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 - **`session_recorder.py` is stdlib-only**: The plugin copies this file directly into `plugin/scripts/` and loads it without the tokencast package environment. Do not add non-stdlib imports to this file (json, pathlib, argparse are fine; tokencast.* imports are not).
 - **`pricing.py` drift detection**: `plugin/scripts/pricing.py` is a verbatim copy of `src/tokencast/pricing.py`. The test `test_pricing_py_no_drift` in `tests/test_plugin_integrity.py` will catch drift on every CI run — do not manually edit the plugin copy.
 
+## Calibration Algorithm
+
+- **EWMA bias for infrequent users**: The current formula `result = alpha * (v * w) + (1 - alpha) * result` biases factors below the true ratio when decay weights w < 1.0. Old records with small w contribute `alpha * v * w` instead of `alpha * v`, moving the result toward a deflated target. Normalizing weights by max_w alone does NOT fix this — even with max_w=1.0, 19 of 20 records still have w < 1.0 and each deflates the result. The correct fix is to modulate alpha: `result = (alpha * w) * v + (1 - alpha * w) * result`. With this formula, old records barely move the result (tiny effective alpha); recent records update normally (full alpha). For any constant sequence v=k, the EWMA converges exactly to k regardless of weights.
+- **Calibration convergence tests use 10-minute spacing**: All PR #23 calibration tests space records 10 minutes apart, keeping decay weights > 0.99. This masked the EWMA bias entirely. Only tests with 7-day spacing surface the bias (N=20 weekly records, true ratio 1.5 → biased factor ≈ 0.88).
+- **EWMA is not the primary estimator**: `trimmed_mean` is used for N ≤ 10 records; `compute_ewma` is used for N > 11. The bias only affects users with 11+ sessions spread >24h apart.
+
 ## CI & Continuous Integration
 
 - **CI is green** (as of 2026-03-27): 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest. Fixed in PR #13 (test assertions) + PR #14 (GNU xargs compat).
