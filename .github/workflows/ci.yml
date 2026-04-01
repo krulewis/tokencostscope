@@ -31,6 +31,8 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/ -v
+        env:
+          TOKENCAST_TELEMETRY: "0"
 
   wheel-smoke:
     # HC-2: This job must be added to GitHub branch protection required checks.
@@ -73,3 +75,4 @@ jobs:
         run: python -m pytest tests/test_wheel_smoke.py tests/test_package_manifest.py -m slow -v
         env:
           WHEEL_DIR: dist/
+          TOKENCAST_TELEMETRY: "0"
