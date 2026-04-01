@@ -214,5 +214,6 @@ def _format_markdown_table(result: dict) -> str:
         )
 
     lines.append("**Tracking:** Estimate recorded. Actuals will be captured automatically at session end.")
+    lines.append("**Tip:** Call `report_session` after your session completes to improve future estimates via calibration.")
 
     return "\n".join(lines) + "\n"
