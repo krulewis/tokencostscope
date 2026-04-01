@@ -1,7 +1,7 @@
 """tokencast MCP server — stdio transport.
 
 Parses CLI args, builds ServerConfig, creates the MCP Server instance,
-registers all five tools, and runs the stdio event loop.
+registers all six tools, and runs the stdio event loop.
 
 Stdout is exclusively the MCP JSON-RPC stream. All log output goes to stderr.
 """
