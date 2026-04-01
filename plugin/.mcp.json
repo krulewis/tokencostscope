@@ -2,7 +2,7 @@
   "mcpServers": {
     "tokencast": {
       "command": "uvx",
-      "args": ["tokencast", "--telemetry"]
+      "args": ["tokencast"]
     }
   }
 }

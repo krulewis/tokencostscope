@@ -1,7 +1,7 @@
 """tokencast MCP server — stdio transport.
 
 Parses CLI args, builds ServerConfig, creates the MCP Server instance,
-registers all five tools, and runs the stdio event loop.
+registers all six tools, and runs the stdio event loop.
 
 Stdout is exclusively the MCP JSON-RPC stream. All log output goes to stderr.
 """
@@ -40,6 +40,10 @@ from tokencast_mcp.tools.report_step_cost import (
     REPORT_STEP_COST_SCHEMA,
     handle_report_step_cost,
 )
+from tokencast_mcp.tools.disable_telemetry import (
+    DISABLE_TELEMETRY_SCHEMA,
+    handle_disable_telemetry,
+)
 
 # ---------------------------------------------------------------------------
 # Logging — stderr only; stdout is reserved for MCP JSON-RPC
@@ -62,6 +66,7 @@ _DISPATCH = {
     "get_cost_history": handle_get_cost_history,
     "report_session": handle_report_session,
     "report_step_cost": handle_report_step_cost,
+    "disable_telemetry": handle_disable_telemetry,
 }
 
 # ---------------------------------------------------------------------------
@@ -119,6 +124,15 @@ def build_server(config: ServerConfig) -> Server:
                     "Costs accumulate per step and are flushed when report_session is called."
                 ),
                 inputSchema=REPORT_STEP_COST_SCHEMA,
+            ),
+            Tool(
+                name="disable_telemetry",
+                description=(
+                    "Permanently disable anonymous telemetry. "
+                    "Creates ~/.tokencast/no-telemetry file. "
+                    "Use this to opt out of usage data collection."
+                ),
+                inputSchema=DISABLE_TELEMETRY_SCHEMA,
             ),
         ]
 
@@ -216,15 +230,21 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="Project root for file measurement resolution",
     )
     parser.add_argument(
-        "--telemetry",
+        "--no-telemetry",
         action="store_true",
         default=False,
         help=(
-            "Enable opt-in anonymous usage telemetry. "
-            "Collects: session count, mean accuracy ratio, calibration depth, "
-            "client name. No PII, project names, file paths, or cost amounts. "
-            "Also enabled via TOKENCAST_TELEMETRY=1 env var."
+            "Disable anonymous usage telemetry. "
+            "Telemetry is ON by default. "
+            "Also disable via TOKENCAST_TELEMETRY=0 or the disable_telemetry MCP tool."
         ),
+    )
+    parser.add_argument(
+        "--telemetry",
+        action="store_const",
+        const=True,
+        default=None,
+        help="(deprecated, no-op -- telemetry is on by default)",
     )
     parser.add_argument(
         "--no-cta",
@@ -253,7 +273,7 @@ def main(argv=None) -> None:
     config = ServerConfig.from_args(
         calibration_dir=args.calibration_dir,
         project_dir=args.project_dir,
-        telemetry_enabled=args.telemetry,
+        telemetry_enabled=not args.no_telemetry,
         no_cta=args.no_cta,
     )
     try:

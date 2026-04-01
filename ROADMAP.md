@@ -128,10 +128,23 @@
 
 **PyPI package version.** This is the independent PyPI version track (separate from SKILL.md v2.x).
 
-- [x] **PostHog telemetry integration** — opt-in anonymous metrics via PostHog Cloud US; install ID at `~/.tokencast/install_id`; no SDK dependency, uses raw `urllib.request`; endpoint hardcoded (PR #30)
+- [x] **PostHog telemetry integration** — opt-out anonymous metrics via PostHog Cloud US; install ID at `~/.tokencast/install_id`; no SDK dependency, uses raw `urllib.request`; endpoint hardcoded (PR #30)
 - [x] **estimate_cost alias resolution** — fix $0.00 bug when step names use aliases like `"qa"` → `"QA"`, `"test-writing"` → `"Test Writing"` (PR #31)
 - [x] **PostHog API key** — real key set in production (PR #32)
 - [x] **Step resolution test suite** — 48 comprehensive tests: integration, failure modes, fuzz, consistency (PR #33)
+
+---
+
+## v0.1.5 — Telemetry Opt-Out & report_session Nudge (in progress)
+
+**PyPI package version.**
+
+- [ ] **Telemetry on by default** — flip from opt-in to opt-out; `TOKENCAST_TELEMETRY=0` or `--no-telemetry` to disable; `--telemetry` kept as deprecated no-op for backward compat
+- [ ] **`disable_telemetry` MCP tool** — one tool call from Claude Code permanently disables telemetry; writes `~/.tokencast/no-telemetry`
+- [ ] **Prominent first-run notice** — shown once per session; references `disable_telemetry` tool with exact opt-out commands; not a background stderr line
+- [ ] **README telemetry disclosure above the fold** — top of README or dedicated Privacy section linked from top
+- [ ] **report_session nudge** — reminder line in `estimate_cost` response output; tells users to call `report_session` after session to enable calibration
+- [ ] **500-installs gate quality sub-metric** — reframe as "100 installs with 3+ sessions" to measure real adoption, not raw install count
 
 ---
 

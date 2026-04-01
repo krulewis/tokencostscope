@@ -183,10 +183,10 @@ class TestProtocol:
     """
 
     def test_tools_list_returns_five_tools(self, tmp_path):
-        """tools/list must return exactly 5 registered tools."""
+        """tools/list must return exactly 6 registered tools."""
         server = build_server(_config(tmp_path))
         tools = _run(_list_tools(server))
-        assert len(tools) == 5
+        assert len(tools) == 6
 
     def test_tools_list_names_are_correct(self, tmp_path):
         """Every expected tool name must appear in tools/list."""
@@ -199,6 +199,7 @@ class TestProtocol:
             "get_cost_history",
             "report_session",
             "report_step_cost",
+            "disable_telemetry",
         }
 
     def test_each_tool_has_description(self, tmp_path):

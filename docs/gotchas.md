@@ -37,9 +37,10 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 ## Telemetry
 
 - **`TOKENCAST_TELEMETRY_URL` removed**: The env var is no longer used. The PostHog endpoint (`https://us.i.posthog.com/capture/`) is hardcoded. Setting `TOKENCAST_TELEMETRY_URL` has no effect.
-- **Install ID persistence**: `~/.tokencast/install_id` is created on first telemetry-enabled run. Atomic write via `os.rename()` handles concurrent MCP server starts. Empty or non-UUID4 content triggers regeneration.
+- **Install ID persistence**: `~/.tokencast/install_id` is created on first run. Atomic write via `os.rename()` handles concurrent MCP server starts. Empty or non-UUID4 content triggers regeneration.
 - **`send_metrics` signature change**: `endpoint_url` parameter removed. Tests that pass `endpoint_url=` to `send_metrics` will get absorbed by `**_ignored` but should be updated.
 - **PostHog API key placeholder**: `phc_PLACEHOLDER` in `telemetry.py` must be replaced with a real key before events reach PostHog. Events sent with the placeholder key are silently accepted but attributed to a nonexistent project.
+- **TOKENCAST_TELEMETRY=1 overrides opt-out**: The env var is highest priority (level 1 in precedence chain). Setting `TOKENCAST_TELEMETRY=1` enables telemetry even if `~/.tokencast/no-telemetry` exists or `--no-telemetry` was passed. This is intentional for testing and temporary overrides. Document this clearly when users ask about disabling telemetry.
 
 ## API Design
 

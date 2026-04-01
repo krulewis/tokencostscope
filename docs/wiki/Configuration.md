@@ -243,9 +243,7 @@ Invoke with `--window 30` to override the default window mode, `--verbose` for d
 
 ## Telemetry
 
-tokencast includes opt-in anonymous usage telemetry. It is **OFF by default**.
-
-**To enable:** pass `--telemetry` to the MCP server, or set `TOKENCAST_TELEMETRY=1`.
+tokencast includes opt-out anonymous usage telemetry. It is **ON by default**.
 
 **What is collected** (no PII, no project names, no file paths, no cost amounts):
 
@@ -263,7 +261,22 @@ Data is sent to [PostHog](https://posthog.com) (US region, `https://us.i.posthog
 A random install ID (`~/.tokencast/install_id`) is generated locally on first use and used
 as the PostHog `distinct_id`. It contains no personal information.
 
-**To disable:** remove the `--telemetry` flag from your MCP server config, or unset `TOKENCAST_TELEMETRY=1`. To delete your install ID: `rm ~/.tokencast/install_id`.
+**To disable:**
+
+1. Call the `disable_telemetry` MCP tool (creates persistent `~/.tokencast/no-telemetry` file)
+2. Pass `--no-telemetry` to the MCP server command
+3. Set `TOKENCAST_TELEMETRY=0` in your environment
+
+**Precedence (highest to lowest):**
+
+1. `TOKENCAST_TELEMETRY=0` → always disables telemetry
+2. `TOKENCAST_TELEMETRY=1` → always enables telemetry (overrides `--no-telemetry` flag and the no-telemetry file)
+3. `~/.tokencast/no-telemetry` file exists → disables telemetry
+4. Default (no flags, no env var) → enabled
+
+**Note on TOKENCAST_TELEMETRY=1 override:** If you set `TOKENCAST_TELEMETRY=1` in your environment, telemetry will be active even if you have passed `--no-telemetry` or created the no-telemetry file. The environment variable takes absolute priority.
+
+To delete your install ID: `rm ~/.tokencast/install_id`.
 
 > **Note:** The `TOKENCAST_TELEMETRY_URL` environment variable is no longer used
 > and is ignored if set. The endpoint is fixed at `https://us.i.posthog.com/capture/`.

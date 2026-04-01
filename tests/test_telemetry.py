@@ -71,11 +71,14 @@ def _make_factors(global_val: float = 0.9, with_sig: bool = False) -> dict:
 
 
 class TestIsEnabled(unittest.TestCase):
-    def test_disabled_by_default(self):
-        """Telemetry is OFF when neither flag nor env var is set."""
+    def test_enabled_by_default(self):
+        """Telemetry is ON when neither flag nor env var is set (default=True)."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
-            self.assertFalse(telemetry.is_enabled(telemetry_enabled=False))
+            with tempfile.TemporaryDirectory() as tmp:
+                fake_path = Path(tmp) / "no-telemetry"
+                with patch.object(telemetry, "_NO_TELEMETRY_PATH", fake_path):
+                    self.assertTrue(telemetry.is_enabled())
 
     def test_enabled_by_flag(self):
         """Telemetry is ON when telemetry_enabled=True is passed."""
@@ -92,17 +95,50 @@ class TestIsEnabled(unittest.TestCase):
         """TOKENCAST_TELEMETRY=0 does not enable telemetry."""
         with patch.dict(os.environ, {"TOKENCAST_TELEMETRY": "0"}):
             self.assertFalse(telemetry.is_enabled(telemetry_enabled=False))
+            self.assertFalse(telemetry.is_enabled(telemetry_enabled=True))
 
-    def test_env_var_empty_disables(self):
-        """TOKENCAST_TELEMETRY= (empty) does not enable telemetry."""
+    def test_env_var_empty_uses_default(self):
+        """TOKENCAST_TELEMETRY= (empty) falls through to default (True)."""
         with patch.dict(os.environ, {"TOKENCAST_TELEMETRY": ""}):
-            self.assertFalse(telemetry.is_enabled(telemetry_enabled=False))
+            with tempfile.TemporaryDirectory() as tmp:
+                fake_path = Path(tmp) / "no-telemetry"
+                with patch.object(telemetry, "_NO_TELEMETRY_PATH", fake_path):
+                    self.assertTrue(telemetry.is_enabled())
+                    self.assertFalse(telemetry.is_enabled(telemetry_enabled=False))
 
     def test_flag_wins_even_when_env_absent(self):
         """Flag=True enables telemetry regardless of env var absence."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("TOKENCAST_TELEMETRY", None)
             self.assertTrue(telemetry.is_enabled(telemetry_enabled=True))
+
+    def test_no_telemetry_file_disables(self):
+        """~/.tokencast/no-telemetry file existence disables telemetry (priority 3)."""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TOKENCAST_TELEMETRY", None)
+            with tempfile.TemporaryDirectory() as tmp:
+                fake_path = Path(tmp) / "no-telemetry"
+                fake_path.write_text("", encoding="utf-8")
+                with patch.object(telemetry, "_NO_TELEMETRY_PATH", fake_path):
+                    self.assertFalse(telemetry.is_enabled())
+                    self.assertFalse(telemetry.is_enabled(telemetry_enabled=True))
+
+    def test_env_var_1_overrides_no_telemetry_file(self):
+        """TOKENCAST_TELEMETRY=1 overrides no-telemetry file (priority 2 > priority 3)."""
+        with patch.dict(os.environ, {"TOKENCAST_TELEMETRY": "1"}):
+            with tempfile.TemporaryDirectory() as tmp:
+                fake_path = Path(tmp) / "no-telemetry"
+                fake_path.write_text("", encoding="utf-8")
+                with patch.object(telemetry, "_NO_TELEMETRY_PATH", fake_path):
+                    self.assertTrue(telemetry.is_enabled())
+
+    def test_env_var_0_overrides_file_and_flag(self):
+        """TOKENCAST_TELEMETRY=0 disables even when file absent and flag=True (priority 1)."""
+        with patch.dict(os.environ, {"TOKENCAST_TELEMETRY": "0"}):
+            with tempfile.TemporaryDirectory() as tmp:
+                fake_path = Path(tmp) / "no-telemetry"
+                with patch.object(telemetry, "_NO_TELEMETRY_PATH", fake_path):
+                    self.assertFalse(telemetry.is_enabled(telemetry_enabled=True))
 
 
 # ---------------------------------------------------------------------------
@@ -483,10 +519,11 @@ class TestFirstRunMessage(unittest.TestCase):
         with patch("sys.stderr", fake_stderr):
             telemetry._show_first_run_message_once()
         output = fake_stderr.getvalue()
-        self.assertIn("anonymous", output.lower())
-        self.assertIn("session count", output.lower())
-        self.assertIn("opt out", output.lower())
-        self.assertIn("posthog", output.lower())
+        self.assertIn("telemetry notice", output.lower())
+        self.assertIn("on by default", output.lower())
+        self.assertIn("disable_telemetry", output)
+        self.assertIn("--no-telemetry", output)
+        self.assertIn("TOKENCAST_TELEMETRY=0", output)
 
     def test_message_shown_only_once(self):
         import io
@@ -497,7 +534,7 @@ class TestFirstRunMessage(unittest.TestCase):
             telemetry._show_first_run_message_once()
         output = fake_stderr.getvalue()
         # Message appears exactly once
-        self.assertEqual(output.count("Anonymous"), 1)
+        self.assertEqual(output.count("Telemetry Notice"), 1)
 
     def test_flag_set_after_first_show(self):
         import io
@@ -513,32 +550,8 @@ class TestFirstRunMessage(unittest.TestCase):
 
 
 class TestServerParseArgsTelemetry(unittest.TestCase):
-    def test_telemetry_false_by_default(self):
-        """--telemetry flag is absent → telemetry_enabled=False."""
-        try:
-            import mcp  # noqa: F401
-        except ImportError:
-            self.skipTest("mcp not available")
-
-        from tokencast_mcp.server import parse_args
-
-        args = parse_args([])
-        self.assertFalse(args.telemetry)
-
-    def test_telemetry_true_with_flag(self):
-        """--telemetry flag present → telemetry_enabled=True."""
-        try:
-            import mcp  # noqa: F401
-        except ImportError:
-            self.skipTest("mcp not available")
-
-        from tokencast_mcp.server import parse_args
-
-        args = parse_args(["--telemetry"])
-        self.assertTrue(args.telemetry)
-
-    def test_telemetry_propagates_to_server_config(self):
-        """parse_args --telemetry propagates into ServerConfig.telemetry_enabled."""
+    def test_no_args_gives_telemetry_enabled_true(self):
+        """No flags → telemetry_enabled=True (opt-out default)."""
         try:
             import mcp  # noqa: F401
         except ImportError:
@@ -547,16 +560,31 @@ class TestServerParseArgsTelemetry(unittest.TestCase):
         from tokencast_mcp.config import ServerConfig
         from tokencast_mcp.server import parse_args
 
-        args = parse_args(["--telemetry"])
+        args = parse_args([])
+        self.assertFalse(args.no_telemetry)
+        self.assertIsNone(args.telemetry)  # store_const: None when absent
         config = ServerConfig.from_args(
             calibration_dir=None,
             project_dir=None,
-            telemetry_enabled=args.telemetry,
+            telemetry_enabled=not args.no_telemetry,
         )
         self.assertTrue(config.telemetry_enabled)
 
-    def test_no_telemetry_flag_gives_false_config(self):
-        """Without --telemetry, ServerConfig.telemetry_enabled is False."""
+    def test_telemetry_flag_is_noop(self):
+        """--telemetry flag is accepted without error (deprecated no-op)."""
+        try:
+            import mcp  # noqa: F401
+        except ImportError:
+            self.skipTest("mcp not available")
+
+        from tokencast_mcp.server import parse_args
+
+        args = parse_args(["--telemetry"])
+        self.assertTrue(args.telemetry)  # store_const: True when present
+        self.assertFalse(args.no_telemetry)
+
+    def test_no_telemetry_flag_disables(self):
+        """--no-telemetry flag sets telemetry_enabled=False on ServerConfig."""
         try:
             import mcp  # noqa: F401
         except ImportError:
@@ -565,11 +593,30 @@ class TestServerParseArgsTelemetry(unittest.TestCase):
         from tokencast_mcp.config import ServerConfig
         from tokencast_mcp.server import parse_args
 
-        args = parse_args([])
+        args = parse_args(["--no-telemetry"])
         config = ServerConfig.from_args(
             calibration_dir=None,
             project_dir=None,
-            telemetry_enabled=args.telemetry,
+            telemetry_enabled=not args.no_telemetry,
+        )
+        self.assertFalse(config.telemetry_enabled)
+
+    def test_both_flags_no_telemetry_wins(self):
+        """With both --telemetry and --no-telemetry, no_telemetry wins."""
+        try:
+            import mcp  # noqa: F401
+        except ImportError:
+            self.skipTest("mcp not available")
+
+        from tokencast_mcp.config import ServerConfig
+        from tokencast_mcp.server import parse_args
+
+        args = parse_args(["--telemetry", "--no-telemetry"])
+        self.assertTrue(args.no_telemetry)
+        config = ServerConfig.from_args(
+            calibration_dir=None,
+            project_dir=None,
+            telemetry_enabled=not args.no_telemetry,
         )
         self.assertFalse(config.telemetry_enabled)
 
