@@ -120,7 +120,12 @@ class TestComputeDecayWeights:
         assert abs(weights[0] - 1.0) < 0.01, f"Expected weight ≈ 1.0, got {weights[0]}"
 
     def test_missing_timestamp_gets_weight_one(self):
-        """Record without 'timestamp' field: weight == 1.0."""
+        """Record without 'timestamp' field: raw weight == 1.0, normalizes to 1.0.
+
+        The missing-timestamp record gets raw weight 1.0 (no penalty). Padding at
+        10 days has raw weight < 1.0, so the missing-ts record is the max and stays
+        at 1.0 after normalization.
+        """
         no_ts_record = {"expected_cost": 5.0, "actual_cost": 4.5}
         padding = [make_record(days_ago=10) for _ in range(5)]
         all_records = [no_ts_record] + padding
@@ -128,7 +133,12 @@ class TestComputeDecayWeights:
         assert weights[0] == 1.0
 
     def test_invalid_timestamp_gets_weight_one(self):
-        """Record with malformed timestamp string: weight == 1.0."""
+        """Record with malformed timestamp string: raw weight == 1.0, normalizes to 1.0.
+
+        The invalid-timestamp record gets raw weight 1.0 (exception path). Padding at
+        10 days has raw weight < 1.0, so the invalid-ts record is the max and stays
+        at 1.0 after normalization.
+        """
         bad_ts_record = {"timestamp": "not-a-date", "expected_cost": 5.0, "actual_cost": 4.5}
         padding = [make_record(days_ago=10) for _ in range(5)]
         all_records = [bad_ts_record] + padding
@@ -250,17 +260,17 @@ class TestWeightedEWMA:
         assert abs(result_standard - result_ones) < 1e-10
 
     def test_weight_half_halves_influence(self):
-        """A weight of 0.5 halves the sample's influence in the update step."""
+        """A weight of 0.5 halves the effective learning rate in the update step."""
         # With alpha=0.15, seed=1.0, second value=3.0:
-        # Standard: result = 0.15 * 3.0 + 0.85 * 1.0 = 1.30
-        # Weighted (w=0.5): result = 0.15 * (3.0 * 0.5) + 0.85 * 1.0 = 0.15 * 1.5 + 0.85 = 1.075
+        # Standard (w=1.0): eff_alpha=0.15; result = 0.15*3.0 + 0.85*1.0 = 1.30
+        # Weighted (w=0.5): eff_alpha=0.075; result = 0.075*3.0 + 0.925*1.0 = 1.15
         result_weighted = compute_ewma([1.0, 3.0], weights=[1.0, 0.5])
         result_standard = compute_ewma([1.0, 3.0])
         # Weighted result should be between seed (1.0) and standard result (1.30)
         assert result_weighted < result_standard, (
             f"Weighted result {result_weighted} should be less than standard {result_standard}"
         )
-        expected = 0.15 * (3.0 * 0.5) + 0.85 * 1.0
+        expected = 0.075 * 3.0 + 0.925 * 1.0  # eff_alpha = alpha * w = 0.15 * 0.5
         assert abs(result_weighted - expected) < 1e-10, f"Expected {expected}, got {result_weighted}"
 
 
@@ -347,3 +357,28 @@ class TestDecayIntegration:
         ra_factor = step_factors.get("Research Agent", {}).get("factor")
         if ra_factor is not None:
             assert ra_factor < 1.5, f"Expected step factor pulled toward recent, got {ra_factor}"
+
+    def test_weekly_user_converges_within_15pct(self):
+        """20 records spaced 7 days apart (weekly user) with true ratio 1.5.
+
+        Before normalization fix: EWMA converges ~27% below true ratio (~1.09).
+        After normalization: EWMA should converge within 15% of true ratio (1.275-1.725).
+
+        This test validates the fix for the downward bias affecting infrequent users.
+        """
+        true_ratio = 1.5
+        n = 20
+        # Records from oldest to newest: (n-1)*7 days ago → 0 days ago
+        records = [
+            make_record(days_ago=(n - 1 - i) * 7, ratio=true_ratio)
+            for i in range(n)
+        ]
+        factors = run_update_factors(records)
+        assert factors.get("status") == "active", "Expected active status with 20 records"
+        global_factor = factors.get("global", 0.0)
+        lower = true_ratio * 0.85
+        upper = true_ratio * 1.15
+        assert lower <= global_factor <= upper, (
+            f"Weekly user factor {global_factor:.4f} not within 15% of true ratio {true_ratio} "
+            f"(expected {lower:.3f}–{upper:.3f}). EWMA normalization may be missing."
+        )
