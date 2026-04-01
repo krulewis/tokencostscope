@@ -120,7 +120,12 @@ class TestComputeDecayWeights:
         assert abs(weights[0] - 1.0) < 0.01, f"Expected weight ≈ 1.0, got {weights[0]}"
 
     def test_missing_timestamp_gets_weight_one(self):
-        """Record without 'timestamp' field: weight == 1.0."""
+        """Record without 'timestamp' field: raw weight == 1.0, normalizes to 1.0.
+
+        The missing-timestamp record gets raw weight 1.0 (no penalty). Padding at
+        10 days has raw weight < 1.0, so the missing-ts record is the max and stays
+        at 1.0 after normalization.
+        """
         no_ts_record = {"expected_cost": 5.0, "actual_cost": 4.5}
         padding = [make_record(days_ago=10) for _ in range(5)]
         all_records = [no_ts_record] + padding
@@ -128,7 +133,12 @@ class TestComputeDecayWeights:
         assert weights[0] == 1.0
 
     def test_invalid_timestamp_gets_weight_one(self):
-        """Record with malformed timestamp string: weight == 1.0."""
+        """Record with malformed timestamp string: raw weight == 1.0, normalizes to 1.0.
+
+        The invalid-timestamp record gets raw weight 1.0 (exception path). Padding at
+        10 days has raw weight < 1.0, so the invalid-ts record is the max and stays
+        at 1.0 after normalization.
+        """
         bad_ts_record = {"timestamp": "not-a-date", "expected_cost": 5.0, "actual_cost": 4.5}
         padding = [make_record(days_ago=10) for _ in range(5)]
         all_records = [bad_ts_record] + padding
