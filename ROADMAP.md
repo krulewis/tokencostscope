@@ -121,6 +121,7 @@
 - [ ] **Estimate diff** — when a plan changes mid-session, show delta from previous estimate
 - [ ] **Quiet mode** — option to log estimates without rendering the table
 - [ ] **Project-level heuristics overrides** — allow `calibration/heuristics-overrides.json` (or similar) to shadow specific values from `references/heuristics.md` without modifying the shared file. Primary use case: `review_cycles_default` varies by project (this project averages 4–5; the shared default of 2 is too low). Would replace the manual `review_cycles=4` override documented in `CLAUDE.md`.
+- [ ] **EWMA weighting bias investigation** *(S spike)* — EWMA formula biases calibration factors below true ratio for users with >24h gaps between sessions. Investigate mitigations: normalize weights before EWMA, separate decay from EWMA, unweighted EWMA with recency cutoff, or document as acceptable for frequent users. Run during Test 3 measurement window (2-3 day spike).
 
 ---
 
@@ -135,16 +136,28 @@
 
 ---
 
-## v0.1.5 — Telemetry Opt-Out & report_session Nudge (in progress)
+## v0.1.5 — Telemetry Opt-Out & report_session Nudge (shipped 2026-03-31, PR #34)
 
 **PyPI package version.**
 
-- [ ] **Telemetry on by default** — flip from opt-in to opt-out; `TOKENCAST_TELEMETRY=0` or `--no-telemetry` to disable; `--telemetry` kept as deprecated no-op for backward compat
-- [ ] **`disable_telemetry` MCP tool** — one tool call from Claude Code permanently disables telemetry; writes `~/.tokencast/no-telemetry`
-- [ ] **Prominent first-run notice** — shown once per session; references `disable_telemetry` tool with exact opt-out commands; not a background stderr line
-- [ ] **README telemetry disclosure above the fold** — top of README or dedicated Privacy section linked from top
-- [ ] **report_session nudge** — reminder line in `estimate_cost` response output; tells users to call `report_session` after session to enable calibration
-- [ ] **500-installs gate quality sub-metric** — reframe as "100 installs with 3+ sessions" to measure real adoption, not raw install count
+- [x] **Telemetry on by default** — flip from opt-in to opt-out; `TOKENCAST_TELEMETRY=0` or `--no-telemetry` to disable; `--telemetry` kept as deprecated no-op for backward compat
+- [x] **`disable_telemetry` MCP tool** — one tool call from Claude Code permanently disables telemetry; writes `~/.tokencast/no-telemetry`
+- [x] **Prominent first-run notice** — shown once per session; references `disable_telemetry` tool with exact opt-out commands; not a background stderr line
+- [x] **README telemetry disclosure above the fold** — top of README or dedicated Privacy section linked from top
+- [ ] **report_session nudge** — reminder line in `estimate_cost` response output; tells users to call `report_session` after session to enable calibration *(pending — required before Test 3 is meaningful)*
+- [x] **500-installs gate quality sub-metric** — reframe as "100 installs with 3+ sessions" to measure real adoption, not raw install count
+
+---
+
+## v0.1.6 — Max Plan Awareness & report_session Nudge (planned)
+
+**PyPI package version.** Sr. PM Priority 1 from competitive analysis review (2026-03-31).
+
+**Goal:** Make tokencast relevant to Claude Max plan users, and drive report_session adoption before Test 3 measurement window starts.
+
+- [ ] **report_session nudge** — reminder line in `estimate_cost` response telling users to call `report_session`; must ship before Test 3 data is meaningful
+- [ ] **Allocation-aware output for Max users** — detect Max plan users (via config flag); translate token estimate into quota-percentage terms: "This plan will consume ~40% of your 5-hour session window." Note: Claude Max has hard caps (~88K tokens/5h for 5x, ~220K for 20x) — not unlimited. See Sr. PM correction in `docs/plans/competitive-analysis-sr-pm-review.md`.
+- [ ] **Test 3 success criteria** — define report_session/estimate_cost ratio target and required sample size before the 4-week measurement window begins
 
 ---
 
@@ -175,7 +188,10 @@
 
 **Goal:** Move from descriptive to prescriptive. Budget gates and model substitution suggestions are the manual precursors to automated orchestration.
 
-- [ ] **Pre-flight budget gate** *(email #3)* — configurable cost ceiling that pauses and prompts before proceeding; useful for expensive Opus-heavy pipelines or unattended runs
+> **Sr. PM priority note (2026-03-31):** Lightweight budget enforcement (below) is elevated to Priority 2 after allocation-aware Max output (v0.1.6). AgentBudget's HN traction shows developers prioritize enforcement over prediction — tokencast needs to bridge the gap. Auto-pricing updates (Priority 4) are table stakes for correctness; currently estimates silently go stale when Anthropic changes prices.
+
+- [ ] **Auto-pricing updates** *(Sr. PM Priority 4)* — replace `pricing.md` with a module that checks for updates on first run per day (from `pydantic/genai-prices` or Anthropic's pricing page); fall back to bundled data if fetch fails. Table stakes for a cost tool — stale prices erode trust.
+- [ ] **Pre-flight budget gate** *(email #3, Sr. PM Priority 2)* — configurable cost ceiling that pauses and prompts before proceeding; supports both dollar budgets (API users) and quota-percentage budgets (Max users). Max users cannot recover from a blown session window — enforcement is more valuable for them than for API users.
 - [ ] **Model substitution suggestions** *(email #6)* — post-session: if a step ran well under its Opus budget, recommend Sonnet next time; flag Sonnet steps that hit limits as Opus candidates. *Human acceptance rates here train the v5.0 policy.*
 - [ ] **Task complexity auto-classification** — infer complexity from plan content rather than requiring explicit low/medium/high
 - [ ] **Anomaly detection** — flag sessions where actual/expected ratio is >3x or <0.2x as potential data quality issues (exclude from calibration)
@@ -224,5 +240,27 @@
 - [ ] **Team mode** — shared calibration factors so new members benefit from accumulated team history immediately
 
 ---
+
+---
+
+## Sr. PM Strategic Notes (2026-03-31)
+
+From competitive analysis adversarial review (`docs/plans/competitive-analysis-sr-pm-review.md`):
+
+**Revised feature priority sequence (corrected after Claude Max research):**
+1. **Allocation-aware output for Max users** (S, v0.1.6) — Claude Max is quota-based (~88K tokens/5h window), not unlimited. Max users still need pre-execution estimation; they're managing allocation, not dollars. Output framing change only — same estimation engine.
+2. **Lightweight budget enforcement** (S/M, v4.0) — bridges tokencast (estimation) and AgentBudget (enforcement). Max users especially benefit: a blown session window costs time, not money — non-fungible.
+3. **Time-to-completion estimation** (M, v4.0) — demoted from Priority 1. Still valuable but no longer existential now that Max users are served by allocation-aware output.
+4. **Auto-pricing updates** (S, v4.0) — table stakes for correctness.
+
+**Key competitive risks:**
+- Langfuse/LangSmith can add pre-execution estimation in a sprint — 6-12 month head start, not a moat
+- AgentBudget is a partial substitute — its enforcement framing reduces urgency for tokencast's prediction framing
+- Helicone acquired by Mintlify (2026-03-03) — one entrant removed
+
+**Gate before investing in marketing/team features:**
+- 100 installs with 3+ sessions (quality sub-metric replacing raw 500-install count)
+- Measurement window: 4 weeks from telemetry ship date (2026-03-31)
+- Test 3 success criteria must be defined before data arrives
 
 *Last updated: 2026-03-31*
