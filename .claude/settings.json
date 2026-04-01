@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/scripts/tokencast-learn.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/scripts/tokencast-learn.sh\"'"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/scripts/tokencast-midcheck.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/scripts/tokencast-midcheck.sh\"'"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/scripts/tokencast-agent-hook.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/scripts/tokencast-agent-hook.sh\"'"
           }
         ]
       },
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/.claude/hooks/estimate-gate.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/.claude/hooks/estimate-gate.sh\"'"
           }
         ]
       },
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/.claude/hooks/validate-agent-type.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/.claude/hooks/validate-agent-type.sh\"'"
           }
         ]
       },
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-guard.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/.claude/hooks/branch-guard.sh\"'"
           }
         ]
       }
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/scripts/tokencast-track.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/scripts/tokencast-track.sh\"'"
           }
         ]
       },
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/scripts/tokencast-agent-hook.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/scripts/tokencast-agent-hook.sh\"'"
           }
         ]
       },
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/.claude/hooks/inline-edit-guard.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/.claude/hooks/inline-edit-guard.sh\"'"
           }
         ]
       }
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/.claude/hooks/pre-compact-reminder.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/.claude/hooks/pre-compact-reminder.sh\"'"
           }
         ]
       }
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'exec bash \"$(git rev-parse --show-toplevel)/.claude/hooks/pipeline-gate.sh\"'"
+            "command": "bash -c 'exec bash \"$(GIT_DISCOVERY_ACROSS_FILESYSTEM=1 git rev-parse --show-toplevel)/.claude/hooks/pipeline-gate.sh\"'"
           }
         ]
       }
