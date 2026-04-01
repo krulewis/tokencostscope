@@ -1,7 +1,6 @@
 """Handler for the disable_telemetry MCP tool."""
 
 import os
-import pathlib
 from tokencast_mcp.config import ServerConfig
 from tokencast import telemetry as _telemetry
 
@@ -13,6 +12,9 @@ DISABLE_TELEMETRY_SCHEMA: dict = {
 
 
 async def handle_disable_telemetry(params: dict, config: ServerConfig) -> dict:
+    # config.telemetry_enabled is intentionally not mutated here.
+    # is_enabled() re-checks _NO_TELEMETRY_PATH on every invocation, so the
+    # in-process disable takes effect immediately on the next tool call.
     try:
         no_telemetry_path = _telemetry._NO_TELEMETRY_PATH
         no_telemetry_path.parent.mkdir(parents=True, exist_ok=True)
