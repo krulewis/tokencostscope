@@ -64,7 +64,7 @@ python3 -m pytest tests/test_mcp_scaffold.py -v
 
 **Python version notes:** The main test suite requires Python 3.9+. MCP-dependent tests require Python 3.10+ and skip cleanly on older versions via `pytest.importorskip("mcp")`.
 
-**Test count**: 1029 passing, 4 skipped (0.1.4 includes 48 step resolution tests).
+**Test count**: 1094 passing, 93 skipped (0.1.6 adds 23 Test 3 criteria tests).
 
 **CI status**: All green — 0 failures across Python 3.10, 3.11, 3.12 on ubuntu-latest.
 

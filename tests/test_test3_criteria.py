@@ -67,7 +67,7 @@ class TestFileExists:
 
     def test_has_measurement_window_reference(self):
         content = _read_criteria()
-        assert re.search(r"(measurement.window|4.week|march)", content, re.IGNORECASE), (
+        assert re.search(r"(measurement.window|4.week|\d{4}-\d{2}-\d{2})", content, re.IGNORECASE), (
             "File must reference the measurement window or start date"
         )
 

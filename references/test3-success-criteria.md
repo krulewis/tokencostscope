@@ -18,8 +18,8 @@ that developers and the `/tokencast status` tool can reference them directly.
 | (a) Engaged calibration ratio | `report_session_ratio_min` | 0.5 |
 | (b) Statistical confidence | `calibration_records_min` | 10 |
 | (c) Band accuracy | `band_hit_rate_min` | 0.80 |
-| (d) Quality install count | `quality_install_min_installs` | 100 |
-| (d) Sessions per quality install | `quality_install_min_sessions` | 3 |
+| (d1) Quality install count | `quality_install_min_installs` | 100 |
+| (d2) Sessions per quality install | `quality_install_min_sessions` | 3 |
 
 ---
 
