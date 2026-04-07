@@ -525,7 +525,7 @@ class TestMaxPlanQuotaOutput:
     def test_quota_line_absent_when_max_plan_not_set(self, tmp_path):
         result, _ = _call({"size": "M", "files": 5, "complexity": "medium"}, tmp_path)
         assert "session window" not in result["text"].lower()
-        assert "Max" not in result["text"] or "Max" in result["text"]  # no quota line
+        assert "Max plan:" not in result["text"]
 
     def test_quota_line_absent_when_max_plan_is_none(self, tmp_path):
         config = ServerConfig.from_args(str(tmp_path / "calibration"), None, max_plan=None)
@@ -551,6 +551,20 @@ class TestMaxPlanQuotaOutput:
         config = self._make_config_with_max_plan(tmp_path, "5x")
         result = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config))
         assert "5x" in result["text"]
+
+    def test_env_var_fallback_sets_max_plan(self, tmp_path):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"TOKENCAST_MAX_PLAN": "5x"}):
+            config = ServerConfig.from_args(str(tmp_path / "calibration"), None, max_plan=None)
+            assert config.max_plan == "5x"
+
+    def test_invalid_env_var_ignored(self, tmp_path):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"TOKENCAST_MAX_PLAN": "pro"}):
+            config = ServerConfig.from_args(str(tmp_path / "calibration"), None, max_plan=None)
+            assert config.max_plan is None
 
     def test_quota_20x_shows_lower_percentage_than_5x(self, tmp_path):
         config_5x = self._make_config_with_max_plan(tmp_path, "5x")

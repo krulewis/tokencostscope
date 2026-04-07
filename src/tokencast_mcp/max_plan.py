@@ -16,12 +16,15 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 
 # Tokens-per-5-hour-window for each Claude Max plan tier
+# Source: Anthropic Claude Max plan documentation. Update when plan limits change.
+QUOTAS_LAST_UPDATED: str = "2026-04-07"
+
 MAX_PLAN_QUOTAS: dict[str, int] = {
     "5x":  88_000,
     "20x": 220_000,
 }
 
-VALID_MAX_PLANS: frozenset = frozenset(MAX_PLAN_QUOTAS.keys())
+VALID_MAX_PLANS: frozenset[str] = frozenset(MAX_PLAN_QUOTAS.keys())
 
 # ---------------------------------------------------------------------------
 # Token approximation

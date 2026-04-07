@@ -46,6 +46,9 @@ class TestApproxTokensFromCost:
         tokens = approx_tokens_from_cost(0.50)
         assert 50_000 < tokens < 500_000
 
+    def test_negative_cost_returns_zero(self):
+        assert approx_tokens_from_cost(-1.0) == 0
+
     def test_returns_int(self):
         assert isinstance(approx_tokens_from_cost(1.0), int)
 

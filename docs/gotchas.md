@@ -47,7 +47,8 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 ## Claude Max Plan Quota
 
 - **Token approximation is intentionally rough**: `approx_tokens_from_cost()` uses a blended $3.50/M rate — conservative (over-reports quota %) so users aren't caught off-guard. Exact token count depends on model mix and cache hit rates, which vary per session.
-- **TOKENCAST_MAX_PLAN env var**: Checked in `ServerConfig.from_args()` as fallback when CLI arg is absent. Empty string → `None` (no quota line). Setting `TOKENCAST_MAX_PLAN=` (empty) correctly disables it.
+- **TOKENCAST_MAX_PLAN env var**: Checked in `ServerConfig.from_args()` as fallback when CLI arg is absent. Empty string → `None` (no quota line). Setting `TOKENCAST_MAX_PLAN=` (empty) correctly disables it. Invalid values (not `"5x"` or `"20x"`) are logged to stderr and silently ignored.
+- **QUOTAS_LAST_UPDATED**: `max_plan.py` has a `QUOTAS_LAST_UPDATED` date constant (similar to `references/pricing.md`'s `last_updated`). Update it whenever the 88k/220k quota numbers are re-verified.
 
 ## API Design
 

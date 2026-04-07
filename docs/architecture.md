@@ -83,7 +83,9 @@ Four scripts that were previously loaded via `importlib.util` from `scripts/` ar
 - **Config field `max_plan`**: `ServerConfig` has a new `Optional[str] max_plan` field (default `None`). Set via `--max-plan {5x,20x}` CLI arg or `TOKENCAST_MAX_PLAN` env var. `from_args()` checks the env var as fallback when `max_plan=None`.
 - **Output only**: The quota line is appended to the `text` field of `estimate_cost` output in `_format_markdown_table()`. No changes to `active-estimate.json`, `factors.json`, or the estimation engine.
 - **Token approximation**: Uses a fixed blended rate of $3.50/M tokens (conservative, slightly over-reports quota usage). Rough accuracy (~±30%) is intentional — this is framing information, not a precise measurement.
-- **TOKENCAST_MAX_PLAN env var**: Enables quota output without restarting the MCP server. Checked in `ServerConfig.from_args()` only when the CLI arg is absent.
+- **TOKENCAST_MAX_PLAN env var**: Enables quota output without restarting the MCP server. Checked in `ServerConfig.from_args()` only when the CLI arg is absent. Invalid values are logged to stderr and set to `None` — validated against `VALID_MAX_PLANS` from `max_plan.py`.
+- **Staleness tracking**: `QUOTAS_LAST_UPDATED` constant in `max_plan.py` records when quota numbers were last verified (mirrors `pricing.md`'s `last_updated` pattern).
+- **`import os/sys` at module top level**: `config.py` imports `os` and `sys` at module top level. Do not use inline imports inside methods for stdlib modules — inconsistent with the rest of the MCP layer.
 
 ## Coding Conventions
 

@@ -1,5 +1,7 @@
 """ServerConfig dataclass — runtime configuration for the tokencast MCP server."""
 
+import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -71,7 +73,6 @@ class ServerConfig:
         Returns:
             A fully resolved :class:`ServerConfig`.
         """
-        import os
         if project_dir is not None:
             resolved_project_dir: Optional[Path] = Path(project_dir).expanduser().resolve()
         else:
@@ -87,6 +88,16 @@ class ServerConfig:
         # CLI arg takes precedence; fall back to env var.
         if max_plan is None:
             max_plan = os.environ.get("TOKENCAST_MAX_PLAN") or None
+
+        if max_plan is not None:
+            from tokencast_mcp.max_plan import VALID_MAX_PLANS
+            if max_plan not in VALID_MAX_PLANS:
+                print(
+                    f"[tokencast] Warning: TOKENCAST_MAX_PLAN={max_plan!r} is not a valid "
+                    f"plan tier. Expected one of: {sorted(VALID_MAX_PLANS)}. Ignoring.",
+                    file=sys.stderr,
+                )
+                max_plan = None
 
         return cls(
             calibration_dir=resolved_calibration_dir,
