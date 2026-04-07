@@ -157,7 +157,7 @@
 
 - [ ] **report_session nudge** — reminder line in `estimate_cost` response telling users to call `report_session`; must ship before Test 3 data is meaningful
 - [ ] **Allocation-aware output for Max users** — detect Max plan users (via config flag); translate token estimate into quota-percentage terms: "This plan will consume ~40% of your 5-hour session window." Note: Claude Max has hard caps (~88K tokens/5h for 5x, ~220K for 20x) — not unlimited. See Sr. PM correction in `docs/plans/competitive-analysis-sr-pm-review.md`.
-- [ ] **Test 3 success criteria** — define report_session/estimate_cost ratio target and required sample size before the 4-week measurement window begins
+- [x] **Test 3 success criteria** — define report_session/estimate_cost ratio target and required sample size before the 4-week measurement window begins (`references/test3-success-criteria.md`)
 
 ---
 

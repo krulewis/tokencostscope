@@ -11,6 +11,7 @@
 ## Estimation Algorithm
 
 - **All tunable parameters live in `references/heuristics.md`** — not hardcoded in SKILL.md. This includes complexity multipliers, band multipliers, parallel discount factors, cache rate floors, review cycle defaults, decay halflife, per-signature min samples, and midcheck parameters.
+- **Test 3 success criteria live in `references/test3-success-criteria.md`** — machine-readable thresholds for the v0.1.6 measurement window (2026-03-31 to 2026-04-28). Keys: `report_session_ratio_min`, `calibration_records_min`, `band_hit_rate_min`, `quality_install_min_installs`, `quality_install_min_sessions`. The `/tokencast status` tool (v2.0) will eventually parse these to show pass/fail against live data.
 - **Mid-session check:** `tokencast-midcheck.sh` is a PreToolUse hook. It reads `active-estimate.json` and the session JSONL to compute actual spend, then writes state to `calibration/.midcheck-state` (ephemeral, gitignored). Hook is fail-silent via `set -euo pipefail` + `|| exit 0` — failures do not interrupt your work. State file format: two lines — last-checked byte size and cooldown sentinel (`0` or `COOLDOWN:<size>`).
 - **Pipeline signature derivation:** Not written to `active-estimate.json`. SKILL.md Step 3e derives it inline from the `steps` array using the same normalization formula as `learn.sh` line 38.
 - **`active-estimate.json` is the handshake** between estimation (SKILL.md writes it at estimate time) and learning (learn.sh reads it at session end). Schema changes must be backward compatible.
