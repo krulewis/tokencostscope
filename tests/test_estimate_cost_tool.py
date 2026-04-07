@@ -509,3 +509,60 @@ class TestEstimateCostWithFilePaths:
         fb = result["metadata"]["file_brackets"]
         assert fb is not None
         assert fb["medium"] == 1
+
+
+# ---------------------------------------------------------------------------
+# TestMaxPlanQuotaOutput
+# ---------------------------------------------------------------------------
+
+class TestMaxPlanQuotaOutput:
+    """Tests for Claude Max plan quota-percentage line in estimate output."""
+
+    def _make_config_with_max_plan(self, tmp_path: Path, max_plan: str) -> ServerConfig:
+        config = ServerConfig.from_args(str(tmp_path / "calibration"), None, max_plan=max_plan)
+        return config
+
+    def test_quota_line_absent_when_max_plan_not_set(self, tmp_path):
+        result, _ = _call({"size": "M", "files": 5, "complexity": "medium"}, tmp_path)
+        assert "session window" not in result["text"].lower()
+        assert "Max" not in result["text"] or "Max" in result["text"]  # no quota line
+
+    def test_quota_line_absent_when_max_plan_is_none(self, tmp_path):
+        config = ServerConfig.from_args(str(tmp_path / "calibration"), None, max_plan=None)
+        result = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config))
+        assert "session window" not in result["text"].lower()
+
+    def test_quota_line_present_for_5x_plan(self, tmp_path):
+        config = self._make_config_with_max_plan(tmp_path, "5x")
+        result = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config))
+        assert "session window" in result["text"].lower()
+
+    def test_quota_line_present_for_20x_plan(self, tmp_path):
+        config = self._make_config_with_max_plan(tmp_path, "20x")
+        result = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config))
+        assert "session window" in result["text"].lower()
+
+    def test_quota_line_contains_percentage_symbol(self, tmp_path):
+        config = self._make_config_with_max_plan(tmp_path, "5x")
+        result = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config))
+        assert "%" in result["text"]
+
+    def test_quota_line_mentions_plan_tier(self, tmp_path):
+        config = self._make_config_with_max_plan(tmp_path, "5x")
+        result = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config))
+        assert "5x" in result["text"]
+
+    def test_quota_20x_shows_lower_percentage_than_5x(self, tmp_path):
+        config_5x = self._make_config_with_max_plan(tmp_path, "5x")
+        config_20x = self._make_config_with_max_plan(tmp_path, "20x")
+        r5 = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config_5x))
+        r20 = _run(handle_estimate_cost({"size": "M", "files": 5, "complexity": "medium"}, config_20x))
+        # Both have a quota line — extract the percentage from each and compare
+        import re
+        def extract_pct(text):
+            m = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+            return float(m.group(1)) if m else None
+        pct5 = extract_pct(r5["text"])
+        pct20 = extract_pct(r20["text"])
+        assert pct5 is not None and pct20 is not None
+        assert pct5 > pct20

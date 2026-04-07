@@ -256,6 +256,18 @@ def parse_args(argv=None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--max-plan",
+        choices=["5x", "20x"],
+        default=None,
+        metavar="{5x,20x}",
+        help=(
+            "Claude Max plan tier. When set, estimate_cost output includes a "
+            "quota-percentage line showing how much of your 5-hour session "
+            "window this estimate consumes. Also configurable via "
+            "TOKENCAST_MAX_PLAN=5x env var."
+        ),
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -275,6 +287,7 @@ def main(argv=None) -> None:
         project_dir=args.project_dir,
         telemetry_enabled=not args.no_telemetry,
         no_cta=args.no_cta,
+        max_plan=args.max_plan,
     )
     try:
         asyncio.run(run_server(config))

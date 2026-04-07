@@ -77,6 +77,14 @@ Four scripts that were previously loaded via `importlib.util` from `scripts/` ar
 - **Data minimization**: Events contain no PII, project names, file paths, or cost amounts. Session count, mean accuracy ratio, calibrated factor count, client name, tool name, and version only.
 - **`disable_telemetry` tool** (v0.1.5+): `src/tokencast_mcp/tools/disable_telemetry.py` creates `~/.tokencast/no-telemetry` file for permanent opt-out. Atomic write pattern matches install ID persistence.
 
+## Claude Max Plan Quota Output (v0.1.6+)
+
+- **`src/tokencast_mcp/max_plan.py`**: Pure-logic module (no I/O) containing quota constants (`MAX_PLAN_QUOTAS`), `approx_tokens_from_cost()` (token proxy from dollar cost), `quota_percentage()`, and `format_quota_line()`. No side effects — safe to import anywhere.
+- **Config field `max_plan`**: `ServerConfig` has a new `Optional[str] max_plan` field (default `None`). Set via `--max-plan {5x,20x}` CLI arg or `TOKENCAST_MAX_PLAN` env var. `from_args()` checks the env var as fallback when `max_plan=None`.
+- **Output only**: The quota line is appended to the `text` field of `estimate_cost` output in `_format_markdown_table()`. No changes to `active-estimate.json`, `factors.json`, or the estimation engine.
+- **Token approximation**: Uses a fixed blended rate of $3.50/M tokens (conservative, slightly over-reports quota usage). Rough accuracy (~±30%) is intentional — this is framing information, not a precise measurement.
+- **TOKENCAST_MAX_PLAN env var**: Enables quota output without restarting the MCP server. Checked in `ServerConfig.from_args()` only when the CLI arg is absent.
+
 ## Coding Conventions
 
 - **Version string consistency**: Must be consistent across three places: `SKILL.md` frontmatter (`version:`), output template header (`## tokencast estimate (v2.x.x)`), and `learn.sh` `VERSION` variable. Always update all three together.

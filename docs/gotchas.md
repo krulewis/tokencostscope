@@ -44,6 +44,11 @@ Update this file when new gotchas are discovered or existing ones are resolved. 
 - **PostHog API key placeholder**: `phc_PLACEHOLDER` in `telemetry.py` must be replaced with a real key before events reach PostHog. Events sent with the placeholder key are silently accepted but attributed to a nonexistent project.
 - **TOKENCAST_TELEMETRY=1 overrides opt-out**: The env var is highest priority (level 1 in precedence chain). Setting `TOKENCAST_TELEMETRY=1` enables telemetry even if `~/.tokencast/no-telemetry` exists or `--no-telemetry` was passed. This is intentional for testing and temporary overrides. Document this clearly when users ask about disabling telemetry.
 
+## Claude Max Plan Quota
+
+- **Token approximation is intentionally rough**: `approx_tokens_from_cost()` uses a blended $3.50/M rate — conservative (over-reports quota %) so users aren't caught off-guard. Exact token count depends on model mix and cache hit rates, which vary per session.
+- **TOKENCAST_MAX_PLAN env var**: Checked in `ServerConfig.from_args()` as fallback when CLI arg is absent. Empty string → `None` (no quota line). Setting `TOKENCAST_MAX_PLAN=` (empty) correctly disables it.
+
 ## API Design
 
 - **estimate_cost does NOT write active-estimate.json**: The MCP tool handler writes it. E2E tests use `_make_active_estimate()` helper.

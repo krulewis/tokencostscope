@@ -21,6 +21,8 @@ class ServerConfig:
     cta_shown: bool = field(default=False, repr=False)
     telemetry_enabled: bool = True
     client_name: Optional[str] = None
+    # Claude Max plan tier for quota-percentage output ("5x", "20x", or None).
+    max_plan: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Derived paths (not fields — computed on demand)
@@ -53,6 +55,7 @@ class ServerConfig:
         project_dir: Optional[str],
         no_cta: bool = False,
         telemetry_enabled: bool = True,
+        max_plan: Optional[str] = None,
     ) -> "ServerConfig":
         """Build a ServerConfig from raw CLI argument strings.
 
@@ -61,10 +64,14 @@ class ServerConfig:
             project_dir: Raw ``--project-dir`` value, or ``None``.
             no_cta: When ``True``, suppress the team-sharing waitlist CTA.
             telemetry_enabled: When ``True``, opt in to anonymous telemetry.
+            max_plan: Claude Max plan tier (``"5x"``, ``"20x"``, or ``None``).
+                Also read from the ``TOKENCAST_MAX_PLAN`` environment variable
+                when not provided as a CLI argument.
 
         Returns:
             A fully resolved :class:`ServerConfig`.
         """
+        import os
         if project_dir is not None:
             resolved_project_dir: Optional[Path] = Path(project_dir).expanduser().resolve()
         else:
@@ -77,11 +84,16 @@ class ServerConfig:
         else:
             resolved_calibration_dir = Path.home() / ".tokencast" / "calibration"
 
+        # CLI arg takes precedence; fall back to env var.
+        if max_plan is None:
+            max_plan = os.environ.get("TOKENCAST_MAX_PLAN") or None
+
         return cls(
             calibration_dir=resolved_calibration_dir,
             project_dir=resolved_project_dir,
             no_cta=no_cta,
             telemetry_enabled=telemetry_enabled,
+            max_plan=max_plan,
         )
 
     def ensure_dirs(self) -> None:
