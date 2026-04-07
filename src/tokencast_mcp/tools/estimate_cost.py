@@ -1,8 +1,10 @@
 """Handler for the estimate_cost MCP tool."""
 
 import sys
+from typing import Optional
 
 from tokencast_mcp.config import ServerConfig
+from tokencast_mcp.max_plan import format_quota_line
 from tokencast.api import estimate_cost as _api_estimate_cost
 
 # ---------------------------------------------------------------------------
@@ -99,7 +101,7 @@ async def handle_estimate_cost(params: dict, config: ServerConfig) -> dict:
     )
 
     # --- Build text summary ---
-    result["text"] = _format_markdown_table(result)
+    result["text"] = _format_markdown_table(result, max_plan=config.max_plan)
 
     # First-run welcome note (US-PL-06)
     history_path = config.calibration_dir / "history.jsonl"
@@ -112,7 +114,7 @@ async def handle_estimate_cost(params: dict, config: ServerConfig) -> dict:
     return result
 
 
-def _format_markdown_table(result: dict) -> str:
+def _format_markdown_table(result: dict, max_plan: Optional[str] = None) -> str:
     """Format the SKILL.md output template markdown table string."""
     meta     = result["metadata"]
     estimate = result["estimate"]
@@ -215,5 +217,9 @@ def _format_markdown_table(result: dict) -> str:
 
     lines.append("**Tracking:** Estimate recorded. Actuals will be captured automatically at session end.")
     lines.append("**Tip:** Call `report_session` after your session completes to improve future estimates via calibration.")
+
+    quota_line = format_quota_line(total_exp, max_plan)
+    if quota_line:
+        lines.append(quota_line)
 
     return "\n".join(lines) + "\n"
