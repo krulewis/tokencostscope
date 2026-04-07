@@ -164,6 +164,25 @@ class TestEstimateCostOutputShape:
         est = result["estimate"]
         assert est["optimistic"] <= est["expected"] <= est["pessimistic"]
 
+    def test_text_contains_tracking_line(self, tmp_path):
+        result, _ = _call({"size": "M", "files": 5, "complexity": "medium"}, tmp_path)
+        assert "**Tracking:**" in result["text"]
+        assert "Estimate recorded" in result["text"]
+
+    def test_text_contains_report_session_nudge(self, tmp_path):
+        result, _ = _call({"size": "M", "files": 5, "complexity": "medium"}, tmp_path)
+        assert "report_session" in result["text"]
+        assert "**Tip:**" in result["text"]
+
+    def test_report_session_nudge_appears_after_tracking_line(self, tmp_path):
+        result, _ = _call({"size": "M", "files": 5, "complexity": "medium"}, tmp_path)
+        text = result["text"]
+        tracking_pos = text.find("**Tracking:**")
+        nudge_pos = text.find("**Tip:**")
+        assert tracking_pos != -1, "Tracking line missing"
+        assert nudge_pos != -1, "Nudge line missing"
+        assert nudge_pos > tracking_pos, "Nudge should appear after Tracking line"
+
 
 # ---------------------------------------------------------------------------
 # TestEstimateCostFileWrites
